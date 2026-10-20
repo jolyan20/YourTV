@@ -28,7 +28,7 @@
   /* card-only mode for the launcher */
   html.widget,html.widget body{background:transparent}
   html.widget .photo,html.widget .veil,html.widget .grain,html.widget .top-veil,html.widget .bottom-veil,
-  html.widget .dimmer,html.widget #credit,html.widget .top,html.widget .clockwrap,html.widget .bottom{display:none}
+  html.widget .dimmer,html.widget #credit,html.widget .dots,html.widget .top,html.widget .clockwrap,html.widget .bottom{display:none}
   html.widget .stage{height:auto;padding:0;display:block;transition:none}
   html.widget .mid{display:block}
   html.widget .week{width:100%}
@@ -57,7 +57,7 @@
   }
   /* the photo's description, small, under the bottom panels (full credits in docs/PHOTO-CREDITS.md) */
   #credit{
-    position:fixed;left:0;right:0;bottom:1.1vh;z-index:6;text-align:center;
+    position:fixed;left:3.6vw;bottom:1.1vh;z-index:6;text-align:left;direction:rtl;
     font-size:clamp(11px,.72vw,15px);font-weight:300;letter-spacing:.02em;
     color:rgba(246,239,224,.55);pointer-events:none;white-space:nowrap;
   }
@@ -241,8 +241,45 @@
   .pt-left b{color:#F1CF8A;font-weight:500}
   .p-mid .greet{font-size:.8em;color:#FFE2A6}
   .p-mid .cd{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
-  .week{transition:opacity .45s ease}
-  .week.fade{opacity:0}
+  .pt .q.aux .n,.pt .q.aux .t{color:#A9B4C2}
+  .pt .q.aux .n{font-size:.74em}
+  /* the card: each one slides in from above and leaves downward, slowly; dots beside it show which one */
+  .week{position:relative}
+  .wbody{transition:transform 1.1s cubic-bezier(.4,0,.2,1),opacity 1.1s ease}
+  .wbody.out{transform:translateY(5vh);opacity:0}
+  .wbody.pre{transform:translateY(-5vh);opacity:0;transition:none}
+  .dots{position:absolute;left:-1.6vw;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:.9vh}
+  .dots i{display:block;width:7px;height:7px;border-radius:50%;background:rgba(246,239,224,.28);transition:all .6s ease}
+  .dots i.on{background:var(--gold);height:20px;border-radius:4px}
+  .week li.quote .who{color:#D6AF6B}
+  .week li.quote.verse2{text-align:center;line-height:2}
+  .week li.bio{border-bottom:none;padding:.3vh 0 0;font-size:clamp(11px,.85vw,16px);color:#B9AE96;white-space:normal}
+  /* weather card: icon per day, high and low under their own headings, today stands out */
+  .wx-ic{width:1.35em;height:1.35em;flex:0 0 auto;vertical-align:-.3em}
+  .week li.fc{align-items:center}
+  .week li.fc .fd{flex:0 0 4.6em}
+  .week li.fc .fx{flex:1 1 auto;display:flex;align-items:center;gap:.5em;color:#D8CDB6;font-size:.86em}
+  .week li.fc .hi,.week li.fc .lo{flex:0 0 3.2em;text-align:center;font-variant-numeric:tabular-nums}
+  .week li.fc .lo{color:#9FB8C8}
+  .week li.fh{padding:.2vh 0 .5vh;font-size:clamp(11px,.85vw,16px);color:#B9AE96;border-bottom:1px solid rgba(220,184,111,.25)}
+  .week li.fh .fx{flex:1 1 auto}
+  .week li.fc.today{background:rgba(220,184,111,.14);border:1px solid rgba(220,184,111,.45);border-radius:10px;
+    padding-left:.6em;padding-right:.6em;margin:.3vh -.6em;color:#FFF3D6}
+  .week li.fc.today .fd{color:#FFE2A6;font-weight:500}
+  .wxline .wx-ic{width:1.1em;height:1.1em;align-self:center}
+  /* club crests beside the names */
+  .crest{width:1.05em;height:1.05em;object-fit:contain;vertical-align:-.18em;margin:0 .22em}
+  /* 24-hour time and the day/night sign under the clock */
+  .subline .h24{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;letter-spacing:.08em;color:#C6BBA4}
+  .subline .mode{display:inline-flex;align-items:center;gap:.35em;letter-spacing:.1em}
+  .subline .mode svg{width:1.25em;height:1.25em}
+  /* night: cooler and quieter than the day */
+  html.night{--gold:#C9B98F;--sand:#E6E1D6;--dim:#A9A79C}
+  html.night .veil{background:
+      linear-gradient(180deg,rgba(2,6,14,.72) 0%,rgba(2,6,14,.42) 22%,rgba(2,6,14,.26) 46%,rgba(2,6,14,.55) 74%,rgba(1,3,8,.92) 100%)}
+  html.night .clock{color:#EEF1F6;text-shadow:0 4px 70px rgba(0,0,0,.75),0 0 120px rgba(170,190,230,.10)}
+  html.night .week{background:rgba(4,10,20,.62);border-color:rgba(170,190,230,.18)}
+  .veil,.clock,.week{transition:background 4s ease,color 4s ease,border-color 4s ease}
   .p-prayer.now .big{color:#FFE9B8;text-shadow:0 0 40px rgba(220,184,111,.45)}
   .p-prayer.now .label{color:#F1CF8A}
   .live{color:#EE8B70;font-weight:500}
@@ -277,7 +314,7 @@
     </div>
 
     <div class="markets">
-      <div class="wxline"><span class="wxt" id="wx-temp"></span><span class="wxd" id="wx-desc"></span></div>
+      <div class="wxline"><span id="wx-icon"></span><span class="wxt" id="wx-temp"></span><span class="wxd" id="wx-desc"></span></div>
       <div class="wxsub"><span id="wx-city">الرياض</span><span class="wxr" id="wx-range"></span></div>
       <div class="rule l"></div>
       <div class="pt" id="pt-strip"></div>
@@ -290,12 +327,15 @@
       <div class="clock">
         <span class="ampm" id="ck-ap">—</span><span class="d" id="ck-h">--</span><span class="sep">:</span><span class="d" id="ck-m">--</span>
       </div>
-      <div class="subline"><span class="dot"></span><span id="clock-sub">بتوقيت الرياض</span></div>
+      <div class="subline"><span class="mode" id="mode"></span><span class="dot"></span><span id="clock-sub">بتوقيت الرياض</span><span class="dot"></span><span class="h24" id="ck-24"></span></div>
     </div>
 
     <div class="week">
-      <div class="hd" id="week-hd">هذا الأسبوع</div>
-      <ul id="week-list"><li class="empty">جارٍ التحميل…</li></ul>
+      <div class="dots" id="card-dots"></div>
+      <div class="wbody" id="wbody">
+        <div class="hd" id="week-hd">هذا الأسبوع</div>
+        <ul id="week-list"><li class="empty">جارٍ التحميل…</li></ul>
+      </div>
     </div>
   </section>
 
@@ -392,6 +432,54 @@ function tickClock(){
   document.getElementById('ck-h').innerHTML = digits(ar(h12));
   document.getElementById('ck-m').innerHTML = digits(ar(pad(p.mi)));
   document.getElementById('ck-ap').textContent = p.h < 12 ? 'ص' : 'م';
+  const h24 = document.getElementById('ck-24');
+  if(h24) h24.textContent = ar(pad(p.h)) + ':' + ar(pad(p.mi));
+  applyMode();
+}
+
+// ---------- day and night: from sunrise to Maghrib is day; the look, the photos and the sign follow ----------
+const ICON = {
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="#F3C969" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2" fill="#F3C969"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+  moon:'<svg viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="#D9E2F2"/></svg>',
+  cloud:'<svg viewBox="0 0 24 24"><path d="M7 18.5h10.2a4 4 0 0 0 .4-8 5.6 5.6 0 0 0-10.8 1.4A3.3 3.3 0 0 0 7 18.5z" fill="#D6DCE4"/></svg>',
+  partly:'<svg viewBox="0 0 24 24"><circle cx="8.5" cy="8.5" r="3.6" fill="#F3C969"/><path d="M8.5 2.6v1.4M2.6 8.5H4M4.3 4.3l1 1M12.7 4.3l-1 1" stroke="#F3C969" stroke-width="1.5" stroke-linecap="round"/><path d="M9 19.5h9a3.5 3.5 0 0 0 .3-7 4.9 4.9 0 0 0-9.4 1.2A2.9 2.9 0 0 0 9 19.5z" fill="#D6DCE4"/></svg>',
+  rain:'<svg viewBox="0 0 24 24"><path d="M7 14.5h10.2a4 4 0 0 0 .4-8 5.6 5.6 0 0 0-10.8 1.4A3.3 3.3 0 0 0 7 14.5z" fill="#C3CBD6"/><path d="M8.5 17l-1 3M12.5 17l-1 3M16.5 17l-1 3" stroke="#7FB6E8" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  storm:'<svg viewBox="0 0 24 24"><path d="M7 14h10.2a4 4 0 0 0 .4-8 5.6 5.6 0 0 0-10.8 1.4A3.3 3.3 0 0 0 7 14z" fill="#AEB7C4"/><path d="M12.8 14.5l-2.6 4h2.6l-1.6 3.5" stroke="#F3C969" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  fog:'<svg viewBox="0 0 24 24" stroke="#C9CFD8" stroke-width="1.8" stroke-linecap="round"><path d="M4 9h16M6 13h12M4 17h16"/></svg>',
+  snow:'<svg viewBox="0 0 24 24" stroke="#E6F0FA" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/></svg>',
+  dust:'<svg viewBox="0 0 24 24" stroke="#E8B86A" stroke-width="1.8" stroke-linecap="round" fill="none"><path d="M3 8h11a2.5 2.5 0 1 0-2.5-2.5M3 12.5h15a2.5 2.5 0 1 1-2.5 2.5M3 17h8"/></svg>',
+};
+function wxIcon(code, night){
+  if(code === 'dust') return ICON.dust;
+  if(code === 0 || code === 1) return night ? ICON.moon : ICON.sun;
+  if(code === 2) return night ? ICON.cloud : ICON.partly;
+  if(code === 3) return ICON.cloud;
+  if(code === 45 || code === 48) return ICON.fog;
+  if(code >= 95) return ICON.storm;
+  if((code >= 71 && code <= 77) || code === 85 || code === 86) return ICON.snow;
+  if(code >= 51) return ICON.rain;
+  return ICON.cloud;
+}
+function minutesOf(k, dflt){
+  const v = DAY_TIMES && DAY_TIMES[k];
+  if(!v) return dflt;
+  const [h, mi] = String(v).split(':').map(Number);
+  return h*60 + mi;
+}
+function isNight(){
+  const p = riyadhParts(), m = p.h*60 + p.mi;
+  return m < minutesOf('Sunrise', 6*60) || m >= minutesOf('Maghrib', 18*60);
+}
+let MODE = null;
+function applyMode(){
+  const night = isNight();
+  if(night === MODE) return;
+  const first = MODE === null;
+  MODE = night;
+  document.documentElement.classList.toggle('night', night);
+  const el = document.getElementById('mode');
+  if(el) el.innerHTML = (night ? ICON.moon : ICON.sun) + (night ? 'ليل' : 'نهار');
+  if(!first){ applyBackground(true); paintWeatherIcon(); }
 }
 
 // «الثلاثاء ٩ (٥) جمادى الأولى ١٤٤٨ هـ» and «الثلاثاء ٢٠ (١٠) أكتوبر ٢٠٢٦ م»: day, (month number), month, year
@@ -484,6 +572,7 @@ const UNIT = {
   min: {one:'دقيقة', two:'دقيقتين', few:'دقائق', many:'دقيقة'}
 };
 function qty(n,u){
+  if(n === 1) return u.one;
   if(n === 2) return u.two;
   if(n >= 3 && n <= 10) return `${ar(n)} ${u.few}`;
   return `${ar(n)} ${u.many}`;
@@ -559,10 +648,19 @@ function renderPrayerStrip(mins){
     return mins >= at(x) && mins < at(x) + gap;
   });
   const lit = cur || next;   // between adhan and iqama the prayer that has come stays lit
-  strip.innerHTML = PRAYERS.map(x => {
-    const cls = x === lit ? 'next' : (tomorrow || at(x) <= mins) ? 'past' : '';
+  // sunrise after Fajr, and the middle of the night (halfway from Maghrib to the next Fajr) after Isha
+  const items = PRAYERS.slice();
+  const sr = minutesOf('Sunrise', null);
+  if(sr != null) items.splice(1, 0, {aux:true, name:'الشروق', h:Math.floor(sr/60), mi:sr%60});
+  const mg = PRAYERS.find(x => x.key === 'Maghrib'), fj = PRAYERS[0];
+  if(mg && fj){
+    const mid = Math.round(at(mg) + (at(fj) + 1440 - at(mg)) / 2) % 1440;
+    items.push({aux:true, name:'منتصف الليل', h:Math.floor(mid/60), mi:mid%60});
+  }
+  strip.innerHTML = items.map(x => {
+    const cls = x === lit ? 'next' : x.aux ? 'aux' : (tomorrow || at(x) <= mins) ? 'past' : '';
     const h12 = x.h % 12 === 0 ? 12 : x.h % 12;
-    return `<span class="q ${cls}"><span class="n">${prayerName(x)}</span><span class="t">${ar(h12)}:${ar(pad(x.mi))}</span></span>`;
+    return `<span class="q ${cls}"><span class="n">${x.aux ? x.name : prayerName(x)}</span><span class="t">${ar(h12)}:${ar(pad(x.mi))}</span></span>`;
   }).join('');
   if(cur){
     const l = at(cur) + CONFIG.iqama[cur.key] - mins;
@@ -825,6 +923,11 @@ function resultsFor(id){
     .filter(ev => ev && ev.idEvent && !seen.has(ev.idEvent) && seen.add(ev.idEvent));
 }
 
+// a team's crest (TheSportsDB, small size); a broken image just disappears
+const crest = url => url ? `<img class="crest" src="${esc(url)}/tiny" alt="" onerror="this.remove()">` : '';
+const homeSide = ev => `${crest(ev.strHomeTeamBadge)}${esc(teamAr(ev.strHomeTeam))}`;
+const awaySide = ev => `${esc(teamAr(ev.strAwayTeam))}${crest(ev.strAwayTeamBadge)}`;
+
 function matchSlot(id, now, shown){
   const done = resultsFor(id).filter(ev => finishedRecently(ev, now)).sort((a,b)=>toDate(b)-toDate(a))[0];
   if(done){
@@ -832,12 +935,12 @@ function matchSlot(id, now, shown){
     shown.add(done.idEvent);
     const day = new Intl.DateTimeFormat(GREG,{timeZone:CONFIG.timezone,weekday:'long'}).format(toDate(done));
     return `<div class="mblock">`
-      + `<div class="big"><span>${esc(teamAr(done.strHomeTeam))} <span class="sc">${ar(+done.intHomeScore)} - ${ar(+done.intAwayScore)}</span> ${esc(teamAr(done.strAwayTeam))}</span></div>`
+      + `<div class="big"><span>${homeSide(done)} <span class="sc">${ar(+done.intHomeScore)} - ${ar(+done.intAwayScore)}</span> ${awaySide(done)}</span></div>`
       + `<div class="sub">النتيجة النهائية · ${day}</div></div>`;
   }
   const ev = MATCHES[id];
   if(!ev || shown.has(ev.idEvent)) return '';
-  const home = esc(teamAr(ev.strHomeTeam)), away = esc(teamAr(ev.strAwayTeam));
+  const home = homeSide(ev), away = awaySide(ev);
   const d = toDate(ev), diff = d - now;
   if(diff < -2.5*3600000 || diff > CONFIG.weekWindowDays * 86400000) return '';   // in progress stays on screen
   shown.add(ev.idEvent);
@@ -1012,22 +1115,52 @@ const PANEL_TITLE = {shows:'هذا الأسبوع', prayers:'مواقيت الي
 
 // #panel=verse on the screensaver: the card turns every 10 s through the day's verse, the day's hadith,
 // the 5-day forecast and the followed teams' games (skipped while there are none)
-const CARD_TURN_MS = 10000;
+const CARD_TURN_MS = 30000;
 let CARD_TURN = 0;
-function rotatingCard(){
+function cardSlides(){
   const day = riyadhDayNumber(), slides = [];
   if(VERSES.length) slides.push(() => verseOfDay(day));
   if(HADITH.length) slides.push(() => hadithOfDay(day));
+  if(WISDOM.length) slides.push(() => wisdomOfDay(day));
   if(FORECAST.length) slides.push(() => ({title: PANEL_TITLE.forecast, rows: forecastRows()}));
   const m = matchRows();
   if(m.length) slides.push(() => ({title: PANEL_TITLE.matches, rows: m.slice(0, WEEK_ROWS)}));
+  return slides;
+}
+function rotatingCard(){
+  const slides = cardSlides();
+  const dots = document.getElementById('card-dots');
+  if(dots) dots.innerHTML = slides.length > 1
+    ? slides.map((_, i) => `<i class="${i === CARD_TURN % slides.length ? 'on' : ''}"></i>`).join('') : '';
   return slides.length ? slides[CARD_TURN % slides.length]() : quoteOfDay();
 }
+// the card leaves downward and the next one comes in from above, slowly
 function turnCard(){
-  const card = document.querySelector('.week');
+  const body = document.getElementById('wbody');
   CARD_TURN++;
-  card.classList.add('fade');
-  setTimeout(() => { renderPanel(false); card.classList.remove('fade'); }, 450);
+  body.classList.add('out');
+  setTimeout(() => {
+    renderPanel(false);
+    body.classList.remove('out');
+    body.classList.add('pre');
+    void body.offsetWidth;
+    body.classList.remove('pre');
+  }, 1100);
+}
+
+// wisdom of the day: a proverb and what it means, a verse with its poet, or a saying with who said it
+const WISDOM = __WISDOM__;   // assets/shared/wisdom-ar.json
+function wisdomOfDay(day){
+  const w = WISDOM[day % WISDOM.length];
+  if(w.k === 'proverb') return {title:'مثل اليوم', rows:[
+    `<li class="quote">«${esc(w.text)}»</li>`, `<li class="bio">${esc(w.note)}</li>`]};
+  if(w.k === 'verse'){
+    const [a, b] = w.text.split('…').map(x => esc(x.trim()));
+    return {title:'بيت اليوم', rows:[`<li class="quote verse2">${a}<br>${b || ''}</li>`,
+      `<li class="src">${esc(w.who)}</li>`, `<li class="bio">${esc(w.bio)}</li>`]};
+  }
+  return {title:'قول مأثور', rows:[`<li class="quote">«${esc(w.text)}»</li>`,
+    `<li class="src">${esc(w.who)}</li>`, `<li class="bio">${esc(w.bio)}</li>`]};
 }
 
 function renderPanel(animate){
@@ -1068,13 +1201,23 @@ function prayerRows(){
   });
 }
 
+let WX_NOW = null;
+const svgIcon = s => s.replace('<svg ', '<svg class="wx-ic" ');
+function paintWeatherIcon(){
+  const el = document.getElementById('wx-icon');
+  if(el) el.innerHTML = WX_NOW == null ? '' : svgIcon(wxIcon(WX_NOW, isNight()));
+}
+// the 5 days: day, icon and condition, then the high and the low under their headings; today highlighted
 function forecastRows(){
-  return FORECAST.slice(0, 5).map((d, i) => {
+  if(!FORECAST.length) return [];
+  const head = `<li class="fc fh"><span class="fd"></span><span class="fx"></span><span class="hi">العليا</span><span class="lo">الدنيا</span></li>`;
+  return [head].concat(FORECAST.slice(0, 5).map((d, i) => {
     const day = i === 0 ? 'اليوم' : i === 1 ? 'غداً'
       : new Intl.DateTimeFormat(GREG, {timeZone:'UTC', weekday:'long'}).format(new Date(d.date + 'T12:00:00Z'));
-    return `<li><span>${day}</span><span class="ep">${WX_CODES[d.code] || ''}</span>`
-         + `<span class="dt">${ar(Math.round(d.hi))}° / ${ar(Math.round(d.lo))}°</span></li>`;
-  });
+    return `<li class="fc${i === 0 ? ' today' : ''}"><span class="fd">${day}</span>`
+         + `<span class="fx">${svgIcon(wxIcon(d.code, false))}${WX_CODES[d.code] || ''}</span>`
+         + `<span class="hi">${ar(Math.round(d.hi))}°</span><span class="lo">${ar(Math.round(d.lo))}°</span></li>`;
+  }));
 }
 
 // every followed team's games this week, plus results from the last day, in time order
@@ -1101,7 +1244,7 @@ function matchRows(){
         : now >= t ? '<span class="live">مباشر</span>'
         : (new Intl.DateTimeFormat('en-CA', {timeZone:CONFIG.timezone}).format(d) === today ? 'اليوم' : day(d))
           + ' ' + fmt12(+p.hour % 24, +p.minute);
-      return `<li><span>${esc(teamAr(ev.strHomeTeam))}${mid}${esc(teamAr(ev.strAwayTeam))}</span><span class="dt">${when}</span></li>`;
+      return `<li><span>${homeSide(ev)}${mid}${awaySide(ev)}</span><span class="dt">${when}</span></li>`;
     });
 }
 
@@ -1144,6 +1287,7 @@ async function loadWeather(){
     const d = document.getElementById('wx-desc');
     d.textContent = WX_CODES[j.current.weather_code] || '';
     d.classList.remove('dust');
+    WX_NOW = j.current.weather_code; paintWeatherIcon();
     const hi = j.daily?.temperature_2m_max?.[0], lo = j.daily?.temperature_2m_min?.[0];
     document.getElementById('wx-range').textContent =
       (hi != null && lo != null) ? `${ar(Math.round(hi))}° / ${ar(Math.round(lo))}°` : '';
@@ -1163,6 +1307,7 @@ async function loadWeather(){
       const d = document.getElementById('wx-desc');
       d.textContent = pm >= 400 ? 'غبار كثيف' : 'غبار';
       d.classList.add('dust');
+      WX_NOW = 'dust'; paintWeatherIcon();
     }
   }catch(e){}
 }
@@ -1227,12 +1372,15 @@ function showBackground(url, b){
   ph.style.setProperty('--dim', (1 - (b.d || 0.95)).toFixed(2));
   ph.classList.remove('settle'); void ph.offsetWidth; ph.classList.add('settle');
   const cr = document.getElementById('credit');
-  if(cr) cr.textContent = [b.t, b.c].filter(Boolean).join(' · ');
+  // the caption, then the source; «نيوم» in the caption already says NEOM
+  const src = b.t && /نيوم/.test(b.t) ? String(b.c || '').replace(/^NEOM · /, '') : b.c;
+  if(cr) cr.textContent = [b.t, src].filter(Boolean).join(' · ');
 }
 
 // Every 2 days a new random set of 8 hosted photos (Park-Miller generator seeded
-// by the 2-day period), rotating every 15 minutes. Only the photo on screen is downloaded.
-const PHOTO_SET = 8, PHOTO_PERIOD_DAYS = 2, PHOTO_SLOT_MIN = 15;
+// by the 2-day period), rotating every 30 minutes; by night only photos tagged n (sunsets, night skies).
+// Only the photo on screen is downloaded.
+const PHOTO_SET = 8, PHOTO_PERIOD_DAYS = 2, PHOTO_SLOT_MIN = 30;
 function riyadhDayNumber(){
   const p = riyadhParts();
   return Math.floor(Date.UTC(p.y, p.mo - 1, p.d) / 86400000);
@@ -1253,9 +1401,12 @@ function applyBackground(force){
   try {
     const p = riyadhParts();
     const slot = riyadhDayNumber() * (1440 / PHOTO_SLOT_MIN) + Math.floor((p.h * 60 + p.mi) / PHOTO_SLOT_MIN);
-    if(slot === BG_SLOT && !force) return;
-    BG_SLOT = slot;
-    const set = REMOTE_BGS.length ? photoSet(REMOTE_BGS.length).map(k => REMOTE_BGS[k]) : [];
+    const key = slot + (isNight() ? 'n' : 'd');
+    if(key === BG_SLOT && !force) return;
+    BG_SLOT = key;
+    const night = isNight(), tagged = REMOTE_BGS.filter(b => !!b.n === night);
+    const pool = tagged.length >= 3 ? tagged : REMOTE_BGS;
+    const set = pool.length ? photoSet(pool.length).map(k => pool[k]) : [];
     const local = BGS[slot % BGS.length];
     if(!set.length){ showBackground(local.u, local); return; }
     const b = set[slot % set.length], url = PHOTO_BASE + b.f;

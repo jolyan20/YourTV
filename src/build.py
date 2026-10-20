@@ -205,6 +205,7 @@ def main():
     html = html.replace("__TEAMS_AR__", json.dumps(teams, ensure_ascii=False))
     html = html.replace("__VERSES__", json.dumps(verses_for_screen(), ensure_ascii=False))
     html = html.replace("__HADITH__", json.dumps(hadith_for_screen(), ensure_ascii=False))   # checked by CI
+    html = html.replace("__WISDOM__", (ROOT / "assets/shared/wisdom-ar.json").read_text(encoding="utf-8").strip())
 
     bg_dir = ROOT / "assets/backgrounds"
     bgs = json.loads((bg_dir / "backgrounds.json").read_text(encoding="utf-8"))
@@ -214,9 +215,10 @@ def main():
             page = page.replace(token, data_uri(ROOT / "assets/fonts" / font, "font/woff2") if inline
                                 else REPO + "assets/fonts/" + font)
         entries = []
+        captions = json.loads((ROOT / ".github/tools/captions-ar.json").read_text(encoding="utf-8"))
         for bg in bgs:
             u = data_uri(bg_dir / bg["file"], "image/jpeg") if inline else REPO + "assets/backgrounds/" + bg["file"]
-            entries.append(f'  {{u:"{u}", c:{json.dumps(bg["credit"], ensure_ascii=False)}, d:{bg["brightness"]}}}')
+            entries.append(f'  {{u:"{u}", c:{json.dumps(bg["credit"], ensure_ascii=False)}, t:{json.dumps(captions.get(bg["file"], ""), ensure_ascii=False)}, d:{bg["brightness"]}}}')
         out = ROOT / "dist" / name
         out.parent.mkdir(exist_ok=True)
         out.write_text(page.replace("__BG_SET__", ",\n".join(entries)), encoding="utf-8")
