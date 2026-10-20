@@ -29,6 +29,7 @@ import java.util.concurrent.Semaphore;
  * logins for an hour. No cross-site access (CORS only for /api/public on this TV), strict security headers.
  */
 final class ControlServer implements Runnable {
+    private static final String CRLF = "\r\n";
     private static final int PER_ADDRESS = 5, GLOBAL = 20;
     private static final long ADDRESS_LOCK_MS = 15 * 60_000, GLOBAL_WINDOW_MS = 3600_000;
 
@@ -218,22 +219,8 @@ final class ControlServer implements Runnable {
     }
 
     private static void replyBytes(Socket s, String type, byte[] body) throws java.io.IOException {
-        String head = "HTTP/1.1 200 X
-
-Content-Type: " + type + "
-
-Content-Length: " + body.length
-            + "
-
-X-Content-Type-Options: nosniff
-
-Cache-Control: max-age=86400
-
-Connection: close
-
-
-
-";
+        String head = "HTTP/1.1 200 X" + CRLF + "Content-Type: " + type + CRLF + "Content-Length: " + body.length
+            + CRLF + "X-Content-Type-Options: nosniff" + CRLF + "Cache-Control: max-age=86400" + CRLF + "Connection: close" + CRLF + CRLF;
         OutputStream out = s.getOutputStream();
         out.write(head.getBytes(StandardCharsets.UTF_8));
         out.write(body);
