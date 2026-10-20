@@ -96,6 +96,7 @@
     display:flex;align-items:center;gap:.7em;margin-bottom:1vh;
     font-size:clamp(12px,1vw,18px);font-weight:500;letter-spacing:.18em;color:#D6AF6B;
   }
+  .week .hd .hd-ic svg{width:1.45em;height:1.45em;display:block}
   .week .hd::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(220,184,111,.5),transparent)}
   .week ul{list-style:none;display:flex;flex-direction:column;gap:0}
   .week li{
@@ -283,6 +284,12 @@
   html.night .clock{color:#EEF1F6;text-shadow:0 4px 70px rgba(0,0,0,.75),0 0 120px rgba(170,190,230,.10)}
   html.night .week{background:rgba(4,10,20,.62);border-color:rgba(170,190,230,.18)}
   .veil,.clock,.week{transition:background 4s ease,color 4s ease,border-color 4s ease}
+  /* sleep mode: the clock and the date only, dimmed */
+  html.sleep .markets,html.sleep .week,html.sleep .bottom,html.sleep .alerts,html.sleep #credit,html.sleep .subline{display:none}
+  html.sleep .photo{filter:brightness(.35)}
+  html.sleep .clock{opacity:.55}
+  html.sleep .dates{opacity:.6}
+  html.sleep .mid{grid-template-columns:1fr}
   /* alerts under the clock: prayer, Friday, fasting, matches, weather */
   .alerts{margin-top:1.8vh;display:flex;flex-wrap:wrap;justify-content:center;gap:.7vh .6vw;max-width:44vw}
   .alerts:empty{display:none}
@@ -1674,6 +1681,28 @@ function homeRows(){
           `<li class="hm2">${strip}</li>`, occLine ? `<li class="hm3">${occLine}</li>` : ''].filter(Boolean);
 }
 
+// every card's title gets an icon (gold line drawings, same weight as the text)
+const G = '#D6AF6B';
+const CARD_ICONS = [
+  [/^آية/, `<path d="M4 5.5C6.5 4.5 9.5 4.5 12 6c2.5-1.5 5.5-1.5 8-.5V19c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5z M12 6v13.5" fill="none" stroke="${G}" stroke-width="1.6" stroke-linejoin="round"/>`],
+  [/^حديث/, `<path d="M6 4h10l3 3v13H6z M16 4v3h3 M9 11h7 M9 14h7 M9 17h4" fill="none" stroke="${G}" stroke-width="1.6" stroke-linejoin="round"/>`],
+  [/^مختارات/, `<path d="M20 4c-7 1-12 6-13 14l-2 2 M7 18c4-1 8-4 10-9 M11 13l-3-1" fill="none" stroke="${G}" stroke-width="1.6" stroke-linecap="round"/>`],
+  [/^أذكار الصباح/, `<path d="M3 17h18 M7 17a5 5 0 0 1 10 0 M12 6v3 M5.6 10.6l2 1.6 M18.4 10.6l-2 1.6" fill="none" stroke="${G}" stroke-width="1.6" stroke-linecap="round"/>`],
+  [/^أذكار المساء/, `<path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z" fill="none" stroke="${G}" stroke-width="1.6" stroke-linejoin="round"/>`],
+  [/^الطقس/, null],   // the weather's own icon
+  [/^مباريات/, `<circle cx="12" cy="12" r="8.5" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M12 8l3.3 2.4-1.3 3.9h-4l-1.3-3.9z" fill="${G}"/><path d="M12 8V3.6 M15.3 10.4l4-1.3 M14 14.3l2.4 3.4 M10 14.3l-2.4 3.4 M8.7 10.4l-4-1.3" stroke="${G}" stroke-width="1.2"/>`],
+  [/^الصلاة/, `<path d="M4 20h16 M6 20v-7a6 6 0 0 1 12 0v7 M12 4v3 M10 20v-4a2 2 0 0 1 4 0v4" fill="none" stroke="${G}" stroke-width="1.6" stroke-linejoin="round"/>`],
+  [/^مواقيت/, `<circle cx="12" cy="12" r="8.5" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M12 7v5l3.5 2" stroke="${G}" stroke-width="1.6" stroke-linecap="round" fill="none"/>`],
+  [/^هذا الأسبوع/, `<rect x="3" y="5" width="18" height="12" rx="2" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M8 20h8" stroke="${G}" stroke-width="1.6"/>`],
+];
+function setCardTitle(hd, title){
+  const hit = CARD_ICONS.find(([re]) => re.test(title));
+  let svg = '';
+  if(hit) svg = hit[1] === null ? svgIcon(wxIcon(WX_NOW != null && WX_NOW !== 'dust' ? WX_NOW : (FORECAST[0] || {}).code, isNight()))
+                                : `<svg class="wx-ic" viewBox="0 0 24 24">${hit[1]}</svg>`;
+  hd.innerHTML = (svg ? `<span class="hd-ic">${svg}</span>` : '') + esc(title);
+}
+
 function renderPanel(animate){
   const ul = document.getElementById('week-list'), hd = document.getElementById('week-hd');
   const P = CONFIG.panel;
@@ -1682,9 +1711,9 @@ function renderPanel(animate){
   if(P === 'prayers') rows = prayerRows();
   else if(P === 'forecast') rows = forecastRows();
   else if(P === 'matches') rows = matchRows();
-  else if(P === 'home'){ hd.textContent = 'الصلاة القادمة'; ul.innerHTML = homeRows().join(''); return; }
-  else if(P === 'verse'){ const q = CONFIG.widget ? quoteOfDay() : rotatingCard(); hd.textContent = q.title; rows = q.rows; ul.innerHTML = rows.join(''); fitCard(ul); return; }
-  if(PANEL_TITLE[P]) hd.textContent = PANEL_TITLE[P];
+  else if(P === 'home'){ setCardTitle(hd, 'الصلاة القادمة'); ul.innerHTML = homeRows().join(''); return; }
+  else if(P === 'verse'){ const q = CONFIG.widget ? quoteOfDay() : rotatingCard(); setCardTitle(hd, q.title); rows = q.rows; ul.innerHTML = rows.join(''); fitCard(ul); return; }
+  if(PANEL_TITLE[P]) setCardTitle(hd, PANEL_TITLE[P]);
   if(!rows.length){
     ul.classList.remove('flip');
     ul.innerHTML = `<li class="empty">${P === 'matches' ? 'لا مباريات هذا الأسبوع' : 'لا تتوفر بيانات الآن'}</li>`;
@@ -1725,7 +1754,7 @@ function forecastRows(){
   const t = FORECAST[0];
   const dayName = d => new Intl.DateTimeFormat(GREG, {timeZone:'UTC', weekday:'long'}).format(new Date(d.date + 'T12:00:00Z'));
   const hero = `<li class="wx-hero"><span class="big-ic">${svgIcon(wxIcon(WX_NOW != null && WX_NOW !== 'dust' ? WX_NOW : t.code, isNight()))}</span>`
-    + `<span class="wx-today"><b>اليوم</b><span>${WX_CODES[t.code] || ''}</span></span>`
+    + `<span class="wx-today"><b>${WX_CODES[t.code] || ''}</b></span>`
     + `<span class="wx-hl"><span><small>العظمى</small>${ar(Math.round(t.hi))}°</span><span class="lo"><small>الصغرى</small>${ar(Math.round(t.lo))}°</span></span></li>`;
   const days = FORECAST.slice(1, 5).map((d, i) =>
     `<span class="wx-d"><b>${i === 0 ? 'غداً' : dayName(d)}</b>${svgIcon(wxIcon(d.code, false))}`
@@ -1773,8 +1802,8 @@ function matchCard(){
          + `<span class="mid">${mid}</span>`
          + `<span class="tt a ${ac}"><span>${esc(teamAr(ev.strAwayTeam))}</span>${crest(ev.strAwayTeamBadge)}</span>${st}</li>`;
   };
-  // results first, then what is to come; 4 games a page, the page turns every 10 s while the card is up
-  const all = [...done.map(x => ['النتائج', x]), ...rest.map(x => ['القادمة · ٣٠ يوماً', x])];
+  // results first, then the next 5 games; 4 games a page, the page turns every 10 s while the card is up
+  const all = [...done.map(x => ['النتائج', x]), ...rest.slice(0, 5).map(x => ['القادمة', x])];
   const pages = Math.max(1, Math.ceil(all.length / 4));
   MATCH_PAGES = pages;
   const page = all.slice((MATCH_CARD_PAGE % pages) * 4, (MATCH_CARD_PAGE % pages) * 4 + 4);
@@ -1876,8 +1905,16 @@ async function loadWeather(){
   }catch(e){}
 }
 
+// sleep mode: from midnight until Fajr only a dim clock and the date, nothing else moving or bright
+const SLEEP_FROM = 0;   // minutes after midnight; until Fajr
+function applySleep(){
+  const p = riyadhParts(), m = p.h*60 + p.mi;
+  const on = !CONFIG.widget && m >= SLEEP_FROM && m < minutesOf('Fajr', 4*60+30);
+  document.documentElement.classList.toggle('sleep', on);
+}
 // night dimming: transparent by day, dark after 21:00 and before 07:00
 function applyNight(){
+  applySleep();
   const p = riyadhParts();
   const h = p.h + p.mi/60;
   const MAX = 0.46;
