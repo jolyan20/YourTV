@@ -311,6 +311,8 @@
   .m3 .tt .crest{width:1.35em;height:1.35em;margin:0}
   .m3 .tt.win{color:#FFFFFF;font-weight:500}
   .m3 .tt.lose{opacity:.5}
+  .mblock .wn{color:#FFFFFF}
+  .mblock .ls{opacity:.5}
   .m3 .mid{display:flex;flex-direction:column;align-items:center;min-width:5.2em}
   .m3 .sc2{direction:ltr;font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:1.2em;color:#FFE2A6;
     background:rgba(220,184,111,.12);border:1px solid rgba(220,184,111,.35);border-radius:8px;padding:0 .55em}
@@ -401,7 +403,7 @@
     </div>
 
     <div class="panel p-match">
-      <div class="label">المباريات</div>
+      <div class="label">مباريات اليوم</div>
       <div class="mrow" id="match-row">
         <div class="none-week">لا شيء هذا الأسبوع</div>
       </div>
@@ -977,42 +979,6 @@ const crest = url => url ? `<img class="crest" src="${esc(url)}/tiny" alt="" one
 const homeSide = ev => `${crest(ev.strHomeTeamBadge)}${esc(teamAr(ev.strHomeTeam))}`;
 const awaySide = ev => `${esc(teamAr(ev.strAwayTeam))}${crest(ev.strAwayTeamBadge)}`;
 
-function matchSlot(id, now, shown){
-  const done = resultsFor(id).filter(ev => finishedRecently(ev, now)).sort((a,b)=>toDate(b)-toDate(a))[0];
-  if(done){
-    if(shown.has(done.idEvent)) return '';          // both teams in the same game
-    shown.add(done.idEvent);
-    const day = new Intl.DateTimeFormat(GREG,{timeZone:CONFIG.timezone,weekday:'long'}).format(toDate(done));
-    return `<div class="mblock">`
-      + `<div class="big"><span>${homeSide(done)} <span class="sc">${ar(+done.intHomeScore)} - ${ar(+done.intAwayScore)}</span> ${awaySide(done)}</span></div>`
-      + `<div class="sub">النتيجة النهائية · ${day}</div></div>`;
-  }
-  const ev = MATCHES[id];
-  if(!ev || shown.has(ev.idEvent)) return '';
-  const home = homeSide(ev), away = awaySide(ev);
-  const d = toDate(ev), diff = d - now;
-  if(diff < -2.5*3600000 || diff > CONFIG.weekWindowDays * 86400000) return '';   // in progress stays on screen
-  shown.add(ev.idEvent);
-  const p = new Intl.DateTimeFormat('en-GB',{timeZone:CONFIG.timezone,hour:'2-digit',minute:'2-digit',hour12:false})
-    .formatToParts(d).reduce((a,x)=>(a[x.type]=x.value,a),{});
-  const t12 = ar(fmt12(+p.hour % 24, +p.minute));
-  const live = diff <= 0 && ev.intHomeScore != null && ev.intAwayScore != null;
-  const sub = diff > 0 ? `بعد ${shortRemaining(diff)} · ${t12}` : `<span class="live">مباشر</span> · ${liveStatus(ev, t12)}`;
-  const mid = live ? ` <span class="sc">${ar(+ev.intHomeScore)} - ${ar(+ev.intAwayScore)}</span> ` : ' × ';
-  return `<div class="mblock">`
-       + `<div class="big"><span>${home}${mid}${away}</span></div>`
-       + `<div class="sub">${sub}</div>`
-       + `</div>`;
-}
-
-function liveStatus(ev, t12){
-  const st = (ev.strStatus || '').toUpperCase();
-  if(st === 'HT') return 'استراحة';
-  if(['FT','AET','PEN'].includes(st)) return 'انتهت';
-  const m = parseInt(ev.strProgress, 10);
-  return isNaN(m) ? `بدأت ${t12}` : `الدقيقة ${ar(m)}`;
-}
-
 // while a picked team is playing, refresh that event every 2 minutes
 async function loadLive(){
   const now = Date.now();
@@ -1030,13 +996,54 @@ async function loadLive(){
   renderMatches();
 }
 
-// Every followed team with something to show, two at a time; the page turns every 15 s.
+// The bottom panel: today's biggest games from the leagues that matter here, two at a time, a new pair every
+// 15 s. Live games first, then the followed teams', then by league (Roshn first), then by kick-off.
+const TOP_LEAGUES = [['4668','دوري روشن'], ['5649','كأس الملك'], ['5650','كأس السوبر السعودي'],
+  ['4328','الدوري الإنجليزي'], ['4335','الدوري الإسباني'], ['4332','الدوري الإيطالي']];
+let TODAY_GAMES = [];
+async function loadToday(){
+  const day = new Intl.DateTimeFormat('en-CA',{timeZone:CONFIG.timezone}).format(new Date());
+  const got = await Promise.all(TOP_LEAGUES.map(async ([id, name], rank) => {
+    try{
+      const r = await fetchT(`https://www.thesportsdb.com/api/v1/json/${CONFIG.sportsKey}/eventsday.php?d=${day}&l=${id}`, 12000);
+      if(!r.ok) return null;
+      return ((await r.json()).events || []).map(ev => ({ev, rank, lg: name}));
+    }catch(e){ return null; }
+  }));
+  if(got.every(x => x === null)) return;   // offline: keep what is shown
+  const mine = new Set(CONFIG.teamIds);
+  const now = Date.now();
+  TODAY_GAMES = got.flat().filter(Boolean).map(x => Object.assign(x, {t: toDate(x.ev).getTime(),
+      mine: mine.has(String(x.ev.idHomeTeam)) || mine.has(String(x.ev.idAwayTeam))}))
+    .sort((a, b) => (gameState(b, now) === 'live') - (gameState(a, now) === 'live') || b.mine - a.mine || a.rank - b.rank || a.t - b.t);
+  renderMatches();
+}
+function gameState(x, now){
+  const ev = x.ev, scored = ev.intHomeScore != null && ev.intAwayScore != null;
+  if(FINAL.includes((ev.strStatus || '').toUpperCase()) || (scored && now > x.t + 2.5*3600000)) return 'done';
+  if(now >= x.t) return 'live';
+  return 'next';
+}
+function todaySlot(x, now){
+  const ev = x.ev, st = gameState(x, now), hs = +ev.intHomeScore, as = +ev.intAwayScore;
+  const scored = ev.intHomeScore != null && ev.intAwayScore != null;
+  let hc = '', ac = '';
+  if(st === 'done' && scored){ if(hs > as){ hc = 'wn'; ac = 'ls'; } else if(hs < as){ hc = 'ls'; ac = 'wn'; } }
+  const mid = scored && st !== 'next' ? ` <span class="sc">${ar(hs)} - ${ar(as)}</span> ` : ' × ';
+  const p = new Intl.DateTimeFormat('en-GB',{timeZone:CONFIG.timezone,hour:'2-digit',minute:'2-digit',hour12:false})
+    .formatToParts(new Date(x.t)).reduce((a, y) => (a[y.type] = y.value, a), {});
+  const when = st === 'done' ? (scored && hs === as ? 'تعادل' : 'انتهت')
+    : st === 'live' ? `<span class="live">مباشر</span>${ev.strProgress && !isNaN(parseInt(ev.strProgress, 10)) ? ' · الدقيقة ' + ar(parseInt(ev.strProgress, 10)) : ''}`
+    : fmt12(+p.hour % 24, +p.minute);
+  return `<div class="mblock"><div class="big"><span><span class="${hc}">${homeSide(ev)}</span>${mid}<span class="${ac}">${awaySide(ev)}</span></span></div>`
+       + `<div class="sub">${x.lg} · ${when}</div></div>`;
+}
 let MATCH_PAGE = 0;
 function renderMatches(turn){
-  const now = Date.now(), shown = new Set();
-  const slots = CONFIG.teamIds.map(id => matchSlot(id, now, shown)).filter(Boolean);
+  const now = Date.now();
+  const slots = TODAY_GAMES.map(x => todaySlot(x, now));
   const row = document.getElementById('match-row');
-  if(!slots.length){ row.innerHTML = '<div class="none-week">لا شيء هذا الأسبوع</div>'; return; }
+  if(!slots.length){ row.innerHTML = '<div class="none-week">لا مباريات اليوم</div>'; return; }
   const per = CONFIG.matchesPerPage, pages = Math.ceil(slots.length / per);
   if(turn) MATCH_PAGE++;
   MATCH_PAGE %= pages;
@@ -1555,7 +1562,7 @@ function boot(){
   tickClock(); tickDates(); tickRamadan();
   if(CONFIG.panel === 'none') document.querySelector('.week').style.display = 'none';
   else if(CONFIG.panel !== 'shows') renderPanel(false);   // its own data arrives with prayers, weather, matches
-  loadPrayers(); loadMatches(); if(CONFIG.panel === 'shows') loadWeek(); loadWeather();
+  loadPrayers(); loadMatches(); loadToday(); if(CONFIG.panel === 'shows') loadWeek(); loadWeather();
   applyNight(); pixelShift();
 
   setInterval(tickClock, 1000);
@@ -1565,6 +1572,7 @@ function boot(){
   setInterval(loadLive, 2*60000);
   setInterval(loadPrayers, 6*3600*1000);
   setInterval(loadMatches, 30*60*1000);
+  setInterval(loadToday, 3*60*1000);   // scores of today's games
   if(CONFIG.panel === 'shows') setInterval(loadWeek, 6*3600*1000);
   setInterval(loadWeather, 30*60*1000);
   setInterval(()=>{
@@ -1578,7 +1586,7 @@ function boot(){
   let lastDay = new Intl.DateTimeFormat('en-CA',{timeZone:CONFIG.timezone}).format(new Date());
   setInterval(()=>{
     const d = new Intl.DateTimeFormat('en-CA',{timeZone:CONFIG.timezone}).format(new Date());
-    if(d !== lastDay){ lastDay = d; loadPhotoIndex().then(() => applyBackground(true)); tickDates(); tickRamadan(); loadPrayers(); loadMatches(); if(CONFIG.panel === 'shows') loadWeek(); loadWeather(); renderPanel(false); }
+    if(d !== lastDay){ lastDay = d; loadPhotoIndex().then(() => applyBackground(true)); tickDates(); tickRamadan(); loadPrayers(); loadMatches(); loadToday(); if(CONFIG.panel === 'shows') loadWeek(); loadWeather(); renderPanel(false); }
   }, 60*1000);
 }
 
