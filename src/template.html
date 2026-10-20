@@ -930,8 +930,12 @@ function occasionDates(){
   // the next (or current) school holiday, from assets/shared/school-holidays.json
   const ymd = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m-1, d); };
   const hol = SCHOOL.holidays.map(h => ({h, from: ymd(h.from), to: ymd(h.to)})).find(x => x.to >= t0);
-  if(hol) list.push({o: {name: hol.h.name, greet: 'إجازة سعيدة'}, school: hol, t: hol.from,
-    label: 'الإجازة القادمة · ' + hol.h.name, days: Math.max(0, Math.round((hol.from - t0) / 86400000))});
+  if(hol){
+    const len = Math.round((hol.to - hol.from) / 86400000) + 1;   // both ends included
+    const lenWord = len === 2 ? 'يومان' : len >= 3 && len <= 10 ? ar(len) + ' أيام' : ar(len) + ' يوماً';
+    list.push({o: {name: hol.h.name + ' (' + lenWord + ')', greet: 'إجازة سعيدة'}, school: hol, t: hol.from,
+      label: 'الإجازة القادمة · ' + hol.h.name + ' (' + lenWord + ')', days: Math.max(0, Math.round((hol.from - t0) / 86400000))});
+  }
   list.sort((a, b) => a.t - b.t);
   OCC_CACHE = {day: dayKey, list};
   return list;
@@ -1158,9 +1162,11 @@ async function sdbGet(path){
 async function roundEvents(league, round, season, maxAgeMs){
   const key = league + '|' + round + '|' + season, c = ROUND_CACHE[key];
   if(c && Date.now() - c.at < maxAgeMs) return c.events;
-  const j = await sdbGet(`eventsround.php?id=${league}&r=${round}&s=${encodeURIComponent(season)}`);
-  const events = (j && j.events) || (c ? c.events : []);
-  if(j) ROUND_CACHE[key] = {at: Date.now(), events};
+  const path = `eventsround.php?id=${league}&r=${round}&s=${encodeURIComponent(season)}`;
+  const j = await sdbGet(path) || await sdbGet(path);   // one retry
+  if(!j) return c ? c.events : null;                     // failed: null, not "no games"
+  const events = j.events || [];
+  ROUND_CACHE[key] = {at: Date.now(), events};
   return events;
 }
 async function nextOfLeague(league){
@@ -1184,7 +1190,7 @@ async function leagueGames(league, fromMs, toMs, maxAgeMs){
   const out = [];
   for(let i = -1; i < 14 && r + i > 0; i++){
     const evs = await roundEvents(league, r + i, nx.strSeason, maxAgeMs);
-    if(!evs.length) break;
+    if(!evs || !evs.length) break;
     const ts = evs.map(e => toDate(e).getTime());
     if(Math.max(...ts) < fromMs){ ROUND_CACHE[league + '|' + (r + i) + '|' + nx.strSeason].at = Date.now() + 18*3600000; continue; }
     evs.forEach((e, k) => { if(ts[k] >= fromMs && ts[k] <= toMs) out.push(e); });
