@@ -209,6 +209,7 @@ def main():
     picks = json.loads((ROOT / "assets/shared/my-verses.json").read_text(encoding="utf-8") or "[]")
     picks += json.loads((ROOT / "assets/shared/wisdom-ar.json").read_text(encoding="utf-8"))
     html = html.replace("__WISDOM__", json.dumps(picks, ensure_ascii=False))
+    html = html.replace("__SCHOOL__", (ROOT / "assets/shared/school-holidays.json").read_text(encoding="utf-8").strip())
 
     bg_dir = ROOT / "assets/backgrounds"
     bgs = json.loads((bg_dir / "backgrounds.json").read_text(encoding="utf-8"))

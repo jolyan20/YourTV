@@ -281,6 +281,29 @@
   html.night .clock{color:#EEF1F6;text-shadow:0 4px 70px rgba(0,0,0,.75),0 0 120px rgba(170,190,230,.10)}
   html.night .week{background:rgba(4,10,20,.62);border-color:rgba(170,190,230,.18)}
   .veil,.clock,.week{transition:background 4s ease,color 4s ease,border-color 4s ease}
+  /* alerts under the clock: prayer, Friday, fasting, matches, weather */
+  .alerts{margin-top:1.8vh;display:flex;flex-wrap:wrap;justify-content:center;gap:.7vh .6vw;max-width:44vw}
+  .alerts:empty{display:none}
+  .al{display:inline-flex;align-items:center;gap:.45em;padding:.38em .95em;border-radius:999px;white-space:nowrap;
+    font-size:clamp(13px,1.05vw,20px);font-weight:500;background:rgba(0,0,0,.42);border:1px solid rgba(255,255,255,.3);color:#F6EEDC}
+  .al svg{width:1.25em;height:1.25em;flex:0 0 auto}
+  .al small{font-weight:400;opacity:.85;font-size:.82em}
+  .al .saw{font-family:'NotoMarks','Noto Naskh Arabic',serif;font-size:1.35em;line-height:1;color:#F3D48A}
+  .al.prayer{border-color:#E8C46F;background:rgba(220,184,111,.22);color:#FFE7AE}
+  .al.fri{border-color:#7FCF9C;background:rgba(87,210,148,.16);color:#D9F5E4}
+  .al.fast{border-color:#8ED1D6;background:rgba(110,200,210,.16);color:#DDF4F6}
+  .al.match{border-color:#9DB8F0;background:rgba(120,160,240,.16);color:#E2EBFD}
+  .al.live{border-color:#F08A70;background:rgba(238,106,80,.24);color:#FFE1D8}
+  .al.w1{border-color:#F2D46B;background:rgba(242,212,107,.18);color:#FFF2C4}
+  .al.w2{border-color:#F2A24B;background:rgba(242,162,75,.22);color:#FFE2C2}
+  .al.w3{border-color:#F06A5A;background:rgba(240,106,90,.28);color:#FFD9D3}
+  /* the adhan: a large panel over the card for its first minutes */
+  .adhan{position:absolute;inset:0;z-index:3;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.6vh;
+    border-radius:12px;background:rgba(6,18,12,.94);border:1px solid rgba(220,184,111,.6);text-align:center}
+  .adhan.on{display:flex}
+  .adhan .a1{font-size:clamp(18px,1.5vw,30px);color:#D6AF6B;letter-spacing:.1em}
+  .adhan .a2{font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:clamp(40px,4.2vw,84px);color:#FFF3D6;line-height:1.1}
+  .adhan .a3{font-size:clamp(15px,1.2vw,24px);color:#C6BBA4}
   /* one card size for every card: the content is centred in it and shrinks only if it would not fit */
   .week{height:46vh;display:flex;flex-direction:column}
   html.widget .week{height:auto}
@@ -303,8 +326,12 @@
   .wx-d svg{width:1.6em;height:1.6em}
   .wx-d i{font-style:normal;opacity:.5}
   /* matches: home on the right, the score or kick-off in the middle, away on the left */
-  .week li.mh{border-bottom:none;padding:.9vh 0 .2vh;font-size:.7em;letter-spacing:.15em;color:#D6AF6B}
-  .week li.m3{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1vw;padding:.9vh 0}
+  .week li.mh{border-bottom:none;padding:.5vh 0 .1vh;font-size:.7em;letter-spacing:.15em;color:#D6AF6B}
+  .week li.m3{display:grid;grid-template-columns:1fr auto 1fr;grid-template-rows:auto auto;align-items:center;
+    column-gap:1vw;row-gap:.1vh;padding:.55vh 0}
+  .week li.m3 > span{max-width:none;padding:0;margin:0}
+  .m3 .tt,.m3 .mid{grid-row:1}
+  .m3 > .st{grid-row:2;grid-column:2;text-align:center}
   .m3 .tt{display:flex;align-items:center;gap:.4em;min-width:0;overflow:hidden}
   .m3 .tt span{overflow:hidden;text-overflow:ellipsis}
   .m3 .tt.a{justify-content:flex-end}
@@ -313,7 +340,7 @@
   .m3 .tt.lose{opacity:.5}
   .mblock .wn{color:#FFFFFF}
   .mblock .ls{opacity:.5}
-  .m3 .mid{display:flex;flex-direction:column;align-items:center;min-width:5.2em}
+  .m3 .mid{display:flex;justify-content:center;min-width:5.2em}
   .m3 .sc2{direction:ltr;font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:1.2em;color:#FFE2A6;
     background:rgba(220,184,111,.12);border:1px solid rgba(220,184,111,.35);border-radius:8px;padding:0 .55em}
   .m3 .sc2 i{font-style:normal;opacity:.6}
@@ -321,7 +348,8 @@
   .m3 .st{font-size:.62em;color:#9C9279;margin-top:.2vh}
   .m3 .st.live{color:#EE8B70;font-weight:500}
   /* the month's number, small and gold, joined to its name */
-  .mn{color:var(--gold);margin-inline-start:.35em}
+  .mchip{display:inline-block;unicode-bidi:isolate;font-size:.6em;line-height:1.35;color:var(--gold);
+    border:1px solid rgba(220,184,111,.7);border-radius:6px;padding:0 .45em;margin:0 .15em;vertical-align:.22em}
   /* occasions: «متبقي» small before the number */
   .p-mid .left{font-family:'Thmanyah',sans-serif;font-size:.42em;font-weight:400;color:#C6BBA4;vertical-align:.35em}
   /* day / night: a clear badge under the clock */
@@ -378,10 +406,12 @@
         <span class="ampm" id="ck-ap">—</span><span class="d" id="ck-h">--</span><span class="sep">:</span><span class="d" id="ck-m">--</span>
       </div>
       <div class="subline"><span class="mode" id="mode"></span><span class="dot"></span><span id="clock-sub">بتوقيت الرياض</span><span class="dot"></span><span class="h24" id="ck-24"></span></div>
+      <div class="alerts" id="alerts"></div>
     </div>
 
     <div class="week">
       <div class="dots" id="card-dots"></div>
+      <div class="adhan" id="adhan"></div>
       <div class="wbody" id="wbody">
         <div class="hd" id="week-hd">هذا الأسبوع</div>
         <ul id="week-list"><li class="empty">جارٍ التحميل…</li></ul>
@@ -532,8 +562,8 @@ function applyMode(){
   if(!first){ applyBackground(true); paintWeatherIcon(); }
 }
 
-// «الثلاثاء ٩ ٥-جمادى الأولى ١٤٤٨ هـ» and «الثلاثاء ٢٠ ١٠-أكتوبر ٢٠٢٦ م»: the month's number joined to its name,
-// small and in gold so it never reads as part of the day
+// «الثلاثاء ٩ جمادى الأولى [٥] ١٤٤٨ هـ»: the month's number in a small gold box right after its name,
+// isolated from the text direction so it can never flip or read as part of the day
 function dateLine(cal, now){
   const parts = new Intl.DateTimeFormat('ar-SA-u-ca-' + cal + '-nu-latn',{
     timeZone: CONFIG.timezone, weekday:'long', day:'numeric', month:'long', year:'numeric'
@@ -541,7 +571,7 @@ function dateLine(cal, now){
   const mo = +new Intl.DateTimeFormat('en-u-ca-' + cal,{timeZone: CONFIG.timezone, month:'numeric'})
     .format(now).replace(/[^0-9]/g,'');
   const num = s => ar(String(s).replace(/[^0-9]/g,''));
-  return `${esc(parts.weekday)} ${num(parts.day)} <span class="mn">${ar(mo)}-</span>${esc(parts.month)} ${num(parts.year)}`;
+  return `${esc(parts.weekday)} ${num(parts.day)} ${esc(parts.month)} <span class="mchip">${ar(mo)}</span> ${num(parts.year)}`;
 }
 function tickDates(){
   const now = new Date();
@@ -658,6 +688,7 @@ function tickPrayer(){
   const p = riyadhParts();
   const mins = p.h*60 + p.mi + p.s/60;
   renderPrayerStrip(mins);
+  renderAlerts();
 
   // between adhan and iqama: show the iqama countdown
   const cur = PRAYERS.find(x=>{
@@ -720,6 +751,98 @@ function renderPrayerStrip(mins){
     const l = at(next) + (tomorrow ? 1440 : 0) - mins;
     left.innerHTML = `التالية: <b>${prayerName(next)}</b> بعد ${humanRemaining(Math.max(0, Math.round(l*60)))}`;
   }
+}
+
+// ---------- alerts under the clock ----------
+const WARN_ICON = c => `<svg viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3z" fill="${c}"/><path d="M12 9v5" stroke="#1a1208" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="#1a1208"/></svg>`;
+const pill = (cls, text, icon) => `<span class="al ${cls}">${icon || ''}<span>${text}</span></span>`;
+const SEV = {1:['w1','منخفضة','#F2D46B'], 2:['w2','متوسطة','#F2A24B'], 3:['w3','عالية','#F06A5A']};
+let DUST_PM = 0;
+const digitsOf = s => +String(s).replace(/[^0-9]/g, '');
+function hijriOf(d){
+  const p = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura',{timeZone:CONFIG.timezone,day:'numeric',month:'numeric'})
+    .formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
+  return {m: digitsOf(p.month), d: digitsOf(p.day)};
+}
+const weekdayOf = d => new Intl.DateTimeFormat('en-US',{timeZone:CONFIG.timezone,weekday:'short'}).format(d);
+// why a day is a fasting day (Umm al-Qura); none on the Eids, the days of Tashreeq and in Ramadan
+function fastReasons(d){
+  const h = hijriOf(d), wd = weekdayOf(d), out = [];
+  if(h.m === 9 || (h.m === 10 && h.d === 1) || (h.m === 12 && h.d >= 10 && h.d <= 13)) return out;
+  if(h.m === 12 && h.d === 9) out.push('يوم عرفة');
+  if(h.m === 1 && h.d === 9) out.push('تاسوعاء');
+  if(h.m === 1 && h.d === 10) out.push('عاشوراء');
+  if(h.m === 10 && h.d >= 2) out.push('الست من شوال');
+  if(h.d >= 13 && h.d <= 15) out.push('الأيام البيض');
+  if(wd === 'Mon') out.push('الاثنين');
+  if(wd === 'Thu') out.push('الخميس');
+  return out;
+}
+function weatherAlerts(){
+  const out = [], t = FORECAST[0];
+  const add = (lvl, text) => { const [c, word, col] = SEV[lvl]; out.push(pill(c, `${text} <small>· خطورة ${word}</small>`, WARN_ICON(col))); };
+  if(DUST_PM >= 400) add(3, 'غبار كثيف'); else if(DUST_PM >= 150) add(2, 'غبار');
+  const codes = [WX_NOW, t && t.code].filter(c => typeof c === 'number');
+  if(codes.some(c => c >= 95)) add(3, 'عواصف رعدية');
+  else if(codes.some(c => c === 65 || c === 82 || c === 67)) add(3, 'أمطار غزيرة');
+  else if(codes.some(c => (c >= 61 && c <= 66) || c === 80 || c === 81)) add(2, 'أمطار');
+  else if(codes.some(c => c >= 51 && c <= 57)) add(1, 'رذاذ');
+  if(codes.some(c => c === 45 || c === 48)) add(2, 'ضباب');
+  if(t && t.hi >= 48) add(3, `حرارة شديدة ${ar(Math.round(t.hi))}°`);
+  else if(t && t.hi >= 45) add(2, `حرارة عالية ${ar(Math.round(t.hi))}°`);
+  return out;
+}
+function matchAlerts(now){
+  const out = [], seen = new Set();
+  CONFIG.teamIds.forEach(id => {
+    const ev = MATCHES[id];
+    if(!ev || !ev.idEvent || seen.has(ev.idEvent)) return;
+    seen.add(ev.idEvent);
+    const t = toDate(ev).getTime(), mine = String(ev.idHomeTeam) === id;
+    const me = teamAr(mine ? ev.strHomeTeam : ev.strAwayTeam), them = teamAr(mine ? ev.strAwayTeam : ev.strHomeTeam);
+    const scored = ev.intHomeScore != null && ev.intAwayScore != null;
+    if(now >= t && now < t + 2.5*3600000 && !FINAL.includes((ev.strStatus || '').toUpperCase()))
+      out.push(pill('live', `مباشر: ${esc(teamAr(ev.strHomeTeam))} ${scored ? ar(+ev.intHomeScore) + ' - ' + ar(+ev.intAwayScore) : '×'} ${esc(teamAr(ev.strAwayTeam))}`));
+    else if(t > now && t - now <= 3*3600000)
+      out.push(pill('match', `${esc(me)} يلعب بعد ${humanRemaining(Math.round((t - now)/1000))} <small>ضد ${esc(them)}</small>`));
+  });
+  return out;
+}
+function renderAlerts(){
+  const box = document.getElementById('alerts');
+  if(!box || CONFIG.widget) return;
+  const now = Date.now(), p = riyadhParts(), mins = p.h*60 + p.mi + p.s/60, out = [];
+  const at = x => x.h*60 + x.mi;
+  const maghrib = minutesOf('Maghrib', 18*60);
+  // prayer: 10 minutes before the adhan
+  const next = PRAYERS.find(x => at(x) > mins && at(x) - mins <= 10);
+  if(next) out.push(pill('prayer', `${prayerName(next)} بعد ${humanRemaining(Math.max(60, Math.round((at(next) - mins)*60)))}`));
+  // Friday: from Thursday's Maghrib to Friday's Maghrib, and the hour and a half before the Friday prayer
+  const wd = weekdayOf(new Date());
+  if((wd === 'Thu' && mins >= maghrib) || (wd === 'Fri' && mins < maghrib)){
+    out.push(pill('fri', 'قراءة سورة الكهف'));
+    out.push(pill('fri', 'أكثروا من الصلاة على النبي <span class="saw">ﷺ</span>'));
+  }
+  const dh = PRAYERS.find(x => x.key === 'Dhuhr');
+  if(wd === 'Fri' && dh && at(dh) - mins > 10 && at(dh) - mins <= 90)
+    out.push(pill('fri', `صلاة الجمعة بعد ${humanRemaining(Math.round((at(dh) - mins)*60))} <small>· التبكير إليها</small>`));
+  // fasting: today until Maghrib, then tomorrow
+  const day = mins < maghrib ? new Date() : new Date(now + 86400000);
+  const why = fastReasons(day);
+  if(why.length) out.push(pill('fast', `${mins < maghrib ? 'اليوم' : 'غداً'}: صيام ${why.join('، ')}`));
+  out.push(...matchAlerts(now), ...weatherAlerts());
+  box.innerHTML = out.join('');
+  renderAdhan(mins);
+}
+// the first 5 minutes after an adhan: a large panel over the card; the iqama countdown stays in the bottom panel
+function renderAdhan(mins){
+  const el = document.getElementById('adhan');
+  if(!el) return;
+  const cur = PRAYERS.find(x => mins >= x.h*60 + x.mi && mins < x.h*60 + x.mi + 5);
+  if(!cur){ el.classList.remove('on'); return; }
+  el.innerHTML = `<div class="a1">حان الآن وقت</div><div class="a2">صلاة ${prayerName(cur)}</div>`
+    + `<div class="a3">${fmt12(cur.h, cur.mi)} · بتوقيت ${esc(CONFIG.city)}</div>`;
+  el.classList.add('on');
 }
 
 let RAM_CACHE = {day:'', val:null};
@@ -794,7 +917,13 @@ function occasionDates(){
       label = o.year === 'national' ? o.name + ' ' + ar(y - 1930) : o.name;
     }
     return {o, t, label, days: Math.round((t - t0) / 86400000)};
-  }).filter(Boolean).sort((a, b) => a.t - b.t);
+  }).filter(Boolean);
+  // the next (or current) school holiday, from assets/shared/school-holidays.json
+  const ymd = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m-1, d); };
+  const hol = SCHOOL.holidays.map(h => ({h, from: ymd(h.from), to: ymd(h.to)})).find(x => x.to >= t0);
+  if(hol) list.push({o: {name: hol.h.name, greet: 'إجازة سعيدة'}, school: hol, t: hol.from,
+    label: 'الإجازة القادمة · ' + hol.h.name, days: Math.max(0, Math.round((hol.from - t0) / 86400000))});
+  list.sort((a, b) => a.t - b.t);
   OCC_CACHE = {day: dayKey, list};
   return list;
 }
@@ -802,8 +931,17 @@ function dayWord(n){
   if(n === 2) return 'يومين';
   return ar(n) + ' <span class="unit">' + (n >= 3 && n <= 10 ? 'أيام' : 'يوم') + '</span>';
 }
+const SCHOOL = __SCHOOL__;   // assets/shared/school-holidays.json
+const longDate = t => new Intl.DateTimeFormat(GREG,{timeZone:'UTC',weekday:'long',day:'numeric',month:'long',year:'numeric'})
+  .format(new Date(t + 12*3600000)).replace('،', '') + ' م';
 function renderOccasion(x, elL, elD, elS){
   elL.textContent = x.label;
+  if(x.school && x.days <= 0){          // during the holiday: the day school starts again
+    elL.textContent = x.o.name;
+    elD.innerHTML = '<span class="greet">' + esc(x.o.greet) + '</span>';
+    elS.textContent = 'العودة ' + longDate(x.school.to + 86400000);
+    return;
+  }
   if(x.days <= 0){
     elD.innerHTML = '<span class="greet">' + esc(x.o.greet) + '</span>';
     elS.textContent = 'اليوم';
@@ -817,8 +955,7 @@ function renderOccasion(x, elL, elD, elS){
     return;
   }
   elD.innerHTML = '<span class="left">متبقي</span> ' + dayWord(x.days);
-  elS.textContent = 'يوافق ' + new Intl.DateTimeFormat(GREG,{timeZone:'UTC',weekday:'long',day:'numeric',month:'long',year:'numeric'})
-    .format(new Date(x.t + 12*3600000)).replace('،', '') + ' م';
+  elS.textContent = (x.school ? 'تبدأ ' : 'يوافق ') + longDate(x.t);
 }
 
 function tickRamadan(){
@@ -1069,6 +1206,7 @@ async function loadMatches(){
   }));
   if(!answered && CONFIG.teamIds.length) return;    // offline: keep what is shown (the saved panels)
   renderMatches();
+  renderAlerts();
   if(CONFIG.panel === 'matches') renderPanel(false);
 }
 
@@ -1308,19 +1446,23 @@ function matchCard(){
     const fin = finishedRecently(ev, now), live = !fin && now >= t && scored;
     let hc = '', ac = '';
     if(fin){ if(+hs > +as){ hc = 'win'; ac = 'lose'; } else if(+hs < +as){ hc = 'lose'; ac = 'win'; } }
-    let mid;
-    if(fin || live) mid = `<span class="sc2">${ar(+hs)} <i>-</i> ${ar(+as)}</span><span class="st ${live ? 'live' : ''}">${live ? 'مباشر' : (+hs === +as ? 'تعادل' : 'انتهت')}</span>`;
+    let mid, st;
+    if(fin || live){
+      mid = `<span class="sc2">${ar(+hs)} <i>-</i> ${ar(+as)}</span>`;
+      st = `<span class="st ${live ? 'live' : ''}">${live ? 'مباشر' : (+hs === +as ? 'تعادل' : 'انتهت')}</span>`;
+    }
     else {
       const d = new Date(t);
       const p = new Intl.DateTimeFormat('en-GB', {timeZone:CONFIG.timezone, hour:'2-digit', minute:'2-digit', hour12:false})
         .formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
       const day = new Intl.DateTimeFormat('en-CA', {timeZone:CONFIG.timezone}).format(d) === today ? 'اليوم'
         : new Intl.DateTimeFormat(GREG, {timeZone:CONFIG.timezone, weekday:'long'}).format(d);
-      mid = `<span class="tm">${fmt12(+p.hour % 24, +p.minute)}</span><span class="st">${day}</span>`;
+      mid = `<span class="tm">${fmt12(+p.hour % 24, +p.minute)}</span>`;
+      st = `<span class="st">${day}</span>`;
     }
     return `<li class="m3"><span class="tt ${hc}">${crest(ev.strHomeTeamBadge)}<span>${esc(teamAr(ev.strHomeTeam))}</span></span>`
          + `<span class="mid">${mid}</span>`
-         + `<span class="tt a ${ac}"><span>${esc(teamAr(ev.strAwayTeam))}</span>${crest(ev.strAwayTeamBadge)}</span></li>`;
+         + `<span class="tt a ${ac}"><span>${esc(teamAr(ev.strAwayTeam))}</span>${crest(ev.strAwayTeamBadge)}</span>${st}</li>`;
   };
   const out = [];
   if(done.length) out.push('<li class="mh">النتائج</li>', ...done.map(row));
@@ -1395,7 +1537,7 @@ async function loadWeather(){
     const d = document.getElementById('wx-desc');
     d.textContent = WX_CODES[j.current.weather_code] || '';
     d.classList.remove('dust');
-    WX_NOW = j.current.weather_code; paintWeatherIcon();
+    WX_NOW = j.current.weather_code; paintWeatherIcon(); DUST_PM = 0; renderAlerts();
     const hi = j.daily?.temperature_2m_max?.[0], lo = j.daily?.temperature_2m_min?.[0];
     document.getElementById('wx-range').textContent =
       (hi != null && lo != null) ? `العظمى ${ar(Math.round(hi))}° · الصغرى ${ar(Math.round(lo))}°` : '';
@@ -1415,7 +1557,7 @@ async function loadWeather(){
       const d = document.getElementById('wx-desc');
       d.textContent = pm >= 400 ? 'غبار كثيف' : 'غبار';
       d.classList.add('dust');
-      WX_NOW = 'dust'; paintWeatherIcon();
+      WX_NOW = 'dust'; paintWeatherIcon(); DUST_PM = pm; renderAlerts();
     }
   }catch(e){}
 }
