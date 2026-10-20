@@ -10,6 +10,13 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * The Quran channel's live stream from YouTube in a small window at the top centre of the screensaver.
  * Off until the remote's OK turns it on; OK again turns it off. YouTube's player stays visible, as its
@@ -35,7 +42,7 @@ final class QuranWindow {
     @SuppressLint("SetJavaScriptEnabled")
     private void show() {
         Context c = root.getContext();
-        WebView w = new WebView(c);
+        final WebView w = new WebView(c);
         w.setBackgroundColor(0xFF000000);
         w.setFocusable(false);
         w.setVerticalScrollBarEnabled(false);
@@ -56,12 +63,43 @@ final class QuranWindow {
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(width, width * 9 / 16, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
         lp.topMargin = (int) (root.getHeight() * 0.035f);
         root.addView(w, lp);
-        String html = "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"
+        final String html = "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"
             + "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}iframe{border:0;width:100%;height:100%}</style>"
-            + "</head><body><iframe allow='autoplay; encrypted-media' src='https://www.youtube.com/embed/live_stream?channel="
-            + CHANNEL + "&autoplay=1&controls=0&modestbranding=1&rel=0&playsinline=1'></iframe></body></html>";
-        w.loadDataWithBaseURL(ORIGIN, html, "text/html", "utf-8", null);
+            + "</head><body><iframe allow='autoplay; encrypted-media' src='__SRC__'></iframe></body></html>";
         player = w;
+        // YouTube no longer plays the channel's generic live link in an embed: find today's live video first
+        new Thread(() -> {
+            String id = liveVideoId();
+            String src = "https://www.youtube.com/embed/" + (id != null ? id + "?" : "live_stream?channel=" + CHANNEL + "&")
+                + "autoplay=1&controls=0&modestbranding=1&rel=0&playsinline=1";
+            final String page = html.replace("__SRC__", src);
+            w.post(() -> { if (player == w) w.loadDataWithBaseURL(ORIGIN, page, "text/html", "utf-8", null); });
+        }).start();
+    }
+
+    /** The channel's live video id, from its /live page; null when offline or not live. */
+    private static String liveVideoId() {
+        HttpURLConnection con = null;
+        try {
+            con = (HttpURLConnection) new URL("https://www.youtube.com/channel/" + CHANNEL + "/live").openConnection();
+            con.setConnectTimeout(10000);
+            con.setReadTimeout(15000);
+            con.setRequestProperty("User-Agent", "Mozilla/5.0");
+            con.setRequestProperty("Accept-Language", "ar");
+            InputStream in = con.getInputStream();
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            byte[] buf = new byte[16384];
+            int n;
+            while ((n = in.read(buf)) > 0 && b.size() < 2_000_000) b.write(buf, 0, n);
+            in.close();
+            Matcher m = Pattern.compile("<link rel=\"canonical\" href=\"https://www\.youtube\.com/watch\?v=([A-Za-z0-9_-]{11})")
+                .matcher(b.toString("UTF-8"));
+            return m.find() ? m.group(1) : null;
+        } catch (Exception e) {
+            return null;
+        } finally {
+            if (con != null) con.disconnect();
+        }
     }
 
     void hide() {
