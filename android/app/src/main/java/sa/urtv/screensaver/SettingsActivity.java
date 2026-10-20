@@ -86,9 +86,11 @@ public class SettingsActivity extends Activity {
             startActivity(new Intent(SettingsActivity.this, MainActivity.class)); } }).requestFocus();
 
         header("التحكم من الجوال");
-        String url = ControlStore.url();
-        row(url == null ? "غير متصل بالشبكة" : url.replace("http://", ""), "الرمز السري: " + ControlStore.pin(this)
-            + " · افتح العنوان من جوالك على نفس الواي فاي", R.drawable.ic_eye, new Runnable() { public void run() { } });
+        String url = ControlStore.url(), ts = ControlStore.tailscaleUrl();
+        row("الرمز السري: " + ControlStore.pin(this), (url == null ? "غير متصل بالشبكة" : "في البيت: " + url.replace("http://", ""))
+            + (ts == null ? "" : " · من أي مكان (Tailscale): " + ts.replace("http://", "")), R.drawable.ic_eye, new Runnable() { public void run() { } });
+        row("تغيير الرمز السري", "يلغي دخول كل الجوالات، وتدخلون بالرمز الجديد", R.drawable.ic_sync, new Runnable() { public void run() {
+            ControlStore.resetPin(SettingsActivity.this); render(); } });
 
         header("الموقع");
         row("المدينة", prefs.city()[0], R.drawable.ic_place, new Runnable() { public void run() { pickCity(); } });

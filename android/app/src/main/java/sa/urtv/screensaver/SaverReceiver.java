@@ -116,7 +116,8 @@ public class SaverReceiver extends BroadcastReceiver {
             + "\nminrating: " + p.minRating()
             + "\ngenres: " + Prefs.join(p.list("genres"), ",") + "\nlangs: " + Prefs.join(p.list("langs"), ",")
             + "\nautoupdate: " + p.autoUpdate()
-            + "\ncontrol: " + ControlStore.url() + " pin " + ControlStore.pin(p.context());
+            + "\ncontrol: " + ControlStore.url() + " pin " + ControlStore.pin(p.context())
+            + "\ntailscale: " + ControlStore.tailscaleUrl();
     }
 
     private static boolean isPanel(String v) {

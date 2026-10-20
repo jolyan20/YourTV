@@ -45,8 +45,8 @@
 
 <div id="pinbox">
   <h1>التحكم بالتلفزيون</h1>
-  <p class="muted">اكتب الرمز السري الظاهر في إعدادات شاشة التوقف على التلفزيون</p>
-  <input id="pin" inputmode="numeric" maxlength="4" autocomplete="off">
+  <p class="muted">اكتب الرمز السري (٦ أرقام) الظاهر في إعدادات شاشة التوقف على التلفزيون</p>
+  <input id="pin" inputmode="numeric" maxlength="6" autocomplete="off">
   <button class="main" onclick="login()">دخول</button>
 </div>
 
@@ -137,24 +137,31 @@
 <script>
 const TABS = [['quran','📺 قناة القرآن'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات العائلة'],['sleep','🌙 وضع النوم']];
 const DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-let PIN = localStorage.getItem('tvpin') || '', STATE = {};
+// the PIN is sent once; the TV answers with a session key (30 days), kept on this phone instead of the PIN
+let KEY = localStorage.getItem('tvkey') || '', STATE = {};
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 function toast(t, err){ const e = $('toast'); e.textContent = t; e.className = 'toast' + (err ? ' err' : ''); e.style.display = 'block'; setTimeout(() => e.style.display = 'none', 2200); }
 async function api(path, body){
-  const r = await fetch(path, {method: body ? 'POST' : 'GET', headers: {'X-Pin': PIN, 'Content-Type': 'application/json'}, body: body ? JSON.stringify(body) : undefined});
-  if(r.status === 401){ logout(); throw new Error('pin'); }
+  const r = await fetch(path, {method: body ? 'POST' : 'GET', headers: {'X-Key': KEY, 'Content-Type': 'application/json'}, body: body ? JSON.stringify(body) : undefined});
+  if(r.status === 401){ expired(); throw new Error('pin'); }
   if(!r.ok) throw new Error('http ' + r.status);
   return r.json();
 }
 async function login(){
-  PIN = $('pin').value.trim();
-  try{ STATE = await api('/api/state'); localStorage.setItem('tvpin', PIN); show(); }
-  catch(e){ toast('الرمز غير صحيح', true); }
+  const pin = $('pin').value.trim();
+  try{
+    const r = await fetch('/api/login', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({pin})});
+    if(r.status === 429){ const j = await r.json(); return toast(`محاولات كثيرة، حاول بعد ${j.minutes} دقيقة`, true); }
+    if(!r.ok) return toast('الرمز غير صحيح', true);
+    KEY = (await r.json()).key; localStorage.setItem('tvkey', KEY); $('pin').value = '';
+    STATE = await api('/api/state'); show();
+  }catch(e){ toast('تعذر الاتصال بالتلفزيون', true); }
 }
-function logout(){ localStorage.removeItem('tvpin'); PIN = ''; $('app').hidden = true; $('pinbox').hidden = false; }
+function logout(){ if(KEY) fetch('/api/logout', {method: 'POST', headers: {'X-Key': KEY}}).catch(() => {}); expired(); }
+function expired(){ localStorage.removeItem('tvkey'); localStorage.removeItem('tvpin'); KEY = ''; $('app').hidden = true; $('pinbox').hidden = false; }
 async function save(section, value){
   try{ await api('/api/save', {section, value}); STATE[section] = value; render(); toast('تم الحفظ'); }
   catch(e){ if(e.message !== 'pin') toast('تعذر الحفظ، تأكد أن الجوال على نفس الواي فاي', true); }
@@ -223,7 +230,7 @@ function addFamily(){
 }
 function saveSleep(){ save('sleep', {from: $('sleep-from').value || '00:00', to: $('sleep-to').value || '', off: $('sleep-off').checked}); }
 
-if(PIN) api('/api/state').then(s => { STATE = s; show(); }).catch(() => {});
+if(KEY) api('/api/state').then(s => { STATE = s; show(); }).catch(() => {});
 </script>
 </body>
 </html>

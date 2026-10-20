@@ -4,7 +4,6 @@ import android.content.Context;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.json.JSONTokener;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -15,18 +14,30 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 
 /**
- * A tiny web server on the home network (port 8765) for the phone page:
- *   GET  /                 the page (assets/control.html)
- *   GET  /api/public       the screensaver page's view of the settings, from this TV only (127.0.0.1)
- *   GET  /api/state        everything, with the PIN
- *   POST /api/save         {"section": "...", "value": ...} with the PIN
- *   POST /api/quran        {"on": true|false} with the PIN
- * The PIN comes in the X-Pin header. Only addresses on the home network are served.
+ * A tiny web server for the phone page (port 8765), reachable from the home network and from Tailscale only:
+ *   GET  /               the page (assets/control.html)
+ *   GET  /api/public     the screensaver page's view of the settings, from this TV itself (127.0.0.1)
+ *   POST /api/login      {"pin": "123456"} -> {"key": session key}
+ *   POST /api/logout     ends this phone's session
+ *   GET  /api/state      everything                         } with the session key
+ *   POST /api/save       {"section": "...", "value": ...}   } in the X-Key header
+ *   POST /api/quran      {"on": true|false}                 }
+ * Wrong PINs: 5 from one address locks that address for 15 minutes; 20 in an hour from anywhere locks
+ * logins for an hour. No cross-site access (CORS only for /api/public on this TV), strict security headers.
  */
 final class ControlServer implements Runnable {
+    private static final int PER_ADDRESS = 5, GLOBAL = 20;
+    private static final long ADDRESS_LOCK_MS = 15 * 60_000, GLOBAL_WINDOW_MS = 3600_000;
+
     private final Context app;
+    private final Semaphore slots = new Semaphore(8);   // at most 8 requests at once
+    private final Map<String, int[]> fails = new HashMap<>();          // address -> {count}
+    private final Map<String, Long> lockedUntil = new HashMap<>();     // address -> time
+    private final java.util.ArrayDeque<Long> recentFails = new java.util.ArrayDeque<>();
+    private long globalLockUntil;
     private ServerSocket server;
     private volatile boolean running;
 
@@ -52,7 +63,8 @@ final class ControlServer implements Runnable {
                 server = new ServerSocket(ControlStore.PORT);
                 while (running) {
                     final Socket s = server.accept();
-                    new Thread(() -> handle(s), "control-request").start();
+                    if (!ControlStore.allowed(s.getInetAddress()) || !slots.tryAcquire()) { s.close(); continue; }
+                    new Thread(() -> { try { handle(s); } finally { slots.release(); } }, "control-request").start();
                 }
             } catch (Exception e) {
                 try { Thread.sleep(5000); } catch (InterruptedException ignored) { }   // port busy: try again
@@ -66,7 +78,7 @@ final class ControlServer implements Runnable {
         try {
             s.setSoTimeout(10000);
             InetAddress from = s.getInetAddress();
-            if (!(from.isLoopbackAddress() || from.isSiteLocalAddress() || from.isLinkLocalAddress())) { s.close(); return; }
+            String who = from.getHostAddress();
             InputStream in = s.getInputStream();
             String head = readHead(in);
             if (head == null) { s.close(); return; }
@@ -80,47 +92,80 @@ final class ControlServer implements Runnable {
             }
             int len = 0;
             try { len = Integer.parseInt(get(h, "content-length", "0")); } catch (Exception ignored) { }
-            if (len > 200_000) { reply(s, 413, "text/plain", "too large"); return; }
+            if (len < 0 || len > 200_000) { reply(s, 413, "text/plain", "too large", false); return; }
             byte[] body = new byte[len];
             for (int got = 0; got < len; ) { int n = in.read(body, got, len - got); if (n < 0) break; got += n; }
-            String q = path.contains("?") ? path.substring(path.indexOf('?') + 1) : "";
-            path = path.contains("?") ? path.substring(0, path.indexOf('?')) : path;
+            if (path.contains("?")) path = path.substring(0, path.indexOf('?'));
 
-            if ("OPTIONS".equals(method)) { reply(s, 204, "text/plain", ""); return; }
             if ("GET".equals(method) && ("/".equals(path) || "/index.html".equals(path))) {
-                reply(s, 200, "text/html; charset=utf-8", asset("control.html")); return;
+                reply(s, 200, "text/html; charset=utf-8", asset("control.html"), false); return;
             }
-            if ("GET".equals(method) && "/api/public".equals(path)) {
-                if (!from.isLoopbackAddress()) { reply(s, 403, "text/plain", "local only"); return; }
-                reply(s, 200, "application/json; charset=utf-8", ControlStore.state(app).toString()); return;
+            if ("/api/public".equals(path)) {   // the screensaver page on this TV: file:// origin, so CORS here only
+                if (!from.isLoopbackAddress()) { reply(s, 403, "text/plain", "local only", false); return; }
+                if ("OPTIONS".equals(method)) { reply(s, 204, "text/plain", "", true); return; }
+                reply(s, 200, "application/json; charset=utf-8", ControlStore.state(app).toString(), true); return;
             }
-            String pin = get(h, "x-pin", q.startsWith("pin=") ? q.substring(4) : "");
-            if (!ControlStore.pin(app).equals(pin)) { reply(s, 401, "application/json", "{\"error\":\"pin\"}"); return; }
+            if (!"POST".equals(method) && !"GET".equals(method)) { reply(s, 405, "text/plain", "method", false); return; }
+
+            if ("/api/login".equals(path) && "POST".equals(method)) {
+                long wait = lockWait(who);
+                if (wait > 0) { reply(s, 429, "application/json", "{\"error\":\"locked\",\"minutes\":" + (wait / 60_000 + 1) + "}", false); return; }
+                String pin = new JSONObject(new String(body, StandardCharsets.UTF_8)).optString("pin");
+                if (!ControlStore.pinMatches(app, pin)) {
+                    failed(who);
+                    Thread.sleep(1000);   // slows guessing further
+                    reply(s, 401, "application/json", "{\"error\":\"pin\"}", false); return;
+                }
+                synchronized (this) { fails.remove(who); }
+                reply(s, 200, "application/json", new JSONObject().put("key", ControlStore.newSession(app)).toString(), false); return;
+            }
+
+            String key = get(h, "x-key", "");
+            if (!ControlStore.sessionValid(app, key)) { reply(s, 401, "application/json", "{\"error\":\"session\"}", false); return; }
+            if ("/api/logout".equals(path)) { ControlStore.endSession(app, key); reply(s, 200, "application/json", "{\"ok\":true}", false); return; }
             if ("GET".equals(method) && "/api/state".equals(path)) {
-                reply(s, 200, "application/json; charset=utf-8", ControlStore.state(app).toString()); return;
+                reply(s, 200, "application/json; charset=utf-8", ControlStore.state(app).toString(), false); return;
             }
             if ("POST".equals(method)) {
                 JSONObject o = new JSONObject(new String(body, StandardCharsets.UTF_8));
                 if ("/api/quran".equals(path)) {
                     ControlStore.setQuran(app, o.optBoolean("on"));
-                    reply(s, 200, "application/json", "{\"ok\":true}"); return;
+                    reply(s, 200, "application/json", "{\"ok\":true}", false); return;
                 }
                 if ("/api/save".equals(path)) {
                     String section = o.optString("section");
                     boolean known = false;
                     for (String x : ControlStore.SECTIONS) if (x.equals(section)) known = true;
                     Object v = o.opt("value");
-                    if (!known || !(v instanceof JSONObject || v instanceof JSONArray || v == JSONObject.NULL)) {
-                        reply(s, 400, "application/json", "{\"error\":\"section\"}"); return;
+                    if (!known || !(v instanceof JSONObject || v instanceof JSONArray)) {
+                        reply(s, 400, "application/json", "{\"error\":\"section\"}", false); return;
                     }
                     ControlStore.save(app, section, v.toString());
-                    reply(s, 200, "application/json", "{\"ok\":true}"); return;
+                    reply(s, 200, "application/json", "{\"ok\":true}", false); return;
                 }
             }
-            reply(s, 404, "text/plain", "not found");
+            reply(s, 404, "text/plain", "not found", false);
         } catch (Exception e) {
-            try { reply(s, 500, "text/plain", "error"); } catch (Exception ignored) { }
+            try { reply(s, 400, "text/plain", "bad request", false); } catch (Exception ignored) { }
         }
+    }
+
+    /** ms until this address may try again (0 = now) */
+    private synchronized long lockWait(String who) {
+        long now = System.currentTimeMillis();
+        if (globalLockUntil > now) return globalLockUntil - now;
+        Long until = lockedUntil.get(who);
+        return until != null && until > now ? until - now : 0;
+    }
+
+    private synchronized void failed(String who) {
+        long now = System.currentTimeMillis();
+        int[] n = fails.get(who);
+        if (n == null) fails.put(who, n = new int[1]);
+        if (++n[0] >= PER_ADDRESS) { lockedUntil.put(who, now + ADDRESS_LOCK_MS); n[0] = 0; }
+        recentFails.addLast(now);
+        while (!recentFails.isEmpty() && recentFails.peekFirst() < now - GLOBAL_WINDOW_MS) recentFails.removeFirst();
+        if (recentFails.size() >= GLOBAL) { globalLockUntil = now + GLOBAL_WINDOW_MS; recentFails.clear(); }
     }
 
     private static String get(Map<String, String> m, String k, String dflt) {
@@ -150,11 +195,13 @@ final class ControlServer implements Runnable {
         }
     }
 
-    private static void reply(Socket s, int code, String type, String text) throws java.io.IOException {
+    private static void reply(Socket s, int code, String type, String text, boolean cors) throws java.io.IOException {
         byte[] body = text.getBytes(StandardCharsets.UTF_8);
         String head = "HTTP/1.1 " + code + " X\r\nContent-Type: " + type + "\r\nContent-Length: " + body.length
-            + "\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: Content-Type, X-Pin\r\n"
-            + "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n";
+            + (cors ? "\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET" : "")
+            + "\r\nX-Frame-Options: DENY\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer"
+            + "\r\nContent-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
+            + "\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n";
         OutputStream out = s.getOutputStream();
         out.write(head.getBytes(StandardCharsets.UTF_8));
         out.write(body);
