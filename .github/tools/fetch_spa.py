@@ -81,6 +81,15 @@ def prepare(raw):
         top = (h - th) // 2
         im = im.crop((0, top, w, top + th))
     im = im.resize((1920, 1080), Image.LANCZOS)
+    # a black frame or a mostly black side (night shots, scans) looks broken on a TV: skip it
+    small = im.convert("L").resize((192, 108))
+    w2, h2 = small.size
+    def dark(box):
+        px = list(small.crop(box).getdata())
+        return sum(1 for v in px if v < 12) / len(px)
+    if max(dark((0, 0, w2 // 7, h2)), dark((w2 - w2 // 7, 0, w2, h2)),
+           dark((0, 0, w2, h2 // 7)), dark((0, h2 - h2 // 7, w2, h2))) > 0.9:
+        return None, None
     lum = ImageStat.Stat(im.convert("L")).mean[0]
     d = max(0.7, min(1.0, 1.0 - max(0.0, lum - 90) / 250))   # brighter photos are darkened a little more
     out = io.BytesIO()

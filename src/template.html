@@ -347,6 +347,15 @@
   .m3 .tm{color:#F6EEDC;font-variant-numeric:tabular-nums}
   .m3 .st{font-size:.62em;color:#9C9279;margin-top:.2vh}
   .m3 .st.live{color:#EE8B70;font-weight:500}
+  /* the home screen's card */
+  .week li.hm1{display:flex;align-items:baseline;justify-content:space-between;border-bottom:none;padding:.4vh 0;
+    font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:1.6em;color:#FFF3D6}
+  .week li.hm1 small{font-family:'Thmanyah',sans-serif;font-size:.5em;color:#E0BA74}
+  .week li.hm2{display:flex;justify-content:space-between;gap:.6em;font-size:.78em;color:#C6BBA4;padding:.8vh 0}
+  .week li.hm2 span{display:flex;flex-direction:column;align-items:center}
+  .week li.hm2 b{font-weight:400;font-size:.85em}
+  .week li.hm2 .on{color:#FFE2A6}
+  .week li.hm3{border-bottom:none;padding-top:.8vh;font-size:.85em;color:#D6AF6B}
   /* the month's number, small and gold, joined to its name */
   .mchip{display:inline-block;unicode-bidi:isolate;font-size:.6em;line-height:1.35;color:var(--gold);
     border:1px solid rgba(220,184,111,.7);border-radius:6px;padding:0 .45em;margin:0 .15em;vertical-align:.22em}
@@ -462,8 +471,8 @@ const CONFIG = {
             : [_Q.has('team1') ? _Q.get('team1') : '136013', _Q.has('team2') ? _Q.get('team2') : '136137'])
     .map(x=>(x||'').trim()).filter(x=>/^\d+$/.test(x)).slice(0, 10),
   sportsKey: '123',
-  // the card beside the clock: shows | prayers | forecast | matches | verse | none (#week=0 from older builds = none)
-  panel: (p => ['shows','prayers','forecast','matches','verse','none'].includes(p) ? p : 'shows')
+  // the card beside the clock: shows | prayers | forecast | matches | verse | home | none (#week=0 from older builds = none)
+  panel: (p => ['shows','prayers','forecast','matches','verse','home','none'].includes(p) ? p : 'shows')
          (_Q.get('panel') || (_Q.get('week') === '0' ? 'none' : 'shows')),
   matchesPerPage: 2,
   matchPageMs: 15000,
@@ -644,7 +653,7 @@ async function loadPrayers(){
   }
   tickPrayer();
   tickRamadan();   // Ramadan mode needs the prayer times
-  if(CONFIG.panel === 'prayers') renderPanel(false);
+  if(CONFIG.panel === 'prayers' || CONFIG.panel === 'home') renderPanel(false);
 }
 
 const UNIT = {
@@ -1311,8 +1320,30 @@ const PANEL_TITLE = {shows:'هذا الأسبوع', prayers:'مواقيت الي
 // the 5-day forecast and the followed teams' games (skipped while there are none)
 const CARD_TURN_MS = 30000;
 let CARD_TURN = 0;
+// morning adhkar from Fajr to Dhuhr, evening adhkar from Asr to Isha; each turn of the card shows the next one.
+// Every dhikr was found word for word in the six books (.github/tools/build_adhkar.py)
+const ADHKAR = __ADHKAR__;   // assets/shared/adhkar.json
+let DHIKR_TURN = 0;
+const COUNT_WORD = n => n === 1 ? 'مرة واحدة' : n === 3 ? 'ثلاث مرات' : n === 10 ? 'عشر مرات' : n === 100 ? 'مئة مرة' : ar(n) + ' مرات';
+function adhkarTime(){
+  const p = riyadhParts(), m = p.h*60 + p.mi;
+  if(m >= minutesOf('Fajr', 4*60+30) && m < minutesOf('Dhuhr', 12*60)) return 'm';
+  if(m >= minutesOf('Asr', 15*60) && m < minutesOf('Isha', 19*60)) return 'e';
+  return null;
+}
+function dhikrSlide(when){
+  const list = ADHKAR.filter(x => x.when === when || x.when === 'b');
+  const x = list[DHIKR_TURN % list.length];
+  const src = Object.keys(x.found).join(' و');
+  const body = x.quran ? `<span class="orn">﴿</span>${esc(x.text)}<span class="orn">﴾</span>` : esc(x.text);
+  return {title: (when === 'm' ? 'أذكار الصباح' : 'أذكار المساء') + ` · ${ar(DHIKR_TURN % list.length + 1)}/${ar(list.length)}`,
+    rows: [x.title ? `<li class="mh">${esc(x.title)}</li>` : '', `<li class="quote">${body}</li>`,
+      `<li class="src">${COUNT_WORD(x.count)}</li>`, `<li class="bio">${x.quran ? 'ثبت فضلها صباحاً ومساءً في ' : 'رواه '}${esc(src)}</li>`].filter(Boolean)};
+}
 function cardSlides(){
   const day = riyadhDayNumber(), slides = [];
+  const dk = adhkarTime();
+  if(dk && ADHKAR.length) slides.push(() => dhikrSlide(dk));
   if(VERSES.length) slides.push(() => verseOfDay(day));
   if(HADITH.length) slides.push(() => hadithOfDay(day));
   if(WISDOM.length) slides.push(() => wisdomOfDay(day));
@@ -1331,6 +1362,7 @@ function rotatingCard(){
 // the card leaves downward and the next one comes in from above, slowly
 function turnCard(){
   const body = document.getElementById('wbody');
+  if(adhkarTime() && CARD_TURN % cardSlides().length === 0) DHIKR_TURN++;   // the dhikr slide just left: next one next time
   CARD_TURN++;
   body.classList.add('out');
   setTimeout(() => {
@@ -1367,6 +1399,21 @@ function fitCard(ul){
   for(let k = 1; k > .6 && ul.scrollHeight > ul.clientHeight + 2; k -= .05) ul.style.zoom = k.toFixed(2);
 }
 
+// #panel=home (the home screen's card): the next prayer large, the day's prayers small, and the next occasion
+function homeRows(){
+  if(!PRAYERS.length) return [];
+  const p = riyadhParts(), mins = p.h*60 + p.mi + p.s/60, at = x => x.h*60 + x.mi;
+  let next = PRAYERS.find(x => at(x) > mins);
+  const left = next ? at(next) - mins : at(PRAYERS[0]) + 1440 - mins;
+  if(!next) next = PRAYERS[0];
+  const strip = PRAYERS.map(x => `<span class="${x === next ? 'on' : ''}"><b>${prayerName(x)}</b>${fmt12(x.h, x.mi)}</span>`).join('');
+  const occ = occasionDates()[0];
+  const occLine = !occ ? '' : occ.days <= 0 ? `${esc(occ.label)} · ${esc(occ.o.greet)}`
+    : `${esc(occ.label)} · متبقي ${occ.days === 2 ? 'يومين' : ar(occ.days) + (occ.days >= 3 && occ.days <= 10 ? ' أيام' : ' يوم')}`;
+  return [`<li class="hm1"><span>${prayerName(next)} ${fmt12(next.h, next.mi)}</span><small>بعد ${humanRemaining(Math.max(0, Math.round(left*60)))}</small></li>`,
+          `<li class="hm2">${strip}</li>`, occLine ? `<li class="hm3">${occLine}</li>` : ''].filter(Boolean);
+}
+
 function renderPanel(animate){
   const ul = document.getElementById('week-list'), hd = document.getElementById('week-hd');
   const P = CONFIG.panel;
@@ -1375,6 +1422,7 @@ function renderPanel(animate){
   if(P === 'prayers') rows = prayerRows();
   else if(P === 'forecast') rows = forecastRows();
   else if(P === 'matches') rows = matchRows();
+  else if(P === 'home'){ hd.textContent = 'الصلاة القادمة'; ul.innerHTML = homeRows().join(''); return; }
   else if(P === 'verse'){ const q = CONFIG.widget ? quoteOfDay() : rotatingCard(); hd.textContent = q.title; rows = q.rows; ul.innerHTML = rows.join(''); fitCard(ul); return; }
   if(PANEL_TITLE[P]) hd.textContent = PANEL_TITLE[P];
   if(!rows.length){
@@ -1742,7 +1790,7 @@ function bootWidget(){
   const P = CONFIG.panel;
   if(P === 'shows'){ loadWeek(); setInterval(loadWeek, 6*3600*1000); }
   else renderPanel(false);
-  if(P === 'prayers'){ loadPrayers(); setInterval(loadPrayers, 6*3600*1000); setInterval(() => renderPanel(false), 15000); }
+  if(P === 'prayers' || P === 'home'){ loadPrayers(); setInterval(loadPrayers, 6*3600*1000); setInterval(() => renderPanel(false), 15000); }
   if(P === 'forecast'){ loadWeather(); setInterval(loadWeather, 30*60*1000); }
   if(P === 'matches'){ loadMatches(); setInterval(loadMatches, 30*60*1000); setInterval(loadLive, 2*60000); }
   setInterval(() => {
