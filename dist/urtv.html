@@ -295,6 +295,9 @@
   .week li.task{display:flex;justify-content:space-between;align-items:baseline}
   .week li.task.late{color:#FFC9BE}
   .week li.task.late .dt{color:#EE8B70}
+  .week li.task.rem.now{color:#F1E6FF;font-weight:500}
+  .week li.task.rem.now .dt{color:#C9A0F0}
+  .week li.task.rem.past{opacity:.5}
   /* sleep mode: the clock and the date only, dimmed */
   html.sleep .markets,html.sleep .week,html.sleep .bottom,html.sleep .alerts,html.sleep #credit,html.sleep .subline{display:none}
   html.sleep .msgbox.on{display:flex}
@@ -1271,9 +1274,15 @@ async function loadControl(){
     if(!r.ok) return;
     const next = await r.json();
     const changed = JSON.stringify(next.family || []) !== JSON.stringify(CTRL.family || []);
+    const mine = o => JSON.stringify([o.tasks || [], o.reminders || []]);
+    const todo = Object.keys(CTRL).length && mine(next) !== mine(CTRL);
     CTRL = next;
     if(changed) OCC_CACHE.day = '';   // family occasions changed: recount
     renderMessage(); renderAlerts(); applySleep();
+    if(todo && CONFIG.panel === 'verse'){   // just edited on the phone: show the list now
+      const k = cardSlides().findIndex(f => /^(مهامي|تذكيراتي)/.test(f().title));
+      if(k >= 0){ CARD_TURN = k; renderPanel(false); }
+    }
   }catch(e){}   // a browser, or the app without the server: nothing to read
 }
 // the message: large, in the middle of the screen, until its time is up or it is cleared
@@ -1286,15 +1295,28 @@ function renderMessage(){
   if(on) el.innerHTML = `<div class="m-ic">💬</div><div class="m-tx">${esc(m.text)}</div>`;
 }
 // «مهامي»: the open tasks, the late ones first and marked
+function todaysReminders(){
+  const p = riyadhParts(), wd = new Date(Date.UTC(p.y, p.mo-1, p.d)).getUTCDay(), mins = p.h*60 + p.mi;
+  return (CTRL.reminders || []).filter(r => (r.days || []).includes(wd)).map(r => {
+    const [h, mi] = String(r.time || '0:0').split(':').map(Number), at = h*60 + mi;
+    return {r, h, mi, at, now: mins >= at && mins < at + 60, past: mins >= at + 60};
+  }).sort((a, b) => a.at - b.at);
+}
 function tasksSlide(){
   const now = Date.now();
   const open = (CTRL.tasks || []).filter(t => !t.done).map(t => ({t, due: t.due ? new Date(t.due).getTime() : 0}))
-    .sort((a, b) => (a.due || 9e15) - (b.due || 9e15)).slice(0, 6);
-  return {title: 'مهامي', rows: open.map(({t, due}) => {
+    .sort((a, b) => (a.due || 9e15) - (b.due || 9e15)).slice(0, 5);
+  const rows = open.map(({t, due}) => {
     const late = due && due < now;
     const when = !due ? '' : late ? 'متأخرة' : new Intl.DateTimeFormat(GREG, {timeZone: CONFIG.timezone, weekday:'long', hour:'numeric', minute:'2-digit'}).format(new Date(due));
     return `<li class="task${late ? ' late' : ''}"><span>☐ ${esc(t.text)}</span><span class="dt">${when}</span></li>`;
-  })};
+  });
+  const rems = todaysReminders();
+  if(rems.length){
+    rows.push('<li class="mh">تذكيرات اليوم</li>');
+    rems.slice(0, 5).forEach(x => rows.push(`<li class="task rem${x.now ? ' now' : ''}${x.past ? ' past' : ''}"><span>${x.now ? '🔔' : '⏰'} ${esc(x.r.text)}</span><span class="dt">${fmt12(x.h, x.mi)}</span></li>`));
+  }
+  return {title: rems.length && !open.length ? 'تذكيراتي' : rems.length ? 'مهامي وتذكيراتي' : 'مهامي', rows};
 }
 // reminders: from their time, for an hour, on their days
 function reminderAlerts(){
@@ -1696,7 +1718,7 @@ function cardSlides(){
   if(VERSES.length) slides.push(() => verseOfDay(day));
   if(HADITH.length) slides.push(() => hadithOfDay(day));
   if(WISDOM.length) slides.push(() => wisdomOfDay(day));
-  if((CTRL.tasks || []).some(t => !t.done)) slides.push(() => tasksSlide());
+  if((CTRL.tasks || []).some(t => !t.done) || todaysReminders().length) slides.push(() => tasksSlide());
   if(FORECAST.length) slides.push(() => ({title: PANEL_TITLE.forecast, rows: forecastRows()}));
   const m = matchCard();
   if(m.length) slides.push(() => ({title: PANEL_TITLE.matches, rows: m}));
@@ -1776,7 +1798,7 @@ const CARD_ICONS = [
   [/^مباريات/, `<circle cx="12" cy="12" r="8.5" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M12 8l3.3 2.4-1.3 3.9h-4l-1.3-3.9z" fill="${G}"/><path d="M12 8V3.6 M15.3 10.4l4-1.3 M14 14.3l2.4 3.4 M10 14.3l-2.4 3.4 M8.7 10.4l-4-1.3" stroke="${G}" stroke-width="1.2"/>`],
   [/^الصلاة/, `<path d="M4 20h16 M6 20v-7a6 6 0 0 1 12 0v7 M12 4v3 M10 20v-4a2 2 0 0 1 4 0v4" fill="none" stroke="${G}" stroke-width="1.6" stroke-linejoin="round"/>`],
   [/^مواقيت/, `<circle cx="12" cy="12" r="8.5" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M12 7v5l3.5 2" stroke="${G}" stroke-width="1.6" stroke-linecap="round" fill="none"/>`],
-  [/^مهامي/, `<rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M8 12l3 3 5-6" fill="none" stroke="${G}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`],
+  [/^(مهامي|تذكيراتي)/, `<rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M8 12l3 3 5-6" fill="none" stroke="${G}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`],
   [/^هذا الأسبوع/, `<rect x="3" y="5" width="18" height="12" rx="2" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M8 20h8" stroke="${G}" stroke-width="1.6"/>`],
 ];
 function setCardTitle(hd, title){
