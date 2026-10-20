@@ -205,7 +205,10 @@ def main():
     html = html.replace("__TEAMS_AR__", json.dumps(teams, ensure_ascii=False))
     html = html.replace("__VERSES__", json.dumps(verses_for_screen(), ensure_ascii=False))
     html = html.replace("__HADITH__", json.dumps(hadith_for_screen(), ensure_ascii=False))   # checked by CI
-    html = html.replace("__WISDOM__", (ROOT / "assets/shared/wisdom-ar.json").read_text(encoding="utf-8").strip())
+    # «مختارات»: the household's own verses (assets/shared/my-verses.json) first, then the built-in selection
+    picks = json.loads((ROOT / "assets/shared/my-verses.json").read_text(encoding="utf-8") or "[]")
+    picks += json.loads((ROOT / "assets/shared/wisdom-ar.json").read_text(encoding="utf-8"))
+    html = html.replace("__WISDOM__", json.dumps(picks, ensure_ascii=False))
 
     bg_dir = ROOT / "assets/backgrounds"
     bgs = json.loads((bg_dir / "backgrounds.json").read_text(encoding="utf-8"))

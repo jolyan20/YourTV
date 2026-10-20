@@ -1149,18 +1149,22 @@ function turnCard(){
   }, 1100);
 }
 
-// wisdom of the day: a proverb and what it means, a verse with its poet, or a saying with who said it
-const WISDOM = __WISDOM__;   // assets/shared/wisdom-ar.json
+// «مختارات»: one a day — a proverb and what it means, a verse with its poet, a saying, or a poet's profile.
+// The household's own verses (assets/shared/my-verses.json) come first.
+const WISDOM = __WISDOM__;   // assets/shared/my-verses.json + assets/shared/wisdom-ar.json
+const PICK_KIND = {proverb:'مثل', verse:'شعر', saying:'قول مأثور', poet:'شاعر اليوم'};
 function wisdomOfDay(day){
   const w = WISDOM[day % WISDOM.length];
-  if(w.k === 'proverb') return {title:'مثل اليوم', rows:[
+  const title = 'مختارات · ' + (PICK_KIND[w.k] || '');
+  if(w.k === 'proverb') return {title, rows:[
     `<li class="quote">«${esc(w.text)}»</li>`, `<li class="bio">${esc(w.note)}</li>`]};
   if(w.k === 'verse'){
     const [a, b] = w.text.split('…').map(x => esc(x.trim()));
-    return {title:'بيت اليوم', rows:[`<li class="quote verse2">${a}<br>${b || ''}</li>`,
+    return {title, rows:[`<li class="quote verse2">${a}<br>${b || ''}</li>`,
       `<li class="src">${esc(w.who)}</li>`, `<li class="bio">${esc(w.bio)}</li>`]};
   }
-  return {title:'قول مأثور', rows:[`<li class="quote">«${esc(w.text)}»</li>`,
+  if(w.k === 'poet') return {title, rows:[`<li class="quote">${esc(w.who)}</li>`, `<li class="bio">${esc(w.bio)}</li>`]};
+  return {title, rows:[`<li class="quote">«${esc(w.text)}»</li>`,
     `<li class="src">${esc(w.who)}</li>`, `<li class="bio">${esc(w.bio)}</li>`]};
 }
 
