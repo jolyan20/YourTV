@@ -92,7 +92,7 @@ final class QuranWindow {
             int n;
             while ((n = in.read(buf)) > 0 && b.size() < 2_000_000) b.write(buf, 0, n);
             in.close();
-            Matcher m = Pattern.compile("<link rel=\"canonical\" href=\"https://www\.youtube\.com/watch\?v=([A-Za-z0-9_-]{11})")
+            Matcher m = Pattern.compile("<link rel=\"canonical\" href=\"https://www\\.youtube\\.com/watch\\?v=([A-Za-z0-9_-]{11})")
                 .matcher(b.toString("UTF-8"));
             return m.find() ? m.group(1) : null;
         } catch (Exception e) {
