@@ -18,7 +18,16 @@ public class ScreenDream extends DreamService {
     // the phone page switched the Quran window: follow it
     private final SharedPreferences.OnSharedPreferenceChangeListener follow = (p, key) -> {
         if (ControlStore.KEY_QURAN.equals(key) && quran != null && quran.isOn() != ControlStore.quran(this)) quran.toggle();
+        if ("display".equals(key) && quran != null && quran.isOn()) { quran.toggle(); quran.toggle(); }   // new size or place
     };
+    // city, teams or cards changed from the phone: load the page again with them
+    private final SharedPreferences.OnSharedPreferenceChangeListener reload = (p, key) -> {
+        if (web != null && root != null) {
+            root.removeCallbacks(reloadNow);
+            root.postDelayed(reloadNow, 1500);   // several settings arrive together
+        }
+    };
+    private final Runnable reloadNow = () -> { if (web != null) web.loadUrl(new Prefs(this).dashboardUrl(this)); };
 
     @Override
     public void onAttachedToWindow() {
@@ -33,6 +42,7 @@ public class ScreenDream extends DreamService {
         quran = new QuranWindow(root);
         setContentView(root);
         ControlStore.prefs(this).registerOnSharedPreferenceChangeListener(follow);
+        getSharedPreferences("settings", MODE_PRIVATE).registerOnSharedPreferenceChangeListener(reload);
         // turned on from the phone while the TV was elsewhere: open it once the screen has its size
         if (ControlStore.quran(this)) root.postDelayed(() -> { if (quran != null && !quran.isOn()) quran.toggle(); }, 2500);
     }
@@ -62,6 +72,8 @@ public class ScreenDream extends DreamService {
     @Override
     public void onDetachedFromWindow() {
         ControlStore.prefs(this).unregisterOnSharedPreferenceChangeListener(follow);
+        getSharedPreferences("settings", MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(reload);
+        if (root != null) root.removeCallbacks(reloadNow);
         if (quran != null) { quran.hide(); quran = null; }
         if (web != null) { web.destroy(); web = null; }
         super.onDetachedFromWindow();

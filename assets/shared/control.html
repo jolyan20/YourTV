@@ -2,104 +2,129 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>التحكم بالتلفزيون</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1410">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="تلفزيوني">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon.png">
+<title>تلفزيوني</title>
 <style>
-  :root{--bg:#0b1410;--card:#13211b;--line:#2a3a31;--gold:#DCB86F;--txt:#F2EBDD;--dim:#A99F8A;--ok:#57D294;--bad:#EE6A50}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
-  header{padding:18px 16px 6px;display:flex;justify-content:space-between;align-items:center}
-  h1{font-size:20px;margin:0}
-  .tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 16px;position:sticky;top:0;background:var(--bg);z-index:2}
-  .tabs button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:999px;padding:8px 14px;font:inherit}
-  .tabs button.on{border-color:var(--gold);color:var(--gold)}
-  section{display:none;padding:8px 16px 40px}
-  section.on{display:block}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
-  label{display:block;color:var(--dim);font-size:14px;margin:8px 0 4px}
-  input,select,textarea{width:100%;background:#0e1814;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit}
-  textarea{min-height:80px}
-  .row{display:flex;gap:8px}
-  .row > *{flex:1}
-  button.main{width:100%;margin-top:12px;background:var(--gold);color:#1a1208;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:600}
-  button.sec{background:transparent;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:8px 12px;font:inherit}
+  :root{--bg:#0b1410;--card:#13211b;--card2:#182a22;--line:#2a3a31;--gold:#DCB86F;--txt:#F2EBDD;--dim:#A99F8A;--ok:#57D294;--bad:#EE6A50}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+  header{padding:16px 16px 4px;display:flex;justify-content:space-between;align-items:center}
+  h1{font-size:21px;margin:0} h2{font-size:16px;margin:0 0 8px;color:var(--gold);font-weight:600}
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 16px 10px;position:sticky;top:0;background:var(--bg);z-index:2;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:999px;padding:8px 14px;font:inherit;font-size:15px}
+  .tabs button.on{border-color:var(--gold);color:var(--gold);background:var(--card2)}
+  section{display:none;padding:4px 16px 40px} section.on{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}
+  label{display:block;color:var(--dim);font-size:14px;margin:10px 0 4px}
+  input,select,textarea{width:100%;background:#0e1814;color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:11px;font:inherit}
+  textarea{min-height:80px;resize:vertical}
+  .row{display:flex;gap:8px} .row > *{flex:1}
+  button{font:inherit;cursor:pointer}
+  .main{width:100%;margin-top:12px;background:var(--gold);color:#1a1208;border:0;border-radius:12px;padding:12px;font-weight:600}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:10px 12px}
+  .ghost.small{padding:6px 10px;font-size:14px}
+  .danger{border-color:#5a2a22;color:#F3A595}
   ul{list-style:none;margin:0;padding:0}
   li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
   li:last-child{border-bottom:0}
-  li .t{flex:1}
-  li .t small{display:block;color:var(--dim)}
+  li .t{flex:1;min-width:0} li .t small{display:block;color:var(--dim)}
   li.done .t{text-decoration:line-through;color:var(--dim)}
-  .x{background:none;border:0;color:var(--bad);font-size:20px}
-  .days{display:flex;flex-wrap:wrap;gap:6px}
-  .days label{display:flex;align-items:center;gap:4px;margin:0;color:var(--txt);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
-  .days input{width:auto}
-  .big{font-size:22px;text-align:center;padding:10px}
-  .toast{position:fixed;bottom:16px;left:16px;right:16px;background:var(--ok);color:#06150d;border-radius:12px;padding:12px;text-align:center;display:none}
+  .x{background:none;border:0;color:var(--bad);font-size:22px;line-height:1;padding:4px 6px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chips button,.chips label{display:flex;align-items:center;gap:4px;margin:0;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:14px}
+  .chips input{width:auto;margin:0}
+  .switch{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+  .switch:last-child{border-bottom:0}
+  .switch input{width:22px;height:22px;accent-color:var(--gold)}
+  .big{font-size:20px;text-align:center;padding:8px;font-weight:600}
+  .on-air{color:var(--ok)} .off-air{color:var(--dim)}
+  .muted{color:var(--dim);font-size:14px}
+  .toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));left:16px;right:16px;background:var(--ok);color:#06150d;border-radius:12px;padding:12px;text-align:center;display:none;z-index:9;font-weight:600}
   .toast.err{background:var(--bad);color:#fff}
   #pinbox{max-width:360px;margin:60px auto;padding:0 16px;text-align:center}
-  #pinbox input{text-align:center;font-size:28px;letter-spacing:.3em}
-  .muted{color:var(--dim);font-size:14px}
+  #pinbox input{text-align:center;font-size:30px;letter-spacing:.35em}
+  .team img{width:28px;height:28px;object-fit:contain}
+  .order{display:flex;gap:4px}
+  .order button{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:8px;width:32px;height:32px}
 </style>
 </head>
 <body>
 
 <div id="pinbox">
-  <h1>التحكم بالتلفزيون</h1>
-  <p class="muted">اكتب الرمز السري (٦ أرقام) الظاهر في إعدادات شاشة التوقف على التلفزيون</p>
-  <input id="pin" inputmode="numeric" maxlength="6" autocomplete="off">
+  <h1>تلفزيوني</h1>
+  <p class="muted">اكتب الرمز السري (٦ أرقام) الظاهر في إعدادات شاشة التوقف على التلفزيون، تحت «التحكم من الجوال».</p>
+  <input id="pin" inputmode="numeric" maxlength="6" autocomplete="one-time-code" enterkeyhint="go">
   <button class="main" onclick="login()">دخول</button>
 </div>
 
 <div id="app" hidden>
-  <header><h1>التحكم بالتلفزيون</h1><button class="sec" onclick="logout()">خروج</button></header>
+  <header><h1>تلفزيوني</h1><button class="ghost small" onclick="logout()">خروج</button></header>
   <nav class="tabs" id="tabs"></nav>
 
-  <section id="s-quran">
+  <section id="s-home">
     <div class="card">
-      <p>بث قناة القرآن الكريم من مكة في نافذة صغيرة على شاشة التوقف.</p>
+      <h2>📺 قناة القرآن الكريم</h2>
       <div class="big" id="quran-state">—</div>
       <div class="row">
         <button class="main" onclick="setQuran(true)">تشغيل</button>
         <button class="main" style="background:#2a3a31;color:var(--txt)" onclick="setQuran(false)">إيقاف</button>
       </div>
-      <p class="muted">إذا كان التلفزيون في تطبيق أو الواجهة الرئيسية، يظهر البث أول ما تشتغل شاشة التوقف.</p>
+      <p class="muted">تظهر النافذة على شاشة التوقف أو المعاينة. إذا كان التلفزيون في تطبيق، تظهر أول ما تشتغل شاشة التوقف.</p>
     </div>
+    <div class="card" id="home-msg"></div>
+    <div class="card"><h2>💊 تذكيرات اليوم</h2><ul id="home-rem"></ul></div>
+    <div class="card"><h2>✅ مهامي</h2><ul id="home-tasks"></ul></div>
+    <div class="card"><h2>🎂 أقرب مناسبة</h2><div id="home-fam" class="muted"></div></div>
   </section>
 
   <section id="s-message">
     <div class="card">
+      <h2>💬 رسالة على الشاشة</h2>
+      <div class="chips" id="presets"></div>
       <label>الرسالة</label>
-      <textarea id="msg-text" placeholder="مثلاً: العشاء جاهز"></textarea>
-      <label>تبقى على الشاشة</label>
-      <select id="msg-dur">
-        <option value="5">٥ دقائق</option><option value="10" selected>١٠ دقائق</option>
-        <option value="30">٣٠ دقيقة</option><option value="60">ساعة</option><option value="0">لين أمسحها</option>
-      </select>
+      <textarea id="msg-text" maxlength="140" placeholder="اكتب رسالتك"></textarea>
+      <div class="row">
+        <div><label>النوع</label>
+          <select id="msg-style"><option value="info">💬 عادية</option><option value="welcome">🌹 ترحيب</option><option value="urgent">⚠️ مهمة</option></select></div>
+        <div><label>تبقى</label>
+          <select id="msg-dur"><option value="5">٥ دقائق</option><option value="10" selected>١٠ دقائق</option><option value="30">٣٠ دقيقة</option><option value="60">ساعة</option><option value="180">٣ ساعات</option><option value="0">لين أمسحها</option></select></div>
+      </div>
       <button class="main" onclick="sendMessage()">إرسال للشاشة</button>
-      <button class="sec" style="width:100%;margin-top:8px" onclick="clearMessage()">مسح الرسالة</button>
-      <p class="muted" id="msg-now"></p>
+      <button class="ghost" style="width:100%;margin-top:8px" onclick="clearMessage()">مسح الرسالة</button>
     </div>
   </section>
 
   <section id="s-tasks">
     <div class="card">
-      <label>مهمة جديدة</label>
-      <input id="task-text" placeholder="مثلاً: دفع فاتورة الكهرباء">
-      <label>موعد (اختياري)</label>
+      <h2>✅ مهمة جديدة</h2>
+      <input id="task-text" maxlength="80" placeholder="مثلاً: دفع فاتورة الكهرباء">
+      <label>موعد (اختياري) · ينبّه قبلها بنص ساعة</label>
       <input id="task-due" type="datetime-local">
       <button class="main" onclick="addTask()">إضافة</button>
     </div>
-    <div class="card"><ul id="task-list"></ul></div>
+    <div class="card"><ul id="task-list"></ul>
+      <button class="ghost small danger" style="margin-top:8px" onclick="clearDone()">مسح المهام المكتملة</button></div>
   </section>
 
   <section id="s-reminders">
     <div class="card">
-      <label>التذكير</label>
-      <input id="rem-text" placeholder="مثلاً: دواء الضغط">
+      <h2>💊 تذكير جديد</h2>
+      <input id="rem-text" maxlength="60" placeholder="مثلاً: دواء الضغط">
       <label>الوقت</label>
       <input id="rem-time" type="time" value="08:00">
       <label>الأيام</label>
-      <div class="days" id="rem-days"></div>
+      <div class="chips" id="rem-days"></div>
+      <div class="chips" style="margin-top:8px">
+        <button type="button" onclick="pickDays([0,1,2,3,4,5,6])">كل يوم</button>
+        <button type="button" onclick="pickDays([0,1,2,3,4])">أيام الدوام</button>
+        <button type="button" onclick="pickDays([5,6])">نهاية الأسبوع</button>
+      </div>
       <button class="main" onclick="addReminder()">إضافة</button>
     </div>
     <div class="card"><ul id="rem-list"></ul></div>
@@ -107,26 +132,61 @@
 
   <section id="s-family">
     <div class="card">
-      <label>المناسبة</label>
-      <input id="fam-name" placeholder="مثلاً: عيد ميلاد سارة، سفرة أبها">
-      <label>التاريخ</label>
-      <input id="fam-date" type="date">
-      <label>النوع</label>
-      <select id="fam-yearly"><option value="1">تتكرر كل سنة (عيد ميلاد، ذكرى)</option><option value="0">مرة وحدة (سفرة، موعد)</option></select>
+      <h2>🎂 مناسبة جديدة</h2>
+      <input id="fam-name" maxlength="40" placeholder="مثلاً: ميلاد نايا، سفرة أبها">
+      <div class="row">
+        <div><label>التاريخ</label><input id="fam-date" type="date"></div>
+        <div><label>النوع</label>
+          <select id="fam-kind"><option value="🎂|1">🎂 عيد ميلاد</option><option value="💍|1">💍 ذكرى</option><option value="✈️|0">✈️ سفرة</option><option value="📅|0">📅 موعد</option></select></div>
+      </div>
       <button class="main" onclick="addFamily()">إضافة</button>
     </div>
     <div class="card"><ul id="fam-list"></ul></div>
   </section>
 
+  <section id="s-screen">
+    <div class="card">
+      <h2>📍 المدينة</h2>
+      <select id="city"><option>…</option></select>
+      <button class="main" onclick="saveCity()">حفظ المدينة</button>
+    </div>
+    <div class="card">
+      <h2>⚽ الأندية اللي تتابعها</h2>
+      <ul id="teams"></ul>
+      <label>أضف نادي (بالإنجليزي، مثل Hilal أو Arsenal)</label>
+      <div class="row"><input id="team-q" enterkeyhint="search"><button class="ghost" style="flex:0 0 auto" onclick="searchTeam()">بحث</button></div>
+      <ul id="team-results"></ul>
+    </div>
+    <div class="card">
+      <h2>🗂️ البطاقات جنب الساعة</h2>
+      <div id="cards"></div>
+      <div class="row">
+        <div><label>مدة كل بطاقة</label>
+          <select id="card-sec"><option value="15">١٥ ثانية</option><option value="20">٢٠ ثانية</option><option value="30">٣٠ ثانية</option><option value="45">٤٥ ثانية</option><option value="60">دقيقة</option></select></div>
+        <div><label>تغيير صورة الخلفية</label>
+          <select id="photo-min"><option value="15">كل ربع ساعة</option><option value="30">كل نص ساعة</option><option value="60">كل ساعة</option><option value="120">كل ساعتين</option></select></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>📺 نافذة قناة القرآن</h2>
+      <div class="row">
+        <div><label>الحجم</label><select id="q-size"><option value="s">صغيرة</option><option value="m">متوسطة</option><option value="l">كبيرة</option></select></div>
+        <div><label>المكان</label><select id="q-pos"><option value="tc">فوق بالوسط</option><option value="tr">فوق يمين</option><option value="tl">فوق يسار</option><option value="bc">تحت بالوسط</option><option value="br">تحت يمين</option><option value="bl">تحت يسار</option></select></div>
+      </div>
+      <button class="main" onclick="saveDisplay()">حفظ إعدادات الشاشة</button>
+    </div>
+  </section>
+
   <section id="s-sleep">
     <div class="card">
-      <p>وضع النوم: الساعة والتاريخ بس، بإضاءة خفيفة.</p>
+      <h2>🌙 وضع النوم</h2>
+      <p class="muted">الساعة والتاريخ بس، بإضاءة خفيفة.</p>
       <div class="row">
         <div><label>يبدأ</label><input id="sleep-from" type="time" value="00:00"></div>
         <div><label>ينتهي</label><input id="sleep-to" type="time" value=""></div>
       </div>
       <p class="muted">إذا تركت «ينتهي» فاضي، ينتهي وقت الفجر.</p>
-      <label><input id="sleep-off" type="checkbox" style="width:auto"> إيقاف وضع النوم</label>
+      <div class="switch"><span>إيقاف وضع النوم</span><input id="sleep-off" type="checkbox"></div>
       <button class="main" onclick="saveSleep()">حفظ</button>
     </div>
   </section>
@@ -135,15 +195,19 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const TABS = [['quran','📺 قناة القرآن'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات العائلة'],['sleep','🌙 وضع النوم']];
+const TABS = [['home','🏠 الرئيسية'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات'],['screen','🖥️ الشاشة'],['sleep','🌙 النوم']];
 const DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const PRESETS = ['العشاء جاهز 🍽️','الغداء جاهز','حياكم الله 🌹','وقت النوم 🌙','لا تنسون أغراضكم'];
+const CARDS = [['adhkar','أذكار الصباح والمساء'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['tasks','مهامي وتذكيراتي'],['weather','الطقس'],['matches','مباريات فرقك']];
 // the PIN is sent once; the TV answers with a session key (30 days), kept on this phone instead of the PIN
-let KEY = localStorage.getItem('tvkey') || '', STATE = {};
+let KEY = localStorage.getItem('tvkey') || '', STATE = {}, PREFS = null;
 const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+const t12 = hm => { const [h, m] = String(hm).split(':').map(Number); return (h % 12 || 12) + ':' + String(m).padStart(2,'0') + (h < 12 ? ' ص' : ' م'); };
 
-function toast(t, err){ const e = $('toast'); e.textContent = t; e.className = 'toast' + (err ? ' err' : ''); e.style.display = 'block'; setTimeout(() => e.style.display = 'none', 2200); }
+function toast(t, err){ const e = $('toast'); e.textContent = t; e.className = 'toast' + (err ? ' err' : ''); e.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.display = 'none', 2200); }
 async function api(path, body){
   const r = await fetch(path, {method: body ? 'POST' : 'GET', headers: {'X-Key': KEY, 'Content-Type': 'application/json'}, body: body ? JSON.stringify(body) : undefined});
   if(r.status === 401){ expired(); throw new Error('pin'); }
@@ -157,45 +221,75 @@ async function login(){
     if(r.status === 429){ const j = await r.json(); return toast(`محاولات كثيرة، حاول بعد ${j.minutes} دقيقة`, true); }
     if(!r.ok) return toast('الرمز غير صحيح', true);
     KEY = (await r.json()).key; localStorage.setItem('tvkey', KEY); $('pin').value = '';
-    STATE = await api('/api/state'); show();
+    await start();
   }catch(e){ toast('تعذر الاتصال بالتلفزيون', true); }
 }
+$('pin').addEventListener('keydown', e => { if(e.key === 'Enter') login(); });
 function logout(){ if(KEY) fetch('/api/logout', {method: 'POST', headers: {'X-Key': KEY}}).catch(() => {}); expired(); }
 function expired(){ localStorage.removeItem('tvkey'); localStorage.removeItem('tvpin'); KEY = ''; $('app').hidden = true; $('pinbox').hidden = false; }
-async function save(section, value){
-  try{ await api('/api/save', {section, value}); STATE[section] = value; render(); toast('تم الحفظ'); }
-  catch(e){ if(e.message !== 'pin') toast('تعذر الحفظ، تأكد أن الجوال على نفس الواي فاي', true); }
+async function save(section, value, quiet){
+  try{ await api('/api/save', {section, value}); STATE[section] = value; render(); if(!quiet) toast('تم الحفظ'); }
+  catch(e){ if(e.message !== 'pin') toast('تعذر الحفظ، تأكد من الاتصال', true); }
 }
 
-function show(){
+async function start(){
+  STATE = await api('/api/state');
   $('pinbox').hidden = true; $('app').hidden = false;
-  $('tabs').innerHTML = TABS.map(([k, t], i) => `<button data-k="${k}" class="${i ? '' : 'on'}">${t}</button>`).join('');
-  $('tabs').onclick = e => { const k = e.target.dataset.k; if(!k) return;
-    document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
-    document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === 's-' + k)); };
-  document.querySelectorAll('section').forEach((s, i) => s.classList.toggle('on', i === 0));
+  $('tabs').innerHTML = TABS.map(([k, t]) => `<button data-k="${k}">${t}</button>`).join('');
+  $('tabs').onclick = e => { const k = e.target.dataset.k; if(k) openTab(k); };
+  openTab(localStorage.getItem('tvtab') || 'home');
   $('rem-days').innerHTML = DAYS.map((d, i) => `<label><input type="checkbox" value="${i}" checked>${d}</label>`).join('');
+  $('presets').innerHTML = PRESETS.map(p => `<button type="button">${esc(p)}</button>`).join('');
+  $('presets').onclick = e => { if(e.target.tagName === 'BUTTON') $('msg-text').value = e.target.textContent; };
   render();
+  loadPrefs();
+  setInterval(async () => { if(document.hidden) return; try{ STATE = await api('/api/state'); render(); }catch(e){} }, 20000);
+}
+function openTab(k){
+  if(!TABS.some(t => t[0] === k)) k = 'home';
+  localStorage.setItem('tvtab', k);
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === 's-' + k));
 }
 
 function render(){
-  $('quran-state').textContent = STATE.quran ? '▶ البث شغّال' : '⏹ البث متوقف';
-  const m = STATE.message;
-  $('msg-now').textContent = m && m.text && (!m.until || m.until > Date.now())
-    ? 'على الشاشة الحين: «' + m.text + '»' + (m.until ? ' لين ' + new Date(m.until).toLocaleTimeString('ar-SA', {hour:'numeric', minute:'2-digit'}) : '') : '';
+  $('quran-state').innerHTML = STATE.quran ? '<span class="on-air">● البث شغّال</span>' : '<span class="off-air">○ البث متوقف</span>';
+  const m = STATE.message, live = m && m.text && (!m.until || m.until > Date.now());
+  $('home-msg').innerHTML = '<h2>💬 الرسالة</h2>' + (live
+    ? `<p>«${esc(m.text)}»<br><span class="muted">${m.until ? 'تختفي ' + new Date(m.until).toLocaleTimeString('ar-SA', {hour:'numeric', minute:'2-digit'}) : 'لين تمسحها'}</span></p><button class="ghost small" onclick="clearMessage()">مسح</button>`
+    : '<p class="muted">ما فيه رسالة على الشاشة.</p><button class="ghost small" onclick="openTab(\'message\')">إرسال رسالة</button>');
+  const wd = new Date().getDay(), rems = (STATE.reminders || []).map((r, i) => ({r, i})).filter(x => (x.r.days || []).includes(wd)).sort((a, b) => String(a.r.time).localeCompare(String(b.r.time)));
+  $('home-rem').innerHTML = rems.length ? rems.map(({r, i}) => `<li class="${r.doneOn === today() ? 'done' : ''}"><span class="t">${esc(r.text)}<small>${t12(r.time)}</small></span>
+      <button class="ghost small" onclick="doneToday(${i})">${r.doneOn === today() ? 'تراجع' : 'تم ✔'}</button></li>`).join('') : '<li class="muted">ما فيه تذكيرات اليوم</li>';
+  const open = (STATE.tasks || []).map((t, i) => ({t, i})).filter(x => !x.t.done);
+  $('home-tasks').innerHTML = open.length ? open.slice(0, 5).map(({t, i}) => `<li><input type="checkbox" style="width:auto" onchange="toggleTask(${i})"><span class="t">${esc(t.text)}${t.due ? `<small>${esc(t.due.replace('T', ' '))}</small>` : ''}</span></li>`).join('') : '<li class="muted">ما فيه مهام مفتوحة 👌</li>';
+  const fam = nextFamily();
+  $('home-fam').textContent = fam ? `${fam.icon || ''} ${fam.name} · ${fam.days === 0 ? 'اليوم 🎉' : 'بعد ' + fam.days + ' يوم'}` : 'ما فيه مناسبات';
   const tasks = STATE.tasks || [];
   $('task-list').innerHTML = tasks.length ? tasks.map((t, i) => `<li class="${t.done ? 'done' : ''}">
       <input type="checkbox" style="width:auto" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})">
       <span class="t">${esc(t.text)}${t.due ? `<small>${esc(t.due.replace('T', ' '))}</small>` : ''}</span>
-      <button class="x" onclick="delItem('tasks', ${i})">×</button></li>`).join('') : '<li class="muted">ما فيه مهام</li>';
-  const rems = STATE.reminders || [];
-  $('rem-list').innerHTML = rems.length ? rems.map((r, i) => `<li><span class="t">${esc(r.text)}<small>${esc(r.time)} · ${r.days.length === 7 ? 'يومياً' : r.days.map(d => DAYS[d]).join('، ')}</small></span>
-      <button class="x" onclick="delItem('reminders', ${i})">×</button></li>`).join('') : '<li class="muted">ما فيه تذكيرات</li>';
-  const fam = STATE.family || [];
-  $('fam-list').innerHTML = fam.length ? fam.map((f, i) => `<li><span class="t">${esc(f.name)}<small>${esc(f.date)} · ${f.yearly ? 'كل سنة' : 'مرة وحدة'}</small></span>
-      <button class="x" onclick="delItem('family', ${i})">×</button></li>`).join('') : '<li class="muted">ما فيه مناسبات</li>';
-  const sl = STATE.sleep || {from: '00:00', to: '', off: false};
+      <button class="x" onclick="delItem('tasks', ${i})" aria-label="حذف">×</button></li>`).join('') : '<li class="muted">ما فيه مهام</li>';
+  const all = STATE.reminders || [];
+  $('rem-list').innerHTML = all.length ? all.map((r, i) => `<li><span class="t">${esc(r.text)}<small>${t12(r.time)} · ${r.days.length === 7 ? 'كل يوم' : r.days.map(d => DAYS[d]).join('، ')}</small></span>
+      <button class="x" onclick="delItem('reminders', ${i})" aria-label="حذف">×</button></li>`).join('') : '<li class="muted">ما فيه تذكيرات</li>';
+  const famAll = STATE.family || [];
+  $('fam-list').innerHTML = famAll.length ? famAll.map((f, i) => `<li><span class="t">${esc(f.icon || '')} ${esc(f.name)}<small>${esc(f.date)} · ${f.yearly ? 'كل سنة' : 'مرة وحدة'}</small></span>
+      <button class="x" onclick="delItem('family', ${i})" aria-label="حذف">×</button></li>`).join('') : '<li class="muted">ما فيه مناسبات</li>';
+  const sl = STATE.sleep || {};
   $('sleep-from').value = sl.from || '00:00'; $('sleep-to').value = sl.to || ''; $('sleep-off').checked = !!sl.off;
+  const d = STATE.display || {}, cards = d.cards || {};
+  $('cards').innerHTML = CARDS.map(([k, t]) => `<div class="switch"><span>${t}</span><input type="checkbox" data-card="${k}" ${cards[k] === false ? '' : 'checked'}></div>`).join('');
+  $('card-sec').value = String(d.cardSec || 30); $('photo-min').value = String(d.photoMin || 30);
+  $('q-size').value = d.quranSize || 's'; $('q-pos').value = d.quranPos || 'tc';
+}
+function nextFamily(){
+  const t0 = new Date(today() + 'T00:00:00').getTime();
+  return (STATE.family || []).map(f => {
+    const [y, m, d] = String(f.date).split('-').map(Number); let t = new Date(y, m-1, d).getTime();
+    if(f.yearly){ const ty = new Date().getFullYear(); t = new Date(ty, m-1, d).getTime(); if(t < t0) t = new Date(ty + 1, m-1, d).getTime(); }
+    return t < t0 ? null : Object.assign({}, f, {days: Math.round((t - t0) / 86400000)});
+  }).filter(Boolean).sort((a, b) => a.days - b.days)[0];
 }
 
 async function setQuran(on){
@@ -205,7 +299,7 @@ async function setQuran(on){
 function sendMessage(){
   const text = $('msg-text').value.trim(); if(!text) return toast('اكتب الرسالة', true);
   const mins = +$('msg-dur').value;
-  save('message', {text, until: mins ? Date.now() + mins*60000 : 0, at: Date.now()});
+  save('message', {text, style: $('msg-style').value, until: mins ? Date.now() + mins*60000 : 0, at: Date.now()});
 }
 function clearMessage(){ save('message', {text: '', until: 0, at: Date.now()}); }
 function addTask(){
@@ -213,8 +307,10 @@ function addTask(){
   save('tasks', [...(STATE.tasks || []), {id: uid(), text, due: $('task-due').value || '', done: false}]);
   $('task-text').value = ''; $('task-due').value = '';
 }
-function toggleTask(i){ const t = (STATE.tasks || []).slice(); t[i] = Object.assign({}, t[i], {done: !t[i].done}); save('tasks', t); }
-function delItem(section, i){ const a = (STATE[section] || []).slice(); a.splice(i, 1); save(section, a); }
+function toggleTask(i){ const t = (STATE.tasks || []).slice(); t[i] = Object.assign({}, t[i], {done: !t[i].done}); save('tasks', t, true); }
+function clearDone(){ save('tasks', (STATE.tasks || []).filter(t => !t.done)); }
+function delItem(section, i){ if(!confirm('حذف؟')) return; const a = (STATE[section] || []).slice(); a.splice(i, 1); save(section, a); }
+function pickDays(list){ document.querySelectorAll('#rem-days input').forEach(x => x.checked = list.includes(+x.value)); }
 function addReminder(){
   const text = $('rem-text').value.trim(); if(!text) return toast('اكتب التذكير', true);
   const days = [...document.querySelectorAll('#rem-days input:checked')].map(x => +x.value);
@@ -222,15 +318,63 @@ function addReminder(){
   save('reminders', [...(STATE.reminders || []), {id: uid(), text, time: $('rem-time').value || '08:00', days}]);
   $('rem-text').value = '';
 }
+function doneToday(i){
+  const a = (STATE.reminders || []).slice();
+  a[i] = Object.assign({}, a[i], {doneOn: a[i].doneOn === today() ? '' : today()});
+  save('reminders', a, true);
+}
 function addFamily(){
   const name = $('fam-name').value.trim(), date = $('fam-date').value;
   if(!name || !date) return toast('اكتب المناسبة وتاريخها', true);
-  save('family', [...(STATE.family || []), {id: uid(), name, date, yearly: $('fam-yearly').value === '1'}]);
+  const [icon, yearly] = $('fam-kind').value.split('|');
+  save('family', [...(STATE.family || []), {id: uid(), name, date, icon, yearly: yearly === '1'}]);
   $('fam-name').value = '';
 }
 function saveSleep(){ save('sleep', {from: $('sleep-from').value || '00:00', to: $('sleep-to').value || '', off: $('sleep-off').checked}); }
+function saveDisplay(){
+  const cards = {}; document.querySelectorAll('[data-card]').forEach(x => cards[x.dataset.card] = x.checked);
+  save('display', {cards, cardSec: +$('card-sec').value, photoMin: +$('photo-min').value, quranSize: $('q-size').value, quranPos: $('q-pos').value});
+}
 
-if(KEY) api('/api/state').then(s => { STATE = s; show(); }).catch(() => {});
+// the screensaver's own settings: city and teams
+async function loadPrefs(){
+  try{ PREFS = await api('/api/prefs'); }catch(e){ return; }
+  $('city').innerHTML = PREFS.regions.map(r => `<optgroup label="${esc(r.name)}">${r.cities.map(c => `<option${c === PREFS.city[0] ? ' selected' : ''}>${esc(c)}</option>`).join('')}</optgroup>`).join('');
+  renderTeams();
+}
+function renderTeams(){
+  const t = PREFS.teams;
+  $('teams').innerHTML = t.length ? t.map((x, i) => `<li><span class="t">${esc(x.name)}</span><span class="order">
+      <button onclick="moveTeam(${i},-1)" aria-label="فوق">↑</button><button onclick="moveTeam(${i},1)" aria-label="تحت">↓</button></span>
+      <button class="x" onclick="removeTeam(${i})" aria-label="حذف">×</button></li>`).join('') : '<li class="muted">ما فيه أندية</li>';
+}
+async function savePrefs(body, msg){
+  try{ await api('/api/prefs', body); toast(msg || 'تم الحفظ، والشاشة تتحدث'); }
+  catch(e){ if(e.message !== 'pin') toast('تعذر الحفظ', true); }
+}
+function saveCity(){ if(!PREFS) return; PREFS.city[0] = $('city').value; savePrefs({city: $('city').value}, 'تم تغيير المدينة'); }
+function moveTeam(i, d){ const t = PREFS.teams, j = i + d; if(j < 0 || j >= t.length) return; [t[i], t[j]] = [t[j], t[i]]; renderTeams(); savePrefs({teams: t}); }
+function removeTeam(i){ if(!confirm('إزالة ' + PREFS.teams[i].name + '؟')) return; PREFS.teams.splice(i, 1); renderTeams(); savePrefs({teams: PREFS.teams}); }
+async function searchTeam(){
+  const q = $('team-q').value.trim(); if(q.length < 2) return;
+  $('team-results').innerHTML = '<li class="muted">جاري البحث…</li>';
+  try{
+    const r = await api('/api/teams?q=' + encodeURIComponent(q));
+    $('team-results').innerHTML = r.length ? r.map((x, i) => `<li class="team">${x.badge ? `<img src="${esc(x.badge)}/tiny" alt="">` : ''}<span class="t">${esc(x.name)}<small>${esc(x.league)} · ${esc(x.country)}</small></span>
+        <button class="ghost small" data-i="${i}">إضافة</button></li>`).join('') : '<li class="muted">ما لقيت شي، جرّب اسم ثاني بالإنجليزي</li>';
+    $('team-results').onclick = e => { const i = e.target.dataset.i; if(i == null) return; addTeam(r[+i]); };
+  }catch(e){ if(e.message !== 'pin') $('team-results').innerHTML = '<li class="muted">تعذر البحث</li>'; }
+}
+$('team-q').addEventListener('keydown', e => { if(e.key === 'Enter') searchTeam(); });
+function addTeam(x){
+  if(!PREFS) return;
+  if(PREFS.teams.some(t => t.id === x.id)) return toast('النادي موجود');
+  if(PREFS.teams.length >= 10) return toast('الحد ١٠ أندية', true);
+  PREFS.teams.push({id: x.id, name: x.name}); renderTeams(); savePrefs({teams: PREFS.teams}, 'تمت إضافة ' + x.name);
+  $('team-results').innerHTML = ''; $('team-q').value = '';
+}
+
+if(KEY) start().catch(() => {});
 </script>
 </body>
 </html>

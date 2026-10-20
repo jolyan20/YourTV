@@ -289,6 +289,9 @@
     max-width:70vw;padding:3vh 3vw;border-radius:22px;background:rgba(8,20,14,.92);border:2px solid rgba(232,196,111,.85);
     box-shadow:0 0 80px rgba(0,0,0,.6)}
   .msgbox.on{display:flex}
+  .msgbox[data-kind="welcome"]{border-color:rgba(127,207,156,.9)}
+  .msgbox[data-kind="urgent"]{border-color:rgba(240,106,90,.95);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{50%{box-shadow:0 0 90px rgba(240,106,90,.45)}}
   .msgbox .m-ic{font-size:clamp(34px,3vw,64px)}
   .msgbox .m-tx{font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:clamp(34px,3.6vw,76px);line-height:1.25;color:#FFF3D6}
   .al.rem{border-color:#C9A0F0;background:rgba(170,120,240,.2);color:#F1E6FF}
@@ -863,7 +866,7 @@ function renderAlerts(){
   const day = mins < maghrib ? new Date() : new Date(now + 86400000);
   const why = fastReasons(day);
   if(why.length) out.push(pill('fast', `${mins < maghrib ? 'اليوم' : 'غداً'}: صيام ${why.join('، ')}`));
-  out.push(...reminderAlerts(), ...matchAlerts(now), ...weatherAlerts());
+  out.push(...reminderAlerts(), ...taskAlerts(), ...matchAlerts(now), ...weatherAlerts());
   box.innerHTML = out.join('');
   renderAdhan(mins);
 }
@@ -1285,6 +1288,12 @@ async function loadControl(){
     }
   }catch(e){}   // a browser, or the app without the server: nothing to read
 }
+// the phone page's screen options, with their defaults
+const DISP = () => (typeof CTRL !== 'undefined' && CTRL.display) || {};
+const cardOn = k => !(DISP().cards && DISP().cards[k] === false);
+const cardMs = () => Math.min(120, Math.max(10, +DISP().cardSec || 30)) * 1000;
+const photoMin = () => [15, 30, 60, 120].includes(+DISP().photoMin) ? +DISP().photoMin : 30;
+const todayKey = () => new Intl.DateTimeFormat('en-CA', {timeZone: CONFIG.timezone}).format(new Date());
 // the message: large, in the middle of the screen, until its time is up or it is cleared
 function renderMessage(){
   const el = document.getElementById('msgbox');
@@ -1292,14 +1301,19 @@ function renderMessage(){
   const m = CTRL.message;
   const on = m && m.text && (!m.until || m.until > Date.now());
   el.classList.toggle('on', !!on);
-  if(on) el.innerHTML = `<div class="m-ic">💬</div><div class="m-tx">${esc(m.text)}</div>`;
+  if(on){
+    const kind = ['welcome', 'urgent', 'info'].includes(m.style) ? m.style : 'info';
+    el.dataset.kind = kind;
+    el.innerHTML = `<div class="m-ic">${kind === 'welcome' ? '🌹' : kind === 'urgent' ? '⚠️' : '💬'}</div><div class="m-tx">${esc(m.text)}</div>`;
+  }
 }
 // «مهامي»: the open tasks, the late ones first and marked
 function todaysReminders(){
   const p = riyadhParts(), wd = new Date(Date.UTC(p.y, p.mo-1, p.d)).getUTCDay(), mins = p.h*60 + p.mi;
   return (CTRL.reminders || []).filter(r => (r.days || []).includes(wd)).map(r => {
     const [h, mi] = String(r.time || '0:0').split(':').map(Number), at = h*60 + mi;
-    return {r, h, mi, at, now: mins >= at && mins < at + 60, past: mins >= at + 60};
+    const done = r.doneOn === todayKey();
+    return {r, h, mi, at, done, now: !done && mins >= at && mins < at + 60, past: done || mins >= at + 60};
   }).sort((a, b) => a.at - b.at);
 }
 function tasksSlide(){
@@ -1314,7 +1328,7 @@ function tasksSlide(){
   const rems = todaysReminders();
   if(rems.length){
     rows.push('<li class="mh">تذكيرات اليوم</li>');
-    rems.slice(0, 5).forEach(x => rows.push(`<li class="task rem${x.now ? ' now' : ''}${x.past ? ' past' : ''}"><span>${x.now ? '🔔' : '⏰'} ${esc(x.r.text)}</span><span class="dt">${fmt12(x.h, x.mi)}</span></li>`));
+    rems.slice(0, 5).forEach(x => rows.push(`<li class="task rem${x.now ? ' now' : ''}${x.past ? ' past' : ''}"><span>${x.done ? '✔' : x.now ? '🔔' : '⏰'} ${esc(x.r.text)}</span><span class="dt">${fmt12(x.h, x.mi)}</span></li>`));
   }
   return {title: rems.length && !open.length ? 'تذكيراتي' : rems.length ? 'مهامي وتذكيراتي' : 'مهامي', rows};
 }
@@ -1323,8 +1337,16 @@ function reminderAlerts(){
   const p = riyadhParts(), mins = p.h*60 + p.mi, wd = new Date(Date.UTC(p.y, p.mo-1, p.d)).getUTCDay();
   return (CTRL.reminders || []).filter(r => {
     const [h, mi] = String(r.time || '0:0').split(':').map(Number), at = h*60 + mi;
-    return (r.days || []).includes(wd) && mins >= at && mins < at + 60;
+    return (r.days || []).includes(wd) && mins >= at && mins < at + 60 && r.doneOn !== todayKey();
   }).map(r => { const [h, mi] = r.time.split(':').map(Number); return pill('rem', `${esc(r.text)} <small>· ${fmt12(h, mi)}</small>`); });
+}
+// tasks with a time: from 30 minutes before it, and once it is late (that day)
+function taskAlerts(){
+  const now = Date.now(), today = todayKey();
+  return (CTRL.tasks || []).filter(t => !t.done && t.due).map(t => ({t, due: new Date(t.due).getTime()}))
+    .filter(x => x.due - now <= 30*60000 && x.t.due.slice(0, 10) === today)
+    .map(x => pill('rem', x.due > now ? `${esc(x.t.text)} <small>· بعد ${humanRemaining(Math.round((x.due - now)/1000))}</small>`
+                                     : `${esc(x.t.text)} <small>· متأخرة</small>`));
 }
 // family occasions for the occasions panel: a yearly one counts to its next date, a one-off to its day
 function familyOccasions(t0){
@@ -1334,7 +1356,7 @@ function familyOccasions(t0){
     let t = Date.UTC(y, m-1, d);
     if(f.yearly){ const ty = new Date(t0).getUTCFullYear(); t = Date.UTC(ty, m-1, d); if(t < t0) t = Date.UTC(ty + 1, m-1, d); }
     if(t < t0) return null;
-    return {o: {name: f.name, greet: f.yearly ? 'كل عام وأنتم بخير' : 'اليوم'}, t, label: f.name, days: Math.round((t - t0) / 86400000), family: true};
+    return {o: {name: f.name, greet: f.yearly ? 'كل عام وأنتم بخير' : 'اليوم'}, t, label: (f.icon ? f.icon + ' ' : '') + f.name, days: Math.round((t - t0) / 86400000), family: true};
   }).filter(Boolean);
 }
 
@@ -1527,7 +1549,6 @@ const PANEL_TITLE = {shows:'هذا الأسبوع', prayers:'مواقيت الي
 
 // #panel=verse on the screensaver: the card turns every 10 s through the day's verse, the day's hadith,
 // the 5-day forecast and the followed teams' games (skipped while there are none)
-const CARD_TURN_MS = 30000;
 let CARD_TURN = 0;
 // morning adhkar from Fajr to Dhuhr, evening adhkar from Asr to Isha; each turn of the card shows the next one.
 // Every dhikr was found word for word in the six books (.github/tools/build_adhkar.py)
@@ -1714,14 +1735,14 @@ function dhikrSlide(when){
 function cardSlides(){
   const day = riyadhDayNumber(), slides = [];
   const dk = adhkarTime();
-  if(dk && ADHKAR.length) slides.push(() => dhikrSlide(dk));
-  if(VERSES.length) slides.push(() => verseOfDay(day));
-  if(HADITH.length) slides.push(() => hadithOfDay(day));
-  if(WISDOM.length) slides.push(() => wisdomOfDay(day));
-  if((CTRL.tasks || []).some(t => !t.done) || todaysReminders().length) slides.push(() => tasksSlide());
-  if(FORECAST.length) slides.push(() => ({title: PANEL_TITLE.forecast, rows: forecastRows()}));
+  if(dk && ADHKAR.length && cardOn('adhkar')) slides.push(() => dhikrSlide(dk));
+  if(VERSES.length && cardOn('verse')) slides.push(() => verseOfDay(day));
+  if(HADITH.length && cardOn('hadith')) slides.push(() => hadithOfDay(day));
+  if(WISDOM.length && cardOn('wisdom')) slides.push(() => wisdomOfDay(day));
+  if(cardOn('tasks') && ((CTRL.tasks || []).some(t => !t.done) || todaysReminders().length)) slides.push(() => tasksSlide());
+  if(FORECAST.length && cardOn('weather')) slides.push(() => ({title: PANEL_TITLE.forecast, rows: forecastRows()}));
   const m = matchCard();
-  if(m.length) slides.push(() => ({title: PANEL_TITLE.matches, rows: m}));
+  if(m.length && cardOn('matches')) slides.push(() => ({title: PANEL_TITLE.matches, rows: m}));
   return slides;
 }
 function rotatingCard(){
@@ -2090,7 +2111,7 @@ function showBackground(url, b){
 // Every 2 days a new random set of 8 hosted photos (Park-Miller generator seeded
 // by the 2-day period), rotating every 30 minutes; by night only photos tagged n (sunsets, night skies).
 // Only the photo on screen is downloaded.
-const PHOTO_SET = 8, PHOTO_PERIOD_DAYS = 2, PHOTO_SLOT_MIN = 30;
+const PHOTO_SET = 8, PHOTO_PERIOD_DAYS = 2;   // the change interval: photoMin(), 30 by default
 function riyadhDayNumber(){
   const p = riyadhParts();
   return Math.floor(Date.UTC(p.y, p.mo - 1, p.d) / 86400000);
@@ -2110,7 +2131,7 @@ let BG_SLOT = -1, PREFETCHED = false;
 function applyBackground(force){
   try {
     const p = riyadhParts();
-    const slot = riyadhDayNumber() * (1440 / PHOTO_SLOT_MIN) + Math.floor((p.h * 60 + p.mi) / PHOTO_SLOT_MIN);
+    const slot = riyadhDayNumber() * (1440 / photoMin()) + Math.floor((p.h * 60 + p.mi) / photoMin());
     const key = slot + (isNight() ? 'n' : 'd');
     if(key === BG_SLOT && !force) return;
     BG_SLOT = key;
@@ -2184,7 +2205,7 @@ function boot(){
   }, 25*1000);
   setInterval(applyNight, 60*1000);
   setInterval(tickRamadan, 1000);   // the occasions turn every 15 s; the last day counts down by the second
-  if(CONFIG.panel === 'verse') setInterval(turnCard, CARD_TURN_MS);
+  if(CONFIG.panel === 'verse'){ const next = () => setTimeout(() => { turnCard(); next(); }, cardMs()); next(); }
   setInterval(() => {   // the followed teams' card: next page every 10 s
     if(MATCH_PAGES > 1 && document.getElementById('week-hd').textContent === PANEL_TITLE.matches){ MATCH_CARD_PAGE++; renderPanel(false); }
   }, 10000);

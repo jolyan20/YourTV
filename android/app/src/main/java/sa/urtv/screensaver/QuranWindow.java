@@ -61,9 +61,16 @@ final class QuranWindow {
         frame.setStroke((int) dp(c, 1.5f), 0x99DCB86F);
         w.setBackground(frame);
         w.setClipToOutline(true);
-        int width = (int) (root.getWidth() * 0.25f);
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(width, width * 9 / 16, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-        lp.topMargin = (int) (root.getHeight() * 0.035f);
+        // size and place from the phone page (display.quranSize s|m|l, display.quranPos tc|tr|tl|bc|br|bl)
+        org.json.JSONObject d = ControlStore.state(c).optJSONObject("display");
+        String size = d == null ? "s" : d.optString("quranSize", "s"), pos = d == null ? "tc" : d.optString("quranPos", "tc");
+        float share = "l".equals(size) ? 0.42f : "m".equals(size) ? 0.33f : 0.25f;
+        int width = (int) (root.getWidth() * share);
+        int g = (pos.startsWith("b") ? Gravity.BOTTOM : Gravity.TOP)
+              | (pos.endsWith("r") ? Gravity.RIGHT : pos.endsWith("l") ? Gravity.LEFT : Gravity.CENTER_HORIZONTAL);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(width, width * 9 / 16, g);
+        int mx = (int) (root.getWidth() * 0.03f), my = (int) (root.getHeight() * 0.035f);
+        lp.setMargins(mx, my, mx, my);
         root.addView(w, lp);
         final String html = "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"
             + "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}iframe{border:0;width:100%;height:100%}</style>"

@@ -95,11 +95,18 @@ final class ControlServer implements Runnable {
             if (len < 0 || len > 200_000) { reply(s, 413, "text/plain", "too large", false); return; }
             byte[] body = new byte[len];
             for (int got = 0; got < len; ) { int n = in.read(body, got, len - got); if (n < 0) break; got += n; }
+            String query = path.contains("?") ? path.substring(path.indexOf('?') + 1) : "";
             if (path.contains("?")) path = path.substring(0, path.indexOf('?'));
 
             if ("GET".equals(method) && ("/".equals(path) || "/index.html".equals(path))) {
                 reply(s, 200, "text/html; charset=utf-8", asset("control.html"), false); return;
             }
+            if ("GET".equals(method) && "/manifest.json".equals(path)) {   // "add to home screen" on the phone
+                reply(s, 200, "application/manifest+json", "{\"name\":\"تلفزيوني\",\"short_name\":\"تلفزيوني\",\"start_url\":\"/\","
+                    + "\"display\":\"standalone\",\"background_color\":\"#0b1410\",\"theme_color\":\"#0b1410\",\"dir\":\"rtl\",\"lang\":\"ar\","
+                    + "\"icons\":[{\"src\":\"/icon.png\",\"sizes\":\"512x512\",\"type\":\"image/png\"}]}", false); return;
+            }
+            if ("GET".equals(method) && "/icon.png".equals(path)) { replyBytes(s, "image/png", assetBytes("control-icon.png")); return; }
             if ("/api/public".equals(path)) {   // the screensaver page on this TV: file:// origin, so CORS here only
                 if (!from.isLoopbackAddress()) { reply(s, 403, "text/plain", "local only", false); return; }
                 if ("OPTIONS".equals(method)) { reply(s, 204, "text/plain", "", true); return; }
@@ -122,6 +129,17 @@ final class ControlServer implements Runnable {
 
             String key = get(h, "x-key", "");
             if (!ControlStore.sessionValid(app, key)) { reply(s, 401, "application/json", "{\"error\":\"session\"}", false); return; }
+            if ("GET".equals(method) && "/api/prefs".equals(path)) {
+                reply(s, 200, "application/json; charset=utf-8", ControlPrefs.read(app).toString(), false); return;
+            }
+            if ("GET".equals(method) && "/api/teams".equals(path)) {
+                String q = query.startsWith("q=") ? java.net.URLDecoder.decode(query.substring(2), "UTF-8") : "";
+                reply(s, 200, "application/json; charset=utf-8", ControlPrefs.searchTeams(app, q).toString(), false); return;
+            }
+            if ("POST".equals(method) && "/api/prefs".equals(path)) {
+                String err = ControlPrefs.apply(app, new JSONObject(new String(body, StandardCharsets.UTF_8)));
+                reply(s, err == null ? 200 : 400, "application/json", err == null ? "{\"ok\":true}" : "{\"error\":\"" + err + "\"}", false); return;
+            }
             if ("/api/logout".equals(path)) { ControlStore.endSession(app, key); reply(s, 200, "application/json", "{\"ok\":true}", false); return; }
             if ("GET".equals(method) && "/api/state".equals(path)) {
                 reply(s, 200, "application/json; charset=utf-8", ControlStore.state(app).toString(), false); return;
@@ -186,13 +204,41 @@ final class ControlServer implements Runnable {
     }
 
     private String asset(String name) throws java.io.IOException {
+        return new String(assetBytes(name), StandardCharsets.UTF_8);
+    }
+
+    private byte[] assetBytes(String name) throws java.io.IOException {
         try (InputStream in = app.getAssets().open(name)) {
             ByteArrayOutputStream b = new ByteArrayOutputStream();
             byte[] buf = new byte[8192];
             int n;
             while ((n = in.read(buf)) > 0) b.write(buf, 0, n);
-            return b.toString("UTF-8");
+            return b.toByteArray();
         }
+    }
+
+    private static void replyBytes(Socket s, String type, byte[] body) throws java.io.IOException {
+        String head = "HTTP/1.1 200 X
+
+Content-Type: " + type + "
+
+Content-Length: " + body.length
+            + "
+
+X-Content-Type-Options: nosniff
+
+Cache-Control: max-age=86400
+
+Connection: close
+
+
+
+";
+        OutputStream out = s.getOutputStream();
+        out.write(head.getBytes(StandardCharsets.UTF_8));
+        out.write(body);
+        out.flush();
+        s.close();
     }
 
     private static void reply(Socket s, int code, String type, String text, boolean cors) throws java.io.IOException {
@@ -200,7 +246,7 @@ final class ControlServer implements Runnable {
         String head = "HTTP/1.1 " + code + " X\r\nContent-Type: " + type + "\r\nContent-Length: " + body.length
             + (cors ? "\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET" : "")
             + "\r\nX-Frame-Options: DENY\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer"
-            + "\r\nContent-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
+            + "\r\nContent-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; frame-ancestors 'none'"
             + "\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n";
         OutputStream out = s.getOutputStream();
         out.write(head.getBytes(StandardCharsets.UTF_8));
