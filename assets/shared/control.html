@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>التحكم بالتلفزيون</title>
+<style>
+  :root{--bg:#0b1410;--card:#13211b;--line:#2a3a31;--gold:#DCB86F;--txt:#F2EBDD;--dim:#A99F8A;--ok:#57D294;--bad:#EE6A50}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+  header{padding:18px 16px 6px;display:flex;justify-content:space-between;align-items:center}
+  h1{font-size:20px;margin:0}
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 16px;position:sticky;top:0;background:var(--bg);z-index:2}
+  .tabs button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:999px;padding:8px 14px;font:inherit}
+  .tabs button.on{border-color:var(--gold);color:var(--gold)}
+  section{display:none;padding:8px 16px 40px}
+  section.on{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+  label{display:block;color:var(--dim);font-size:14px;margin:8px 0 4px}
+  input,select,textarea{width:100%;background:#0e1814;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit}
+  textarea{min-height:80px}
+  .row{display:flex;gap:8px}
+  .row > *{flex:1}
+  button.main{width:100%;margin-top:12px;background:var(--gold);color:#1a1208;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:600}
+  button.sec{background:transparent;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:8px 12px;font:inherit}
+  ul{list-style:none;margin:0;padding:0}
+  li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  li:last-child{border-bottom:0}
+  li .t{flex:1}
+  li .t small{display:block;color:var(--dim)}
+  li.done .t{text-decoration:line-through;color:var(--dim)}
+  .x{background:none;border:0;color:var(--bad);font-size:20px}
+  .days{display:flex;flex-wrap:wrap;gap:6px}
+  .days label{display:flex;align-items:center;gap:4px;margin:0;color:var(--txt);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+  .days input{width:auto}
+  .big{font-size:22px;text-align:center;padding:10px}
+  .toast{position:fixed;bottom:16px;left:16px;right:16px;background:var(--ok);color:#06150d;border-radius:12px;padding:12px;text-align:center;display:none}
+  .toast.err{background:var(--bad);color:#fff}
+  #pinbox{max-width:360px;margin:60px auto;padding:0 16px;text-align:center}
+  #pinbox input{text-align:center;font-size:28px;letter-spacing:.3em}
+  .muted{color:var(--dim);font-size:14px}
+</style>
+</head>
+<body>
+
+<div id="pinbox">
+  <h1>التحكم بالتلفزيون</h1>
+  <p class="muted">اكتب الرمز السري الظاهر في إعدادات شاشة التوقف على التلفزيون</p>
+  <input id="pin" inputmode="numeric" maxlength="4" autocomplete="off">
+  <button class="main" onclick="login()">دخول</button>
+</div>
+
+<div id="app" hidden>
+  <header><h1>التحكم بالتلفزيون</h1><button class="sec" onclick="logout()">خروج</button></header>
+  <nav class="tabs" id="tabs"></nav>
+
+  <section id="s-quran">
+    <div class="card">
+      <p>بث قناة القرآن الكريم من مكة في نافذة صغيرة على شاشة التوقف.</p>
+      <div class="big" id="quran-state">—</div>
+      <div class="row">
+        <button class="main" onclick="setQuran(true)">تشغيل</button>
+        <button class="main" style="background:#2a3a31;color:var(--txt)" onclick="setQuran(false)">إيقاف</button>
+      </div>
+      <p class="muted">إذا كان التلفزيون في تطبيق أو الواجهة الرئيسية، يظهر البث أول ما تشتغل شاشة التوقف.</p>
+    </div>
+  </section>
+
+  <section id="s-message">
+    <div class="card">
+      <label>الرسالة</label>
+      <textarea id="msg-text" placeholder="مثلاً: العشاء جاهز"></textarea>
+      <label>تبقى على الشاشة</label>
+      <select id="msg-dur">
+        <option value="5">٥ دقائق</option><option value="10" selected>١٠ دقائق</option>
+        <option value="30">٣٠ دقيقة</option><option value="60">ساعة</option><option value="0">لين أمسحها</option>
+      </select>
+      <button class="main" onclick="sendMessage()">إرسال للشاشة</button>
+      <button class="sec" style="width:100%;margin-top:8px" onclick="clearMessage()">مسح الرسالة</button>
+      <p class="muted" id="msg-now"></p>
+    </div>
+  </section>
+
+  <section id="s-tasks">
+    <div class="card">
+      <label>مهمة جديدة</label>
+      <input id="task-text" placeholder="مثلاً: دفع فاتورة الكهرباء">
+      <label>موعد (اختياري)</label>
+      <input id="task-due" type="datetime-local">
+      <button class="main" onclick="addTask()">إضافة</button>
+    </div>
+    <div class="card"><ul id="task-list"></ul></div>
+  </section>
+
+  <section id="s-reminders">
+    <div class="card">
+      <label>التذكير</label>
+      <input id="rem-text" placeholder="مثلاً: دواء الضغط">
+      <label>الوقت</label>
+      <input id="rem-time" type="time" value="08:00">
+      <label>الأيام</label>
+      <div class="days" id="rem-days"></div>
+      <button class="main" onclick="addReminder()">إضافة</button>
+    </div>
+    <div class="card"><ul id="rem-list"></ul></div>
+  </section>
+
+  <section id="s-family">
+    <div class="card">
+      <label>المناسبة</label>
+      <input id="fam-name" placeholder="مثلاً: عيد ميلاد سارة، سفرة أبها">
+      <label>التاريخ</label>
+      <input id="fam-date" type="date">
+      <label>النوع</label>
+      <select id="fam-yearly"><option value="1">تتكرر كل سنة (عيد ميلاد، ذكرى)</option><option value="0">مرة وحدة (سفرة، موعد)</option></select>
+      <button class="main" onclick="addFamily()">إضافة</button>
+    </div>
+    <div class="card"><ul id="fam-list"></ul></div>
+  </section>
+
+  <section id="s-sleep">
+    <div class="card">
+      <p>وضع النوم: الساعة والتاريخ بس، بإضاءة خفيفة.</p>
+      <div class="row">
+        <div><label>يبدأ</label><input id="sleep-from" type="time" value="00:00"></div>
+        <div><label>ينتهي</label><input id="sleep-to" type="time" value=""></div>
+      </div>
+      <p class="muted">إذا تركت «ينتهي» فاضي، ينتهي وقت الفجر.</p>
+      <label><input id="sleep-off" type="checkbox" style="width:auto"> إيقاف وضع النوم</label>
+      <button class="main" onclick="saveSleep()">حفظ</button>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TABS = [['quran','📺 قناة القرآن'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات العائلة'],['sleep','🌙 وضع النوم']];
+const DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+let PIN = localStorage.getItem('tvpin') || '', STATE = {};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+function toast(t, err){ const e = $('toast'); e.textContent = t; e.className = 'toast' + (err ? ' err' : ''); e.style.display = 'block'; setTimeout(() => e.style.display = 'none', 2200); }
+async function api(path, body){
+  const r = await fetch(path, {method: body ? 'POST' : 'GET', headers: {'X-Pin': PIN, 'Content-Type': 'application/json'}, body: body ? JSON.stringify(body) : undefined});
+  if(r.status === 401){ logout(); throw new Error('pin'); }
+  if(!r.ok) throw new Error('http ' + r.status);
+  return r.json();
+}
+async function login(){
+  PIN = $('pin').value.trim();
+  try{ STATE = await api('/api/state'); localStorage.setItem('tvpin', PIN); show(); }
+  catch(e){ toast('الرمز غير صحيح', true); }
+}
+function logout(){ localStorage.removeItem('tvpin'); PIN = ''; $('app').hidden = true; $('pinbox').hidden = false; }
+async function save(section, value){
+  try{ await api('/api/save', {section, value}); STATE[section] = value; render(); toast('تم الحفظ'); }
+  catch(e){ if(e.message !== 'pin') toast('تعذر الحفظ، تأكد أن الجوال على نفس الواي فاي', true); }
+}
+
+function show(){
+  $('pinbox').hidden = true; $('app').hidden = false;
+  $('tabs').innerHTML = TABS.map(([k, t], i) => `<button data-k="${k}" class="${i ? '' : 'on'}">${t}</button>`).join('');
+  $('tabs').onclick = e => { const k = e.target.dataset.k; if(!k) return;
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+    document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === 's-' + k)); };
+  document.querySelectorAll('section').forEach((s, i) => s.classList.toggle('on', i === 0));
+  $('rem-days').innerHTML = DAYS.map((d, i) => `<label><input type="checkbox" value="${i}" checked>${d}</label>`).join('');
+  render();
+}
+
+function render(){
+  $('quran-state').textContent = STATE.quran ? '▶ البث شغّال' : '⏹ البث متوقف';
+  const m = STATE.message;
+  $('msg-now').textContent = m && m.text && (!m.until || m.until > Date.now())
+    ? 'على الشاشة الحين: «' + m.text + '»' + (m.until ? ' لين ' + new Date(m.until).toLocaleTimeString('ar-SA', {hour:'numeric', minute:'2-digit'}) : '') : '';
+  const tasks = STATE.tasks || [];
+  $('task-list').innerHTML = tasks.length ? tasks.map((t, i) => `<li class="${t.done ? 'done' : ''}">
+      <input type="checkbox" style="width:auto" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})">
+      <span class="t">${esc(t.text)}${t.due ? `<small>${esc(t.due.replace('T', ' '))}</small>` : ''}</span>
+      <button class="x" onclick="delItem('tasks', ${i})">×</button></li>`).join('') : '<li class="muted">ما فيه مهام</li>';
+  const rems = STATE.reminders || [];
+  $('rem-list').innerHTML = rems.length ? rems.map((r, i) => `<li><span class="t">${esc(r.text)}<small>${esc(r.time)} · ${r.days.length === 7 ? 'يومياً' : r.days.map(d => DAYS[d]).join('، ')}</small></span>
+      <button class="x" onclick="delItem('reminders', ${i})">×</button></li>`).join('') : '<li class="muted">ما فيه تذكيرات</li>';
+  const fam = STATE.family || [];
+  $('fam-list').innerHTML = fam.length ? fam.map((f, i) => `<li><span class="t">${esc(f.name)}<small>${esc(f.date)} · ${f.yearly ? 'كل سنة' : 'مرة وحدة'}</small></span>
+      <button class="x" onclick="delItem('family', ${i})">×</button></li>`).join('') : '<li class="muted">ما فيه مناسبات</li>';
+  const sl = STATE.sleep || {from: '00:00', to: '', off: false};
+  $('sleep-from').value = sl.from || '00:00'; $('sleep-to').value = sl.to || ''; $('sleep-off').checked = !!sl.off;
+}
+
+async function setQuran(on){
+  try{ await api('/api/quran', {on}); STATE.quran = on; render(); toast(on ? 'تم تشغيل البث' : 'تم إيقاف البث'); }
+  catch(e){ if(e.message !== 'pin') toast('تعذر الاتصال بالتلفزيون', true); }
+}
+function sendMessage(){
+  const text = $('msg-text').value.trim(); if(!text) return toast('اكتب الرسالة', true);
+  const mins = +$('msg-dur').value;
+  save('message', {text, until: mins ? Date.now() + mins*60000 : 0, at: Date.now()});
+}
+function clearMessage(){ save('message', {text: '', until: 0, at: Date.now()}); }
+function addTask(){
+  const text = $('task-text').value.trim(); if(!text) return toast('اكتب المهمة', true);
+  save('tasks', [...(STATE.tasks || []), {id: uid(), text, due: $('task-due').value || '', done: false}]);
+  $('task-text').value = ''; $('task-due').value = '';
+}
+function toggleTask(i){ const t = (STATE.tasks || []).slice(); t[i] = Object.assign({}, t[i], {done: !t[i].done}); save('tasks', t); }
+function delItem(section, i){ const a = (STATE[section] || []).slice(); a.splice(i, 1); save(section, a); }
+function addReminder(){
+  const text = $('rem-text').value.trim(); if(!text) return toast('اكتب التذكير', true);
+  const days = [...document.querySelectorAll('#rem-days input:checked')].map(x => +x.value);
+  if(!days.length) return toast('اختر يوماً واحداً على الأقل', true);
+  save('reminders', [...(STATE.reminders || []), {id: uid(), text, time: $('rem-time').value || '08:00', days}]);
+  $('rem-text').value = '';
+}
+function addFamily(){
+  const name = $('fam-name').value.trim(), date = $('fam-date').value;
+  if(!name || !date) return toast('اكتب المناسبة وتاريخها', true);
+  save('family', [...(STATE.family || []), {id: uid(), name, date, yearly: $('fam-yearly').value === '1'}]);
+  $('fam-name').value = '';
+}
+function saveSleep(){ save('sleep', {from: $('sleep-from').value || '00:00', to: $('sleep-to').value || '', off: $('sleep-off').checked}); }
+
+if(PIN) api('/api/state').then(s => { STATE = s; show(); }).catch(() => {});
+</script>
+</body>
+</html>

@@ -47,6 +47,7 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        ControlService.start(this);   // the phone page
         prefs = new Prefs(this);
         UpdateJob.schedule(this);
         ScrollView scroll = new ScrollView(this);
@@ -83,6 +84,11 @@ public class SettingsActivity extends Activity {
 
         row("معاينة الشاشة", "شاهد الشاشة الآن", R.drawable.ic_play, new Runnable() { public void run() {
             startActivity(new Intent(SettingsActivity.this, MainActivity.class)); } }).requestFocus();
+
+        header("التحكم من الجوال");
+        String url = ControlStore.url();
+        row(url == null ? "غير متصل بالشبكة" : url.replace("http://", ""), "الرمز السري: " + ControlStore.pin(this)
+            + " · افتح العنوان من جوالك على نفس الواي فاي", R.drawable.ic_eye, new Runnable() { public void run() { } });
 
         header("الموقع");
         row("المدينة", prefs.city()[0], R.drawable.ic_place, new Runnable() { public void run() { pickCity(); } });

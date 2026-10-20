@@ -63,7 +63,9 @@ final class Prefs {
 
     private final SharedPreferences sp;
 
-    Prefs(Context c) { sp = c.getSharedPreferences("settings", Context.MODE_PRIVATE); }
+    private final Context ctx;
+    Prefs(Context c) { ctx = c.getApplicationContext(); sp = c.getSharedPreferences("settings", Context.MODE_PRIVATE); }
+    Context context() { return ctx; }
 
     /** {name, latitude, longitude}; Riyadh until the user picks */
     String[] city() {

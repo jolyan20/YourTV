@@ -1,17 +1,24 @@
 package sa.urtv.screensaver;
 
+import android.content.SharedPreferences;
 import android.service.dreams.DreamService;
 import android.view.KeyEvent;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
 
 /**
- * The system screensaver: starts on the TV's own idle timer. OK on the remote turns the Quran channel's
- * live stream on and off (it starts off); the volume keys change the volume; any other key wakes the TV.
+ * The system screensaver: starts on the TV's own idle timer. OK on the remote, or the phone page, turns the
+ * Quran channel's live stream on and off; the volume keys change the volume; any other key wakes the TV.
  */
 public class ScreenDream extends DreamService {
     private WebView web;
     private QuranWindow quran;
+    private FrameLayout root;
+
+    // the phone page switched the Quran window: follow it
+    private final SharedPreferences.OnSharedPreferenceChangeListener follow = (p, key) -> {
+        if (ControlStore.KEY_QURAN.equals(key) && quran != null && quran.isOn() != ControlStore.quran(this)) quran.toggle();
+    };
 
     @Override
     public void onAttachedToWindow() {
@@ -19,11 +26,15 @@ public class ScreenDream extends DreamService {
         setInteractive(true);   // keys reach dispatchKeyEvent below instead of waking the TV at once
         setFullscreen(true);
         setScreenBright(true);
-        FrameLayout root = new FrameLayout(this);
+        ControlService.start(this);
+        root = new FrameLayout(this);
         web = ScreenView.create(this);
         root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         quran = new QuranWindow(root);
         setContentView(root);
+        ControlStore.prefs(this).registerOnSharedPreferenceChangeListener(follow);
+        // turned on from the phone while the TV was elsewhere: open it once the screen has its size
+        if (ControlStore.quran(this)) root.postDelayed(() -> { if (quran != null && !quran.isOn()) quran.toggle(); }, 2500);
     }
 
     @Override
@@ -33,7 +44,10 @@ public class ScreenDream extends DreamService {
             case KeyEvent.KEYCODE_ENTER:
             case KeyEvent.KEYCODE_NUMPAD_ENTER:
             case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-                if (e.getAction() == KeyEvent.ACTION_UP) quran.toggle();
+                if (e.getAction() == KeyEvent.ACTION_UP) {
+                    quran.toggle();
+                    ControlStore.setQuran(this, quran.isOn());   // the phone page shows the same state
+                }
                 return true;
             case KeyEvent.KEYCODE_VOLUME_UP:
             case KeyEvent.KEYCODE_VOLUME_DOWN:
@@ -47,6 +61,7 @@ public class ScreenDream extends DreamService {
 
     @Override
     public void onDetachedFromWindow() {
+        ControlStore.prefs(this).unregisterOnSharedPreferenceChangeListener(follow);
         if (quran != null) { quran.hide(); quran = null; }
         if (web != null) { web.destroy(); web = null; }
         super.onDetachedFromWindow();

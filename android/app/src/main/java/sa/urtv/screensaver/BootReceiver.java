@@ -13,5 +13,6 @@ public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent i) {
         UpdateJob.schedule(c);
+        ControlService.start(c);   // the phone page
     }
 }
