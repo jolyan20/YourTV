@@ -237,7 +237,9 @@
   .pt .q .n{font-size:.82em;color:#C6BBA4}
   .pt .q .t{font-variant-numeric:tabular-nums}
   .pt .q.past{opacity:.5}
-  .pt .q.next .n,.pt .q.next .t{color:#FFE2A6;font-weight:500}
+  .pt .q.next{opacity:1;padding:.25em .7em;margin:-.25em -.2em;border-radius:10px;
+    background:rgba(220,184,111,.22);border:1.5px solid rgba(232,196,111,.9);box-shadow:0 0 22px rgba(220,184,111,.25)}
+  .pt .q.next .n,.pt .q.next .t{color:#FFE7AE;font-weight:600}
   .pt-left{margin-top:.7vh;text-align:left;font-size:clamp(12px,1vw,19px);font-weight:300;color:#C6BBA4;white-space:nowrap}
   .pt-left b{color:#F1CF8A;font-weight:500}
   .p-mid .greet{font-size:.8em;color:#FFE2A6}
@@ -360,6 +362,9 @@
   .mchip{display:inline-block;unicode-bidi:isolate;font-size:.6em;line-height:1.35;color:var(--gold);
     border:1px solid rgba(220,184,111,.7);border-radius:6px;padding:0 .45em;margin:0 .15em;vertical-align:.22em}
   /* occasions: «متبقي» small before the number */
+  .p-mid .sub{white-space:normal;overflow:visible;display:flex;flex-direction:column;gap:.35vh;line-height:1.35}
+  .p-mid .sub .d1,.p-mid .sub .d2{white-space:nowrap}
+  .p-mid .sub .d2{color:#D6AF6B}
   .p-mid .left{font-family:'Thmanyah',sans-serif;font-size:.42em;font-weight:400;color:#C6BBA4;vertical-align:.35em}
   /* day / night: a clear badge under the clock */
   .subline .mode{padding:.3em .85em;border-radius:999px;background:rgba(243,201,105,.16);border:1px solid rgba(243,201,105,.55);
@@ -405,7 +410,6 @@
       <div class="wxsub"><span id="wx-city">الرياض</span><span class="wxr" id="wx-range"></span></div>
       <div class="rule l"></div>
       <div class="pt" id="pt-strip"></div>
-      <div class="pt-left" id="pt-left"></div>
     </div>
   </header>
 
@@ -730,20 +734,12 @@ function tickPrayer(){
   elC.innerHTML = 'بعد <b>' + humanRemaining(Math.max(0, Math.round(leftM*60))) + '</b>';
 }
 
-// top left: the five prayers of the day, then «التالية: العصر بعد ٢٥ دقيقة» (or the iqama countdown)
+// top left: the day's prayers with sunrise and the middle of the night; the next one (prayer or event) is boxed
+// in gold. The time left to it is in the bottom panel only. Between adhan and iqama the prayer that has come stays boxed.
 function renderPrayerStrip(mins){
-  const strip = document.getElementById('pt-strip'), left = document.getElementById('pt-left');
+  const strip = document.getElementById('pt-strip');
   if(!strip || !PRAYERS.length) return;
   const at = x => x.h*60 + x.mi;
-  let next = PRAYERS.find(x => at(x) > mins);
-  const tomorrow = !next;
-  if(!next) next = PRAYERS[0];
-  const cur = PRAYERS.find(x => {
-    const gap = (x.key === 'Dhuhr' && isFriday()) ? 0 : (CONFIG.iqama[x.key] || 0);
-    return mins >= at(x) && mins < at(x) + gap;
-  });
-  const lit = cur || next;   // between adhan and iqama the prayer that has come stays lit
-  // sunrise after Fajr, and the middle of the night (halfway from Maghrib to the next Fajr) after Isha
   const items = PRAYERS.slice();
   const sr = minutesOf('Sunrise', null);
   if(sr != null) items.splice(1, 0, {aux:true, name:'الشروق', h:Math.floor(sr/60), mi:sr%60});
@@ -752,18 +748,19 @@ function renderPrayerStrip(mins){
     const mid = Math.round(at(mg) + (at(fj) + 1440 - at(mg)) / 2) % 1440;
     items.push({aux:true, name:'منتصف الليل', h:Math.floor(mid/60), mi:mid%60});
   }
+  const cur = PRAYERS.find(x => {
+    const gap = (x.key === 'Dhuhr' && isFriday()) ? 0 : (CONFIG.iqama[x.key] || 0);
+    return mins >= at(x) && mins < at(x) + gap;
+  });
+  // the next of all of them, across midnight
+  const ahead = x => ((at(x) - mins) % 1440 + 1440) % 1440 || 1440;
+  const lit = cur || items.reduce((a, x) => ahead(x) < ahead(a) ? x : a, items[0]);
   strip.innerHTML = items.map(x => {
-    const cls = x === lit ? 'next' : x.aux ? 'aux' : (tomorrow || at(x) <= mins) ? 'past' : '';
+    const passed = x !== lit && at(x) <= mins;
+    const cls = x === lit ? 'next' : passed ? 'past' : x.aux ? 'aux' : '';
     const h12 = x.h % 12 === 0 ? 12 : x.h % 12;
     return `<span class="q ${cls}"><span class="n">${x.aux ? x.name : prayerName(x)}</span><span class="t">${ar(h12)}:${ar(pad(x.mi))}</span></span>`;
   }).join('');
-  if(cur){
-    const l = at(cur) + CONFIG.iqama[cur.key] - mins;
-    left.innerHTML = `إقامة <b>${prayerName(cur)}</b> بعد ${humanRemaining(Math.max(60, Math.ceil(l)*60))}`;
-  }else{
-    const l = at(next) + (tomorrow ? 1440 : 0) - mins;
-    left.innerHTML = `التالية: <b>${prayerName(next)}</b> بعد ${humanRemaining(Math.max(0, Math.round(l*60)))}`;
-  }
 }
 
 // ---------- alerts under the clock ----------
@@ -962,12 +959,14 @@ const longDate = t => new Intl.DateTimeFormat(GREG,{timeZone:'UTC',weekday:'long
   .format(new Date(t + 12*3600000)).replace('،', '') + ' م';
 const hijriDate = t => new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-arab',{timeZone:'UTC',day:'numeric',month:'long',year:'numeric'})
   .format(new Date(t + 12*3600000)).replace(/\s*هـ\s*$/, '') + ' هـ';
+// the date on two lines: the Gregorian, then the Umm al-Qura Hijri
+const twoDates = (word, t) => `<span class="d1">${word} ${esc(longDate(t))}</span><span class="d2">${esc(hijriDate(t))}</span>`;
 function renderOccasion(x, elL, elD, elS){
   elL.textContent = x.label;
   if(x.school && x.days <= 0){          // during the holiday: the day school starts again
     elL.textContent = x.o.name;
     elD.innerHTML = '<span class="greet">' + esc(x.o.greet) + '</span>';
-    elS.textContent = 'العودة ' + longDate(x.school.to + 86400000) + ' · ' + hijriDate(x.school.to + 86400000);
+    elS.innerHTML = twoDates('العودة', x.school.to + 86400000);
     return;
   }
   if(x.days <= 0){
@@ -983,7 +982,7 @@ function renderOccasion(x, elL, elD, elS){
     return;
   }
   elD.innerHTML = '<span class="left">متبقي</span> ' + dayWord(x.days);
-  elS.textContent = (x.school ? 'تبدأ ' : 'يوافق ') + longDate(x.t) + (x.school ? ' · ' + hijriDate(x.t) : '');
+  elS.innerHTML = twoDates(x.school ? 'تبدأ' : 'يوافق', x.t);
 }
 
 function tickRamadan(){
