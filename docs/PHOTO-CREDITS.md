@@ -180,3 +180,13 @@ From the [Saudi Photos Hub](https://cc.spa.gov.sa) of the Saudi Press Agency (و
 | `photos/spa-101370.jpg` | ميدان الثقافة في جدة التاريخية | [واس](https://cc.spa.gov.sa/ar/news/101367) |
 | `photos/spa-90338.jpg` | وادي لجب بمنطقة جازان | [واس](https://cc.spa.gov.sa/ar/news/90335) |
 | `photos/spa-89354.jpg` | وادي زعبان بمنطقة عسير | [واس](https://cc.spa.gov.sa/ar/news/89351) |
+| `photos/spa-82227.jpg` | أجواء ماطرة في الباحة | [واس](https://cc.spa.gov.sa/ar/news/82225) |
+| `photos/spa-49672.jpg` | الغروب من حديقة التابلاين في رفحاء بمنطقة الحدود الشمالية | [واس](https://cc.spa.gov.sa/ar/news/49670) |
+| `photos/spa-80161.jpg` | مزرعة "تل الرمان" بحائل | [واس](https://cc.spa.gov.sa/ar/news/80159) |
+| `photos/spa-86052.jpg` | غروب الشمس خلف سلسلة جبال في منطقة نجران | [واس](https://cc.spa.gov.sa/ar/news/86050) |
+| `photos/spa-81660.jpg` | غروب الشمس في تبوك | [واس](https://cc.spa.gov.sa/ar/news/81658) |
+| `photos/spa-28178.jpg` | الضباب يغطي جبال الطائف | [واس](https://cc.spa.gov.sa/ar/news/28176) |
+| `photos/spa-86037.jpg` | مزرعة نخيل بجوار مقابر الأسود في العلا | [واس](https://cc.spa.gov.sa/ar/news/86034) |
+| `photos/spa-101255.jpg` | الواجهة البحرية لمحافظة جدة | [واس](https://cc.spa.gov.sa/ar/news/101253) |
+| `photos/spa-88636.jpg` | شواطئ جازان جنوب غربي المملكة العربية السعودية | [واس](https://cc.spa.gov.sa/ar/news/88634) |
+| `photos/spa-86469.jpg` | الغيوم والضباب وقت غروب الشمس في منطقة عسير | [واس](https://cc.spa.gov.sa/ar/news/86467) |
