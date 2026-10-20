@@ -24,8 +24,10 @@ import java.util.regex.Pattern;
  * embed whose page has no web origin (the screensaver page itself is a file).
  */
 final class QuranWindow {
-    /** قناة القرآن الكريم (youtube.com/@SaudiQuranTv): its current live stream, whatever the video id */
-    private static final String CHANNEL = "UCos52azQNBgW63_9uDJoPDA";
+    /** «القرآن الكريم» (youtube.com/@AlQuran-Official), Makkah live, picked by the household: its current
+     *  live video, and the one they chose if that cannot be looked up */
+    private static final String CHANNEL = "UCqDUJp6Z4wyFkDJGqd0EP4Q";
+    private static final String FALLBACK_VIDEO = "m68ZBweM1gg";
     private static final String ORIGIN = "https://jolyan20.github.io/YourTV/";
 
     private final FrameLayout root;
@@ -70,8 +72,8 @@ final class QuranWindow {
         // YouTube no longer plays the channel's generic live link in an embed: find today's live video first
         new Thread(() -> {
             String id = liveVideoId();
-            String src = "https://www.youtube.com/embed/" + (id != null ? id + "?" : "live_stream?channel=" + CHANNEL + "&")
-                + "autoplay=1&controls=0&modestbranding=1&rel=0&playsinline=1";
+            String src = "https://www.youtube.com/embed/" + (id != null ? id : FALLBACK_VIDEO)
+                + "?autoplay=1&controls=0&modestbranding=1&rel=0&playsinline=1";
             final String page = html.replace("__SRC__", src);
             w.post(() -> { if (player == w) w.loadDataWithBaseURL(ORIGIN, page, "text/html", "utf-8", null); });
         }).start();
