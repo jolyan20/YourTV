@@ -167,7 +167,7 @@
   .subline .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);opacity:.9}
 
   .bottom{
-    display:grid;grid-template-columns:1fr .9fr 1.3fr;
+    display:grid;grid-template-columns:.9fr .8fr 1.6fr;
     gap:2.4vw;align-items:start;
     border-top:1px solid rgba(220,184,111,.30);
     padding-top:2.1vh;
@@ -202,7 +202,8 @@
   .mrow{display:flex;flex-direction:row;gap:1.6vw;align-items:flex-end;justify-content:flex-end;min-width:0}
   .mblock{text-align:left;flex:0 1 auto;min-width:0;max-width:100%}
   .mblock:not(:last-child){padding-inline-end:1.6vw;border-inline-end:1px solid rgba(220,184,111,.25)}
-  .mrow:has(.mblock + .mblock) .big{font-size:clamp(18px,1.6vw,34px)}
+  .mrow:has(.mblock + .mblock) .big{font-size:clamp(16px,1.32vw,28px)}
+  .mrow .crest{margin:0 .15em}
   .mblock .big{justify-content:flex-end;min-width:0}
   .mrow.flip .mblock{animation:weekIn .5s ease both}
   .mrow.flip .mblock + .mblock{animation-delay:.08s}
