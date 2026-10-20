@@ -281,6 +281,53 @@
   html.night .clock{color:#EEF1F6;text-shadow:0 4px 70px rgba(0,0,0,.75),0 0 120px rgba(170,190,230,.10)}
   html.night .week{background:rgba(4,10,20,.62);border-color:rgba(170,190,230,.18)}
   .veil,.clock,.week{transition:background 4s ease,color 4s ease,border-color 4s ease}
+  /* one card size for every card: the content is centred in it and shrinks only if it would not fit */
+  .week{height:46vh;display:flex;flex-direction:column}
+  html.widget .week{height:auto}
+  .wbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  #week-list{flex:1 1 auto;min-height:0;justify-content:center;overflow:hidden}
+  /* weather: today large, the next days small under it */
+  .week li.wx-hero{display:flex;align-items:center;gap:1.4vw;border-bottom:none;padding:1vh 0 1.6vh;white-space:nowrap}
+  .wx-hero .big-ic svg{width:clamp(56px,5.2vw,104px);height:clamp(56px,5.2vw,104px)}
+  .wx-today{display:flex;flex-direction:column;gap:.3vh;flex:1 1 auto}
+  .wx-today b{font-size:1.5em;color:#FFF3D6;font-weight:500}
+  .wx-today span{color:#D8CDB6}
+  .wx-hl{display:flex;gap:1.6vw;font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:2.1em;color:#FFFCF2}
+  .wx-hl > span{display:flex;flex-direction:column;align-items:center;line-height:1.05}
+  .wx-hl .lo{color:#9FC3DA}
+  .wx-hl small{font-family:'Thmanyah',sans-serif;font-size:.36em;color:#C6BBA4;margin-bottom:.4vh}
+  .week li.wx-days{display:grid;grid-template-columns:repeat(4,1fr);gap:.6vw;border-top:1px solid rgba(220,184,111,.25);
+    border-bottom:none;padding-top:1.4vh;white-space:nowrap}
+  .wx-d{display:flex;flex-direction:column;align-items:center;gap:.5vh;font-size:.8em;color:#C6BBA4}
+  .wx-d b{font-weight:400;color:#E8DFC9}
+  .wx-d svg{width:1.6em;height:1.6em}
+  .wx-d i{font-style:normal;opacity:.5}
+  /* matches: home on the right, the score or kick-off in the middle, away on the left */
+  .week li.mh{border-bottom:none;padding:.9vh 0 .2vh;font-size:.7em;letter-spacing:.15em;color:#D6AF6B}
+  .week li.m3{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1vw;padding:.9vh 0}
+  .m3 .tt{display:flex;align-items:center;gap:.4em;min-width:0;overflow:hidden}
+  .m3 .tt span{overflow:hidden;text-overflow:ellipsis}
+  .m3 .tt.a{justify-content:flex-end}
+  .m3 .tt .crest{width:1.35em;height:1.35em;margin:0}
+  .m3 .tt.win{color:#FFFFFF;font-weight:500}
+  .m3 .tt.lose{opacity:.5}
+  .m3 .mid{display:flex;flex-direction:column;align-items:center;min-width:5.2em}
+  .m3 .sc2{direction:ltr;font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:1.2em;color:#FFE2A6;
+    background:rgba(220,184,111,.12);border:1px solid rgba(220,184,111,.35);border-radius:8px;padding:0 .55em}
+  .m3 .sc2 i{font-style:normal;opacity:.6}
+  .m3 .tm{color:#F6EEDC;font-variant-numeric:tabular-nums}
+  .m3 .st{font-size:.62em;color:#9C9279;margin-top:.2vh}
+  .m3 .st.live{color:#EE8B70;font-weight:500}
+  /* the month's number, small and gold, joined to its name */
+  .mn{font-size:.62em;color:var(--gold);margin-inline-start:.15em;vertical-align:.15em}
+  /* occasions: «متبقي» small before the number */
+  .p-mid .left{font-family:'Thmanyah',sans-serif;font-size:.42em;font-weight:400;color:#C6BBA4;vertical-align:.35em}
+  /* day / night: a clear badge under the clock */
+  .subline .mode{padding:.3em .85em;border-radius:999px;background:rgba(243,201,105,.16);border:1px solid rgba(243,201,105,.55);
+    color:#FFE7AE;letter-spacing:.05em;font-size:1.15em}
+  .subline .mode b{font-weight:500}
+  .subline .mode svg{width:1.4em;height:1.4em}
+  .subline .mode.n{background:rgba(190,205,235,.14);border-color:rgba(190,205,235,.5);color:#E4ECFA}
   .p-prayer.now .big{color:#FFE9B8;text-shadow:0 0 40px rgba(220,184,111,.45)}
   .p-prayer.now .label{color:#F1CF8A}
   .live{color:#EE8B70;font-weight:500}
@@ -479,11 +526,12 @@ function applyMode(){
   MODE = night;
   document.documentElement.classList.toggle('night', night);
   const el = document.getElementById('mode');
-  if(el) el.innerHTML = (night ? ICON.moon : ICON.sun) + (night ? 'ليل' : 'نهار');
+  if(el){ el.innerHTML = (night ? ICON.moon : ICON.sun) + '<b>' + (night ? 'ليل' : 'نهار') + '</b>'; el.classList.toggle('n', night); }
   if(!first){ applyBackground(true); paintWeatherIcon(); }
 }
 
-// «الثلاثاء ٩ (٥) جمادى الأولى ١٤٤٨ هـ» and «الثلاثاء ٢٠ (١٠) أكتوبر ٢٠٢٦ م»: day, (month number), month, year
+// «الثلاثاء ٩ ٥-جمادى الأولى ١٤٤٨ هـ» and «الثلاثاء ٢٠ ١٠-أكتوبر ٢٠٢٦ م»: the month's number joined to its name,
+// small and in gold so it never reads as part of the day
 function dateLine(cal, now){
   const parts = new Intl.DateTimeFormat('ar-SA-u-ca-' + cal + '-nu-latn',{
     timeZone: CONFIG.timezone, weekday:'long', day:'numeric', month:'long', year:'numeric'
@@ -491,12 +539,12 @@ function dateLine(cal, now){
   const mo = +new Intl.DateTimeFormat('en-u-ca-' + cal,{timeZone: CONFIG.timezone, month:'numeric'})
     .format(now).replace(/[^0-9]/g,'');
   const num = s => ar(String(s).replace(/[^0-9]/g,''));
-  return `${parts.weekday} ${num(parts.day)} (${ar(mo)}) ${parts.month} ${num(parts.year)}`;
+  return `${esc(parts.weekday)} ${num(parts.day)} <span class="mn">${ar(mo)}-</span>${esc(parts.month)} ${num(parts.year)}`;
 }
 function tickDates(){
   const now = new Date();
-  try{ document.getElementById('hijri').textContent = dateLine('islamic-umalqura', now) + ' هـ'; }catch(e){}
-  try{ document.getElementById('greg').textContent = dateLine('gregory', now) + ' م'; }catch(e){}
+  try{ document.getElementById('hijri').innerHTML = dateLine('islamic-umalqura', now) + ' هـ'; }catch(e){}
+  try{ document.getElementById('greg').innerHTML = dateLine('gregory', now) + ' م'; }catch(e){}
 }
 
 const PRAYER_KEYS = ['Fajr','Dhuhr','Asr','Maghrib','Isha'];
@@ -766,9 +814,9 @@ function renderOccasion(x, elL, elD, elS){
     elS.innerHTML = '<b>' + esc(x.o.greet) + '</b> · غداً';
     return;
   }
-  elD.innerHTML = dayWord(x.days);
-  elS.textContent = 'يوافق ' + new Intl.DateTimeFormat(GREG,{timeZone:'UTC',weekday:'long',day:'numeric',month:'long'})
-    .format(new Date(x.t + 12*3600000));
+  elD.innerHTML = '<span class="left">متبقي</span> ' + dayWord(x.days);
+  elS.textContent = 'يوافق ' + new Intl.DateTimeFormat(GREG,{timeZone:'UTC',weekday:'long',day:'numeric',month:'long',year:'numeric'})
+    .format(new Date(x.t + 12*3600000)).replace('،', '') + ' م';
 }
 
 function tickRamadan(){
@@ -1112,7 +1160,7 @@ function renderWeekPage(animate){
 // ---- the card beside the clock: one of several contents, picked in the app
 let FORECAST = [];
 let LIST_PAGE = 0;
-const PANEL_TITLE = {shows:'هذا الأسبوع', prayers:'مواقيت اليوم', forecast:'الأيام القادمة', matches:'مباريات فرقك'};
+const PANEL_TITLE = {shows:'هذا الأسبوع', prayers:'مواقيت اليوم', forecast:'الطقس', matches:'مباريات فرقك'};
 
 // #panel=verse on the screensaver: the card turns every 10 s through the day's verse, the day's hadith,
 // the 5-day forecast and the followed teams' games (skipped while there are none)
@@ -1124,8 +1172,8 @@ function cardSlides(){
   if(HADITH.length) slides.push(() => hadithOfDay(day));
   if(WISDOM.length) slides.push(() => wisdomOfDay(day));
   if(FORECAST.length) slides.push(() => ({title: PANEL_TITLE.forecast, rows: forecastRows()}));
-  const m = matchRows();
-  if(m.length) slides.push(() => ({title: PANEL_TITLE.matches, rows: m.slice(0, WEEK_ROWS)}));
+  const m = matchCard();
+  if(m.length) slides.push(() => ({title: PANEL_TITLE.matches, rows: m}));
   return slides;
 }
 function rotatingCard(){
@@ -1168,6 +1216,12 @@ function wisdomOfDay(day){
     `<li class="src">${esc(w.who)}</li>`, `<li class="bio">${esc(w.bio)}</li>`]};
 }
 
+// long texts (a long hadith) shrink a little so the card never changes size
+function fitCard(ul){
+  ul.style.zoom = '';
+  for(let k = 1; k > .6 && ul.scrollHeight > ul.clientHeight + 2; k -= .05) ul.style.zoom = k.toFixed(2);
+}
+
 function renderPanel(animate){
   const ul = document.getElementById('week-list'), hd = document.getElementById('week-hd');
   const P = CONFIG.panel;
@@ -1176,7 +1230,7 @@ function renderPanel(animate){
   if(P === 'prayers') rows = prayerRows();
   else if(P === 'forecast') rows = forecastRows();
   else if(P === 'matches') rows = matchRows();
-  else if(P === 'verse'){ const q = CONFIG.widget ? quoteOfDay() : rotatingCard(); hd.textContent = q.title; rows = q.rows; ul.innerHTML = rows.join(''); return; }
+  else if(P === 'verse'){ const q = CONFIG.widget ? quoteOfDay() : rotatingCard(); hd.textContent = q.title; rows = q.rows; ul.innerHTML = rows.join(''); fitCard(ul); return; }
   if(PANEL_TITLE[P]) hd.textContent = PANEL_TITLE[P];
   if(!rows.length){
     ul.classList.remove('flip');
@@ -1212,17 +1266,59 @@ function paintWeatherIcon(){
   const el = document.getElementById('wx-icon');
   if(el) el.innerHTML = WX_NOW == null ? '' : svgIcon(wxIcon(WX_NOW, isNight()));
 }
-// the 5 days: day, icon and condition, then the high and the low under their headings; today highlighted
+// weather card: today large (icon, condition, high and low), the next four days small underneath
 function forecastRows(){
   if(!FORECAST.length) return [];
-  const head = `<li class="fc fh"><span class="fd"></span><span class="fx"></span><span class="hi">العليا</span><span class="lo">الدنيا</span></li>`;
-  return [head].concat(FORECAST.slice(0, 5).map((d, i) => {
-    const day = i === 0 ? 'اليوم' : i === 1 ? 'غداً'
-      : new Intl.DateTimeFormat(GREG, {timeZone:'UTC', weekday:'long'}).format(new Date(d.date + 'T12:00:00Z'));
-    return `<li class="fc${i === 0 ? ' today' : ''}"><span class="fd">${day}</span>`
-         + `<span class="fx">${svgIcon(wxIcon(d.code, false))}${WX_CODES[d.code] || ''}</span>`
-         + `<span class="hi">${ar(Math.round(d.hi))}°</span><span class="lo">${ar(Math.round(d.lo))}°</span></li>`;
-  }));
+  const t = FORECAST[0];
+  const dayName = d => new Intl.DateTimeFormat(GREG, {timeZone:'UTC', weekday:'long'}).format(new Date(d.date + 'T12:00:00Z'));
+  const hero = `<li class="wx-hero"><span class="big-ic">${svgIcon(wxIcon(WX_NOW != null && WX_NOW !== 'dust' ? WX_NOW : t.code, isNight()))}</span>`
+    + `<span class="wx-today"><b>اليوم</b><span>${WX_CODES[t.code] || ''}</span></span>`
+    + `<span class="wx-hl"><span><small>العظمى</small>${ar(Math.round(t.hi))}°</span><span class="lo"><small>الصغرى</small>${ar(Math.round(t.lo))}°</span></span></li>`;
+  const days = FORECAST.slice(1, 5).map((d, i) =>
+    `<span class="wx-d"><b>${i === 0 ? 'غداً' : dayName(d)}</b>${svgIcon(wxIcon(d.code, false))}`
+    + `<span>${ar(Math.round(d.hi))}° <i>/</i> ${ar(Math.round(d.lo))}°</span></span>`).join('');
+  return [hero, `<li class="wx-days">${days}</li>`];
+}
+
+// matches card: results first (the winner bright, the loser faded), then what is still to be played
+function matchCard(){
+  const now = Date.now(), seen = new Set(), evs = [];
+  CONFIG.teamIds.forEach(id => {
+    const next = NEXT_LIST[id] || (MATCHES[id] ? [MATCHES[id]] : []);
+    next.forEach(ev => { if(ev && ev.idEvent && !seen.has(ev.idEvent)){ seen.add(ev.idEvent); evs.push(MATCHES[id] && MATCHES[id].idEvent === ev.idEvent ? MATCHES[id] : ev); } });
+    resultsFor(id).forEach(ev => { if(!seen.has(ev.idEvent)){ seen.add(ev.idEvent); evs.push(ev); } });
+  });
+  const today = new Intl.DateTimeFormat('en-CA', {timeZone:CONFIG.timezone}).format(new Date());
+  const items = evs.map(ev => ({ev, t: toDate(ev).getTime()}))
+    .filter(x => finishedRecently(x.ev, now)
+      || (now < x.t + 2.5*3600000 && !FINAL.includes((x.ev.strStatus || '').toUpperCase())
+          && x.t - now <= CONFIG.weekWindowDays * 86400000))
+    .sort((a, b) => a.t - b.t);
+  const done = items.filter(x => finishedRecently(x.ev, now)).slice(-2);
+  const rest = items.filter(x => !finishedRecently(x.ev, now)).slice(0, 4 - done.length);
+  const row = ({ev, t}) => {
+    const hs = ev.intHomeScore, as = ev.intAwayScore, scored = hs != null && as != null;
+    const fin = finishedRecently(ev, now), live = !fin && now >= t && scored;
+    let hc = '', ac = '';
+    if(fin){ if(+hs > +as){ hc = 'win'; ac = 'lose'; } else if(+hs < +as){ hc = 'lose'; ac = 'win'; } }
+    let mid;
+    if(fin || live) mid = `<span class="sc2">${ar(+hs)} <i>-</i> ${ar(+as)}</span><span class="st ${live ? 'live' : ''}">${live ? 'مباشر' : (+hs === +as ? 'تعادل' : 'انتهت')}</span>`;
+    else {
+      const d = new Date(t);
+      const p = new Intl.DateTimeFormat('en-GB', {timeZone:CONFIG.timezone, hour:'2-digit', minute:'2-digit', hour12:false})
+        .formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
+      const day = new Intl.DateTimeFormat('en-CA', {timeZone:CONFIG.timezone}).format(d) === today ? 'اليوم'
+        : new Intl.DateTimeFormat(GREG, {timeZone:CONFIG.timezone, weekday:'long'}).format(d);
+      mid = `<span class="tm">${fmt12(+p.hour % 24, +p.minute)}</span><span class="st">${day}</span>`;
+    }
+    return `<li class="m3"><span class="tt ${hc}">${crest(ev.strHomeTeamBadge)}<span>${esc(teamAr(ev.strHomeTeam))}</span></span>`
+         + `<span class="mid">${mid}</span>`
+         + `<span class="tt a ${ac}"><span>${esc(teamAr(ev.strAwayTeam))}</span>${crest(ev.strAwayTeamBadge)}</span></li>`;
+  };
+  const out = [];
+  if(done.length) out.push('<li class="mh">النتائج</li>', ...done.map(row));
+  if(rest.length) out.push('<li class="mh">القادمة</li>', ...rest.map(row));
+  return out;
 }
 
 // every followed team's games this week, plus results from the last day, in time order
@@ -1295,7 +1391,7 @@ async function loadWeather(){
     WX_NOW = j.current.weather_code; paintWeatherIcon();
     const hi = j.daily?.temperature_2m_max?.[0], lo = j.daily?.temperature_2m_min?.[0];
     document.getElementById('wx-range').textContent =
-      (hi != null && lo != null) ? `${ar(Math.round(hi))}° / ${ar(Math.round(lo))}°` : '';
+      (hi != null && lo != null) ? `العظمى ${ar(Math.round(hi))}° · الصغرى ${ar(Math.round(lo))}°` : '';
     const dl = j.daily || {};
     FORECAST = (dl.time || []).map((t, i) => ({date:t, code:dl.weather_code?.[i],
       hi:dl.temperature_2m_max?.[i], lo:dl.temperature_2m_min?.[i]})).filter(x => x.hi != null && x.lo != null);
