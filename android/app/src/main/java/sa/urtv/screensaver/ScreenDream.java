@@ -21,13 +21,13 @@ public class ScreenDream extends DreamService {
         if ("display".equals(key) && quran != null && quran.isOn()) { quran.toggle(); quran.toggle(); }   // new size or place
     };
     // city, teams or cards changed from the phone: load the page again with them
+    private final Runnable reloadNow = () -> { if (web != null) web.loadUrl(new Prefs(this).dashboardUrl(this)); };
     private final SharedPreferences.OnSharedPreferenceChangeListener reload = (p, key) -> {
         if (web != null && root != null) {
             root.removeCallbacks(reloadNow);
             root.postDelayed(reloadNow, 1500);   // several settings arrive together
         }
     };
-    private final Runnable reloadNow = () -> { if (web != null) web.loadUrl(new Prefs(this).dashboardUrl(this)); };
 
     @Override
     public void onAttachedToWindow() {
