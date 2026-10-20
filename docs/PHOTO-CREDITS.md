@@ -99,3 +99,84 @@ From [Unsplash](https://unsplash.com), under the [Unsplash License](https://unsp
 | `photos/efzvMAIpfWY.jpg` | NEOM | [unsplash](https://unsplash.com/photos/a-couple-of-people-that-are-standing-in-the-dirt-efzvMAIpfWY) |
 | `photos/_Fmibx42BVU.jpg` | YUNUS A KHALIFAH | [unsplash](https://unsplash.com/photos/panoramic-photography-of-desert-during-daytime-_Fmibx42BVU) |
 | `photos/rkRYbmPuhOE.jpg` | Stijn te Strake | [unsplash](https://unsplash.com/photos/birds-eye-photography-of-city-rkRYbmPuhOE) |
+
+## Saudi Photos Hub (`photos/spa-*.jpg`)
+
+From the [Saudi Photos Hub](https://cc.spa.gov.sa) of the Saudi Press Agency (واس), under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Cropped to 1920x1080; credit: واس.
+
+| File | Caption | Source |
+|---|---|---|
+| `photos/spa-102055.jpg` | غروب الشمس على ساحل جازان | [واس](https://cc.spa.gov.sa/ar/news/102053) |
+| `photos/spa-102035.jpg` | البيوت الطينية في عسير | [واس](https://cc.spa.gov.sa/ar/news/102032) |
+| `photos/spa-102018.jpg` | قمم جبال السروات بالباحة | [واس](https://cc.spa.gov.sa/ar/news/102016) |
+| `photos/spa-101559.jpg` | وادي حنيفة في قلب العاصمة السعودية الرياض | [واس](https://cc.spa.gov.sa/ar/news/101557) |
+| `photos/spa-101519.jpg` | متنزه النخيل على ساحل البحر الأحمر بمحافظة حقل | [واس](https://cc.spa.gov.sa/ar/news/101517) |
+| `photos/spa-101514.jpg` | أحد شواطئ محافظة حقل بمنطقة تبوك | [واس](https://cc.spa.gov.sa/ar/news/101512) |
+| `photos/spa-100875.jpg` | عبق التاريخ وفخامة التجربة في العلا | [واس](https://cc.spa.gov.sa/ar/news/100873) |
+| `photos/spa-91165.jpg` | السحب تعلو مرتفعات مدينة أبها | [واس](https://cc.spa.gov.sa/ar/news/91160) |
+| `photos/spa-28154.jpg` | كورنيش الخُبر الجنوبي بالمنطقة الشرقية | [واس](https://cc.spa.gov.sa/ar/news/28152) |
+| `photos/spa-101883.jpg` | شاطئ اللؤلؤ بجدة | [واس](https://cc.spa.gov.sa/ar/news/101881) |
+| `photos/spa-102023.jpg` | الواجهة البحرية في جازان | [واس](https://cc.spa.gov.sa/ar/news/102021) |
+| `photos/spa-101898.jpg` | قمة جبل السودة في عسير | [واس](https://cc.spa.gov.sa/ar/news/101896) |
+| `photos/spa-91063.jpg` | ميناء العقير في الأحساء | [واس](https://cc.spa.gov.sa/ar/news/91061) |
+| `photos/spa-101878.jpg` | أودية وشعاب نجران | [واس](https://cc.spa.gov.sa/ar/news/101876) |
+| `photos/spa-101353.jpg` | إحدى محطات الدراجات الهوائية بالمدينة المنورة | [واس](https://cc.spa.gov.sa/ar/news/101351) |
+| `photos/spa-101245.jpg` | أشعة الشمس من بين أقدام جمل وسط السهول الرعوية بمنطقة القصيم السعودية | [واس](https://cc.spa.gov.sa/ar/news/101243) |
+| `photos/spa-100765.jpg` | رحلات بالمنطاد في العلا | [واس](https://cc.spa.gov.sa/ar/news/100763) |
+| `photos/spa-81654.jpg` | شاطئ القطيف شرق السعودية لحظة غروب الشمس | [واس](https://cc.spa.gov.sa/ar/news/81652) |
+| `photos/spa-82585.jpg` | النخيل بمنطقة الجوف شمال وسط السعودية | [واس](https://cc.spa.gov.sa/ar/news/82583) |
+| `photos/spa-84074.jpg` | مزرعة ورد في أبها | [واس](https://cc.spa.gov.sa/ar/news/84072) |
+| `photos/spa-28142.jpg` | شاطئ في مدينة الجبيل الصناعية بالمنطقة الشرقية | [واس](https://cc.spa.gov.sa/ar/news/28140) |
+| `photos/spa-101866.jpg` | قمم جبلية بجازان | [واس](https://cc.spa.gov.sa/ar/news/101864) |
+| `photos/spa-87284.jpg` | شروق الشمس من خلف النخيل بمحافظة الأحساء | [واس](https://cc.spa.gov.sa/ar/news/87282) |
+| `photos/spa-84719.jpg` | إبل في مراعي الحدود الشمالية بالسعودية لحظة غروب الشمس | [واس](https://cc.spa.gov.sa/ar/news/84716) |
+| `photos/spa-100791.jpg` | القمر يضيء سماء تبوك | [واس](https://cc.spa.gov.sa/ar/news/100789) |
+| `photos/spa-100750.jpg` | شاطئ بأملج شمال غربي السعودية لحظة غروب الشمس | [واس](https://cc.spa.gov.sa/ar/news/100748) |
+| `photos/spa-99999.jpg` | قاعة مرايا في العلا | [واس](https://cc.spa.gov.sa/ar/news/99997) |
+| `photos/spa-75580.jpg` | حي البجيري بالدرعية وسط المملكة العربية السعودية | [واس](https://cc.spa.gov.sa/ar/news/75578) |
+| `photos/spa-48659.jpg` | مسجد الفويهي في سكاكا بمنطقة الجوف | [واس](https://cc.spa.gov.sa/ar/news/48657) |
+| `photos/spa-101644.jpg` | الواجهة البحرية لجازان | [واس](https://cc.spa.gov.sa/ar/news/101642) |
+| `photos/spa-91090.jpg` | وادي الأحسبة بالباحة | [واس](https://cc.spa.gov.sa/ar/news/91088) |
+| `photos/spa-28769.jpg` | سوق القيصرية في الأحساء | [واس](https://cc.spa.gov.sa/ar/news/28767) |
+| `photos/spa-90998.jpg` | الورد في محافظة الطائف غرب المملكة العربية السعودية | [واس](https://cc.spa.gov.sa/ar/news/90996) |
+| `photos/spa-90316.jpg` | جمال الشواطئ بمحافظة أملج | [واس](https://cc.spa.gov.sa/ar/news/90314) |
+| `photos/spa-28092.jpg` | بوابة الدرعية | [واس](https://cc.spa.gov.sa/ar/news/28090) |
+| `photos/spa-101586.jpg` | غروب الشمس على ضفاف ساحل أبحر في مدينة جدة | [واس](https://cc.spa.gov.sa/ar/news/101584) |
+| `photos/spa-100014.jpg` | السحب تغطي سماء عسير | [واس](https://cc.spa.gov.sa/ar/news/100012) |
+| `photos/spa-89705.jpg` | جمال الطبيعة في الباحة | [واس](https://cc.spa.gov.sa/ar/news/89703) |
+| `photos/spa-70324.jpg` | قمر الحصاد العملاق يسطع في سماء منطقة الحدود الشمالية | [واس](https://cc.spa.gov.sa/ar/news/70321) |
+| `photos/spa-91508.jpg` | الصباح الباكر في منطقة حائل وسط | [واس](https://cc.spa.gov.sa/ar/news/91503) |
+| `photos/spa-101183.jpg` | سد وادي نمار جنوب العاصمة السعودية الرياض | [واس](https://cc.spa.gov.sa/ar/news/101180) |
+| `photos/spa-90124.jpg` | غروب الشمس على جبال شفا الطائف | [واس](https://cc.spa.gov.sa/ar/news/90122) |
+| `photos/spa-91500.jpg` | شروق الشمس من خلف النخيل في منطقة القصيم | [واس](https://cc.spa.gov.sa/ar/news/91495) |
+| `photos/spa-90975.jpg` | القصر الفريد في العلا | [واس](https://cc.spa.gov.sa/ar/news/90973) |
+| `photos/spa-101579.jpg` | أشجار نخيل ومساحات شاطئية مفتوحة في الواجهة البحرية لمدينة جدة | [واس](https://cc.spa.gov.sa/ar/news/101576) |
+| `photos/spa-100008.jpg` | سحب تعانق قمم جبال عسير | [واس](https://cc.spa.gov.sa/ar/news/100006) |
+| `photos/spa-87270.jpg` | قلاع وحصون وغطاء نباتي في قرية ذي عين بمحافظة المخواة التابعة لمنطقة الباحة | [واس](https://cc.spa.gov.sa/ar/news/87267) |
+| `photos/spa-50083.jpg` | تنوع جغرافي ثري بمنطقة الحدود الشمالية | [واس](https://cc.spa.gov.sa/ar/news/50081) |
+| `photos/spa-90993.jpg` | نقوش صخرية في منطقة حائل | [واس](https://cc.spa.gov.sa/ar/news/90990) |
+| `photos/spa-90962.jpg` | وادي الديسة بمنطقة تبوك | [واس](https://cc.spa.gov.sa/ar/news/90960) |
+| `photos/spa-84295.jpg` | ضباب وغيوم وأجواء ماطرة بالطائف | [واس](https://cc.spa.gov.sa/ar/news/84292) |
+| `photos/spa-91073.jpg` | الرمال الذهبية في واحات المذنب جنوب منطقة القصيم | [واس](https://cc.spa.gov.sa/ar/news/91070) |
+| `photos/spa-90359.jpg` | مدينة دادان الأثرية في العلا | [واس](https://cc.spa.gov.sa/ar/news/90357) |
+| `photos/spa-27416.jpg` | نقوش جدارية مزخرفة في منطقة الجوف تعكس جمال الفن التقليدي | [واس](https://cc.spa.gov.sa/ar/news/27414) |
+| `photos/spa-100735.jpg` | محافظة فيفاء بمنطقة جازان | [واس](https://cc.spa.gov.sa/ar/news/100733) |
+| `photos/spa-85450.jpg` | طبيعة خلابة تتزين بالضباب في الباحة | [واس](https://cc.spa.gov.sa/ar/news/85447) |
+| `photos/spa-50079.jpg` | غروب الشمس في منطقة الحدود الشمالية | [واس](https://cc.spa.gov.sa/ar/news/50077) |
+| `photos/spa-85742.jpg` | الطبيعة في منطقة حائل | [واس](https://cc.spa.gov.sa/ar/news/85740) |
+| `photos/spa-100803.jpg` | القمر مكتملًا خلف أحد أبراج العاصمة السعودية الرياض | [واس](https://cc.spa.gov.sa/ar/news/100801) |
+| `photos/spa-100745.jpg` | متنفسات ومرافق في رفحاء شمال السعودية تعزز جودة الحياة | [واس](https://cc.spa.gov.sa/ar/news/100743) |
+| `photos/spa-90567.jpg` | الضباب يعانق قمم جبال منطقة تبوك | [واس](https://cc.spa.gov.sa/ar/news/90565) |
+| `photos/spa-82560.jpg` | الضباب يعانق قمم جبال الهدا بالطائف | [واس](https://cc.spa.gov.sa/ar/news/82557) |
+| `photos/spa-28779.jpg` | مسجد التنعيم بمكة المكرمة | [واس](https://cc.spa.gov.sa/ar/news/28777) |
+| `photos/spa-90405.jpg` | سحب وضباب يغطي عسير | [واس](https://cc.spa.gov.sa/ar/news/90403) |
+| `photos/spa-84300.jpg` | الضباب يكسو قمم جبال السروات في الباحة | [واس](https://cc.spa.gov.sa/ar/news/84298) |
+| `photos/spa-49694.jpg` | اقتران الهلال بنجم قلب الأسد في سماء منطقة الحدود الشمالية | [واس](https://cc.spa.gov.sa/ar/news/49692) |
+| `photos/spa-84826.jpg` | مزرعة "نحلة ونخلة" بحائل | [واس](https://cc.spa.gov.sa/ar/news/84824) |
+| `photos/spa-100726.jpg` | أحد شوارع مدينة بريدة وسط السعودية | [واس](https://cc.spa.gov.sa/ar/news/100724) |
+| `photos/spa-79620.jpg` | رصد مجرة درب التبانة من أعالي جبال الطائف | [واس](https://cc.spa.gov.sa/ar/news/79618) |
+| `photos/spa-28104.jpg` | الحرم المكي وساعة مكة | [واس](https://cc.spa.gov.sa/ar/news/28102) |
+| `photos/spa-101370.jpg` | ميدان الثقافة في جدة التاريخية | [واس](https://cc.spa.gov.sa/ar/news/101367) |
+| `photos/spa-90338.jpg` | وادي لجب بمنطقة جازان | [واس](https://cc.spa.gov.sa/ar/news/90335) |
+| `photos/spa-89354.jpg` | وادي زعبان بمنطقة عسير | [واس](https://cc.spa.gov.sa/ar/news/89351) |

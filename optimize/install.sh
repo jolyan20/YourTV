@@ -11,7 +11,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY="${PY:-optimize/venv/bin/python}"
-REL=https://github.com/tshi-dev/UrTV/releases/download/${APK_TAG:-apk-latest}   # APK_TAG=v3.N: that numbered build
+REL=https://github.com/jolyan20/YourTV/releases/download/${APK_TAG:-apk-latest}   # APK_TAG=v3.N: that numbered build
 what="${1:?usage: optimize/install.sh saver|launcher|all|extras}"
 
 push_install() {   # $1 apk name, $2 package

@@ -55,12 +55,13 @@
       linear-gradient(180deg,rgba(3,10,7,.62) 0%,rgba(3,10,7,.30) 22%,rgba(3,10,7,.12) 46%,rgba(3,10,7,.42) 74%,rgba(2,6,4,.88) 100%),
       radial-gradient(120% 85% at 22% 34%,rgba(3,14,9,.42) 0%,rgba(3,14,9,0) 58%);
   }
-  /* photo credits live in PHOTO-CREDITS.md on GitHub, not on screen */
-  #credit{display:none;
-    position:fixed;left:26px;bottom:6px;z-index:4;
-    font-size:10px;letter-spacing:.02em;
-    color:rgba(246,239,224,.30);pointer-events:none;
+  /* the photo's description, small, under the bottom panels (full credits in docs/PHOTO-CREDITS.md) */
+  #credit{
+    position:fixed;left:0;right:0;bottom:1.1vh;z-index:6;text-align:center;
+    font-size:clamp(11px,.72vw,15px);font-weight:300;letter-spacing:.02em;
+    color:rgba(246,239,224,.55);pointer-events:none;white-space:nowrap;
   }
+  #credit:empty{display:none}
   .grain{
     position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.05;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='.55'/></svg>");
@@ -228,12 +229,20 @@
   .wxr:not(:empty)::before{content:'  ·  ';white-space:pre;color:rgba(214,175,107,.7)}
   .wxt:empty,.wxd:empty,.wxr:empty{display:none}
   .rule.l{margin-left:0;margin-right:auto;background:linear-gradient(90deg,var(--gold),rgba(220,184,111,0))}
-  .mk{margin-top:1.2vh;display:flex;justify-content:flex-end;gap:1.6em;white-space:nowrap;
+  /* today's five prayers where the markets were: past ones dim, the next one gold with the time left */
+  .pt{margin-top:1.2vh;display:flex;justify-content:flex-end;gap:1.3em;white-space:nowrap;direction:rtl;
     font-size:clamp(12px,1.06vw,21px);font-weight:400;color:#D8CDB6}
-  .mk .m{display:inline-flex;align-items:baseline;gap:.45em}
-  .mk .delta{font-size:.72em}
-  .mk .delta.up{color:#79D6A0}
-  .mk .delta.down{color:#EE8B70}
+  .pt .q{display:flex;flex-direction:column;align-items:center;gap:.15em;line-height:1.25}
+  .pt .q .n{font-size:.82em;color:#C6BBA4}
+  .pt .q .t{font-variant-numeric:tabular-nums}
+  .pt .q.past{opacity:.5}
+  .pt .q.next .n,.pt .q.next .t{color:#FFE2A6;font-weight:500}
+  .pt-left{margin-top:.7vh;text-align:left;font-size:clamp(12px,1vw,19px);font-weight:300;color:#C6BBA4;white-space:nowrap}
+  .pt-left b{color:#F1CF8A;font-weight:500}
+  .p-mid .greet{font-size:.8em;color:#FFE2A6}
+  .p-mid .cd{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+  .week{transition:opacity .45s ease}
+  .week.fade{opacity:0}
   .p-prayer.now .big{color:#FFE9B8;text-shadow:0 0 40px rgba(220,184,111,.45)}
   .p-prayer.now .label{color:#F1CF8A}
   .live{color:#EE8B70;font-weight:500}
@@ -271,11 +280,8 @@
       <div class="wxline"><span class="wxt" id="wx-temp"></span><span class="wxd" id="wx-desc"></span></div>
       <div class="wxsub"><span id="wx-city">الرياض</span><span class="wxr" id="wx-range"></span></div>
       <div class="rule l"></div>
-      <div class="mk">
-        <span class="m"><span>تاسي</span><span id="tasi-chg" class="delta" hidden></span></span>
-        <span class="m"><span>S&amp;P 500</span><span id="spx-chg" class="delta" hidden></span></span>
-        <span class="m"><span>بيتكوين</span><span id="btc-chg" class="delta" hidden></span></span>
-      </div>
+      <div class="pt" id="pt-strip"></div>
+      <div class="pt-left" id="pt-left"></div>
     </div>
   </header>
 
@@ -388,20 +394,20 @@ function tickClock(){
   document.getElementById('ck-ap').textContent = p.h < 12 ? 'ص' : 'م';
 }
 
+// «الثلاثاء ٩ (٥) جمادى الأولى ١٤٤٨ هـ» and «الثلاثاء ٢٠ (١٠) أكتوبر ٢٠٢٦ م»: day, (month number), month, year
+function dateLine(cal, now){
+  const parts = new Intl.DateTimeFormat('ar-SA-u-ca-' + cal + '-nu-latn',{
+    timeZone: CONFIG.timezone, weekday:'long', day:'numeric', month:'long', year:'numeric'
+  }).formatToParts(now).reduce((a,p)=>(a[p.type]=p.value,a),{});
+  const mo = +new Intl.DateTimeFormat('en-u-ca-' + cal,{timeZone: CONFIG.timezone, month:'numeric'})
+    .format(now).replace(/[^0-9]/g,'');
+  const num = s => ar(String(s).replace(/[^0-9]/g,''));
+  return `${parts.weekday} ${num(parts.day)} (${ar(mo)}) ${parts.month} ${num(parts.year)}`;
+}
 function tickDates(){
   const now = new Date();
-  try{
-    let h = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',{
-      timeZone: CONFIG.timezone, weekday:'long', day:'numeric', month:'long', year:'numeric'
-    }).format(now);
-    h = h.replace(/\s*هـ\s*$/,'').replace(/،\s*$/,'');
-    document.getElementById('hijri').textContent = h + ' هـ';
-  }catch(e){}
-  try{
-    document.getElementById('greg').textContent = new Intl.DateTimeFormat(GREG,{
-      timeZone: CONFIG.timezone, weekday:'long', day:'numeric', month:'long', year:'numeric'
-    }).format(now);
-  }catch(e){}
+  try{ document.getElementById('hijri').textContent = dateLine('islamic-umalqura', now) + ' هـ'; }catch(e){}
+  try{ document.getElementById('greg').textContent = dateLine('gregory', now) + ' م'; }catch(e){}
 }
 
 const PRAYER_KEYS = ['Fajr','Dhuhr','Asr','Maghrib','Isha'];
@@ -511,6 +517,7 @@ function tickPrayer(){
   if(!PRAYERS.length) return;
   const p = riyadhParts();
   const mins = p.h*60 + p.mi + p.s/60;
+  renderPrayerStrip(mins);
 
   // between adhan and iqama: show the iqama countdown
   const cur = PRAYERS.find(x=>{
@@ -537,6 +544,33 @@ function tickPrayer(){
   elN.textContent = prayerName(next);
   elT.textContent = fmt12(next.h, next.mi);
   elC.innerHTML = 'بعد <b>' + humanRemaining(Math.max(0, Math.round(leftM*60))) + '</b>';
+}
+
+// top left: the five prayers of the day, then «التالية: العصر بعد ٢٥ دقيقة» (or the iqama countdown)
+function renderPrayerStrip(mins){
+  const strip = document.getElementById('pt-strip'), left = document.getElementById('pt-left');
+  if(!strip || !PRAYERS.length) return;
+  const at = x => x.h*60 + x.mi;
+  let next = PRAYERS.find(x => at(x) > mins);
+  const tomorrow = !next;
+  if(!next) next = PRAYERS[0];
+  const cur = PRAYERS.find(x => {
+    const gap = (x.key === 'Dhuhr' && isFriday()) ? 0 : (CONFIG.iqama[x.key] || 0);
+    return mins >= at(x) && mins < at(x) + gap;
+  });
+  const lit = cur || next;   // between adhan and iqama the prayer that has come stays lit
+  strip.innerHTML = PRAYERS.map(x => {
+    const cls = x === lit ? 'next' : (tomorrow || at(x) <= mins) ? 'past' : '';
+    const h12 = x.h % 12 === 0 ? 12 : x.h % 12;
+    return `<span class="q ${cls}"><span class="n">${prayerName(x)}</span><span class="t">${ar(h12)}:${ar(pad(x.mi))}</span></span>`;
+  }).join('');
+  if(cur){
+    const l = at(cur) + CONFIG.iqama[cur.key] - mins;
+    left.innerHTML = `إقامة <b>${prayerName(cur)}</b> بعد ${humanRemaining(Math.max(60, Math.ceil(l)*60))}`;
+  }else{
+    const l = at(next) + (tomorrow ? 1440 : 0) - mins;
+    left.innerHTML = `التالية: <b>${prayerName(next)}</b> بعد ${humanRemaining(Math.max(0, Math.round(l*60)))}`;
+  }
 }
 
 let RAM_CACHE = {day:'', val:null};
@@ -570,13 +604,87 @@ function hijriMonthNow(){
       .format(new Date()).replace(/[^0-9]/g,'');
   }catch(e){ return 0; }
 }
+// ---------- occasions: Ramadan, the two Eids (Umm al-Qura), National Day and Founding Day ----------
+// One at a time in the centre panel, the next one every 15 seconds, nearest first. Days only; the day before,
+// a live countdown to midnight and the greeting; on the day itself, the greeting.
+const OCCASIONS = [
+  {name:'رمضان',        hijri:[9,1],   greet:'رمضان مبارك',      year:'hijri'},
+  {name:'عيد الفطر',    hijri:[10,1],  greet:'عيد فطر مبارك',     year:'hijri'},
+  {name:'عيد الأضحى',   hijri:[12,10], greet:'عيد أضحى مبارك',    year:'hijri'},
+  {name:'اليوم الوطني', greg:[9,23],   greet:'دام عزك يا وطن',    year:'national'},
+  {name:'يوم التأسيس',  greg:[2,22],   greet:'يوم بدينا',          year:'founding'},
+];
+const OCC_SLIDE_MS = 15000;
+let OCC_CACHE = {day:'', list:[]};
+function occasionDates(){
+  const dayKey = new Intl.DateTimeFormat('en-CA',{timeZone:CONFIG.timezone}).format(new Date());
+  if(OCC_CACHE.day === dayKey) return OCC_CACHE.list;
+  const today = riyadhParts(), t0 = Date.UTC(today.y, today.mo-1, today.d);
+  const hf = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura',{timeZone:CONFIG.timezone,day:'numeric',month:'numeric',year:'numeric'});
+  const found = {};
+  for(let i = 0; i < 400; i++){       // the next date of each Hijri occasion, today included
+    const d = new Date(Date.now() + i*86400000);
+    const hp = hf.formatToParts(d).reduce((a,p)=>(a[p.type]=p.value,a),{});
+    const hm = +String(hp.month).replace(/[^0-9]/g,''), hd = +String(hp.day).replace(/[^0-9]/g,'');
+    OCCASIONS.forEach((o, k) => {
+      if(o.hijri && found[k] === undefined && o.hijri[0] === hm && o.hijri[1] === hd){
+        const p = riyadhParts(d);
+        found[k] = {t: Date.UTC(p.y, p.mo-1, p.d), hy: +String(hp.year).replace(/[^0-9]/g,'')};
+      }
+    });
+  }
+  const list = OCCASIONS.map((o, k) => {
+    let t, label;
+    if(o.hijri){
+      if(!found[k]) return null;
+      t = found[k].t; label = o.name + ' ' + ar(found[k].hy);
+    }else{
+      let y = today.y;
+      t = Date.UTC(y, o.greg[0]-1, o.greg[1]);
+      if(t < t0){ y++; t = Date.UTC(y, o.greg[0]-1, o.greg[1]); }
+      label = o.year === 'national' ? o.name + ' ' + ar(y - 1930) : o.name;
+    }
+    return {o, t, label, days: Math.round((t - t0) / 86400000)};
+  }).filter(Boolean).sort((a, b) => a.t - b.t);
+  OCC_CACHE = {day: dayKey, list};
+  return list;
+}
+function dayWord(n){
+  if(n === 2) return 'يومين';
+  return ar(n) + ' <span class="unit">' + (n >= 3 && n <= 10 ? 'أيام' : 'يوم') + '</span>';
+}
+function renderOccasion(x, elL, elD, elS){
+  elL.textContent = x.label;
+  if(x.days <= 0){
+    elD.innerHTML = '<span class="greet">' + esc(x.o.greet) + '</span>';
+    elS.textContent = 'اليوم';
+    return;
+  }
+  if(x.days === 1){                      // the last day: hours, minutes, seconds to midnight
+    const p = riyadhParts(), left = 86400 - (p.h*3600 + p.mi*60 + p.s);
+    const hh = Math.floor(left/3600), mm = Math.floor(left%3600/60), ss = left%60;
+    elD.innerHTML = '<span class="cd">' + ar(pad(hh)) + ':' + ar(pad(mm)) + ':' + ar(pad(ss)) + '</span>';
+    elS.innerHTML = '<b>' + esc(x.o.greet) + '</b> · غداً';
+    return;
+  }
+  elD.innerHTML = dayWord(x.days);
+  elS.textContent = 'يوافق ' + new Intl.DateTimeFormat(GREG,{timeZone:'UTC',weekday:'long',day:'numeric',month:'long'})
+    .format(new Date(x.t + 12*3600000));
+}
+
 function tickRamadan(){
   const elL=document.getElementById('ramadan-label'),
         elD=document.getElementById('ramadan-days'),
         elS=document.getElementById('ramadan-sub');
+  const slides = occasionDates().slice();
+  const ramadanNow = hijriMonthNow() === 9 && PRAYERS.length;
+  const n = slides.length + (ramadanNow ? 1 : 0);
+  if(!n){ elD.textContent = '—'; elS.textContent = ''; return; }
+  const k = Math.floor(Date.now() / OCC_SLIDE_MS) % n;
+  if(!(ramadanNow && k === 0)){ renderOccasion(slides[k - (ramadanNow ? 1 : 0)], elL, elD, elS); return; }
 
-  // ---- Ramadan mode: iftar / suhoor instead of the countdown ----
-  if(hijriMonthNow() === 9 && PRAYERS.length){
+  // ---- Ramadan mode: iftar / suhoor, one of the slides ----
+  if(ramadanNow){
     const rp = riyadhParts();
     const mins = rp.h*60 + rp.mi + rp.s/60;
     const fajr = PRAYERS.find(p=>p.key==='Fajr');
@@ -591,20 +699,7 @@ function tickRamadan(){
     elD.innerHTML = ar(th%12===0?12:th%12) + ':' + ar(String(tm).padStart(2,'0'))
                   + ' <span class="unit">' + (th < 12 ? 'ص' : 'م') + '</span>';
     elS.innerHTML = 'بعد <b>' + humanRemaining(Math.max(0, Math.round((targetM - mins)*60))) + '</b>';
-    return;
   }
-
-  // ---- countdown mode ----
-  const st = ramadanStart();
-  elL.textContent = 'رمضان ' + ar(st ? st.hy : hijriYearNow());
-  if(!st){ elD.textContent='—'; elS.textContent=''; return; }
-  const rp2 = riyadhParts();
-  const days = Math.max(0, Math.round(
-    (Date.UTC(st.y, st.mo-1, st.d) - Date.UTC(rp2.y, rp2.mo-1, rp2.d)) / 86400000));
-  elD.innerHTML = ar(days) + ' <span class="unit">يوم</span>';
-  elS.textContent = days === 0 ? 'رمضان مبارك'
-    : 'يبدأ ' + new Intl.DateTimeFormat(GREG,{timeZone:CONFIG.timezone,weekday:'long',day:'numeric',month:'long'})
-        .format(new Date(Date.UTC(st.y, st.mo-1, st.d, 12)));
 }
 
 const TEAM_AR = __TEAMS_AR__;   // assets/shared/teams-ar.json
@@ -818,65 +913,10 @@ async function loadMatches(){
   if(CONFIG.panel === 'matches') renderPanel(false);
 }
 
-const TICKERS = [
-  {sym:'^TASI.SR', chg:'tasi-chg'},
-  {sym:'^GSPC',    chg:'spx-chg'},
-  {cg:'bitcoin',   chg:'btc-chg'},
-];
-
-// never invent a direction: unknown hides the marker
-function paintDir(t, up){
-  const chEl = document.getElementById(t.chg);
-  if(up === null || up === undefined){ chEl.style.display='none'; chEl.hidden = true; chEl.textContent=''; return; }
-  chEl.hidden = false; chEl.style.display='';
-  chEl.textContent = up ? '▲' : '▼';
-  chEl.className = 'delta ' + (up ? 'up' : 'down');
-}
-
 async function fetchT(url, ms){
   const c = new AbortController(); const id = setTimeout(()=>c.abort(), ms||12000);
   try{ return await fetch(url,{cache:'no-store', signal:c.signal}); }
   finally{ clearTimeout(id); }
-}
-
-// Yahoo has no CORS headers: try it directly (works inside the app), then through public CORS gateways
-async function yahooChart(sym){
-  const direct = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=5d`;
-  const routes = [
-    [direct, 7000, j => j],
-    ['https://api.allorigins.win/get?url=' + encodeURIComponent(direct), 15000, w => JSON.parse(w.contents)],
-    ['https://corsproxy.io/?url=' + encodeURIComponent(direct), 12000, j => j],
-  ];
-  for(const [url, ms, unwrap] of routes){
-    try{
-      const r = await fetchT(url, ms);
-      if(!r.ok) continue;
-      const j = unwrap(await r.json());
-      if(j && j.chart && j.chart.result) return j;
-    }catch(e){}
-  }
-  throw 0;
-}
-
-async function loadTicker(t){
-  try{
-    if(t.cg){                                  // crypto: CoinGecko, CORS friendly
-      const r = await fetchT(`https://api.coingecko.com/api/v3/simple/price?ids=${t.cg}&vs_currencies=usd&include_24hr_change=true`, 10000);
-      if(!r.ok) throw 0;
-      const j = await r.json();
-      const c = j && j[t.cg] ? j[t.cg] : null;
-      const d = c ? (c.usd_24h_change ?? c.usd_24hr_change ?? null) : null;
-      paintDir(t, typeof d === 'number' ? d >= 0 : null);
-      return;
-    }
-    const j = await yahooChart(t.sym);
-    const res = j.chart.result[0];
-    const price = res.meta.regularMarketPrice;
-    const closes = (res.indicators.quote[0].close || []).filter(x=>x != null);
-    const prev = closes.length >= 2 ? closes[closes.length-2]
-               : (res.meta.chartPreviousClose || res.meta.previousClose || null);
-    paintDir(t, prev == null ? null : price >= prev);
-  }catch(e){ paintDir(t, null); }
 }
 
 const SKIP_TYPES = ['News','Talk Show','Sports','Game Show'];
@@ -970,6 +1010,26 @@ let FORECAST = [];
 let LIST_PAGE = 0;
 const PANEL_TITLE = {shows:'هذا الأسبوع', prayers:'مواقيت اليوم', forecast:'الأيام القادمة', matches:'مباريات فرقك'};
 
+// #panel=verse on the screensaver: the card turns every 10 s through the day's verse, the day's hadith,
+// the 5-day forecast and the followed teams' games (skipped while there are none)
+const CARD_TURN_MS = 10000;
+let CARD_TURN = 0;
+function rotatingCard(){
+  const day = riyadhDayNumber(), slides = [];
+  if(VERSES.length) slides.push(() => verseOfDay(day));
+  if(HADITH.length) slides.push(() => hadithOfDay(day));
+  if(FORECAST.length) slides.push(() => ({title: PANEL_TITLE.forecast, rows: forecastRows()}));
+  const m = matchRows();
+  if(m.length) slides.push(() => ({title: PANEL_TITLE.matches, rows: m.slice(0, WEEK_ROWS)}));
+  return slides.length ? slides[CARD_TURN % slides.length]() : quoteOfDay();
+}
+function turnCard(){
+  const card = document.querySelector('.week');
+  CARD_TURN++;
+  card.classList.add('fade');
+  setTimeout(() => { renderPanel(false); card.classList.remove('fade'); }, 450);
+}
+
 function renderPanel(animate){
   const ul = document.getElementById('week-list'), hd = document.getElementById('week-hd');
   const P = CONFIG.panel;
@@ -978,7 +1038,7 @@ function renderPanel(animate){
   if(P === 'prayers') rows = prayerRows();
   else if(P === 'forecast') rows = forecastRows();
   else if(P === 'matches') rows = matchRows();
-  else if(P === 'verse'){ const q = quoteOfDay(); hd.textContent = q.title; rows = q.rows; }
+  else if(P === 'verse'){ const q = CONFIG.widget ? quoteOfDay() : rotatingCard(); hd.textContent = q.title; rows = q.rows; ul.innerHTML = rows.join(''); return; }
   if(PANEL_TITLE[P]) hd.textContent = PANEL_TITLE[P];
   if(!rows.length){
     ul.classList.remove('flip');
@@ -1052,11 +1112,14 @@ const VERSES = __VERSES__;   // assets/shared/verses.json
 const HADITH = __HADITH__;   // assets/shared/hadith.json, through src/build.py
 function quoteOfDay(){
   const n = riyadhDayNumber(), half = Math.floor(n / 2);
-  if(VERSES.length && n % 2 === 0){
-    const v = VERSES[half % VERSES.length];
-    return {title:'آية اليوم', rows:[`<li class="quote"><span class="orn">﴿</span>${esc(v.text)}<span class="orn">﴾</span></li>`, `<li class="src">${esc(v.surah)} · ${ar(v.ayah)}</li>`]};
-  }
-  const h = HADITH[half % HADITH.length];
+  return VERSES.length && n % 2 === 0 ? verseOfDay(half) : hadithOfDay(half);
+}
+function verseOfDay(k){
+  const v = VERSES[k % VERSES.length];
+  return {title:'آية اليوم', rows:[`<li class="quote"><span class="orn">﴿</span>${esc(v.text)}<span class="orn">﴾</span></li>`, `<li class="src">${esc(v.surah)} · ${ar(v.ayah)}</li>`]};
+}
+function hadithOfDay(k){
+  const h = HADITH[k % HADITH.length];
   const saw = s => s.replace(/ﷺ/g, '<span class="saw">ﷺ</span>').replace(/[﴿﴾]/g, m => `<span class="orn">${m}</span>`);
   const body = h.parts.map(([k, t]) => k === 'q' ? `«${saw(esc(t))}»` : `<span class="nar">${saw(esc(t))}</span>`).join(' ');
   return {title:'حديث اليوم', rows:[`<li class="quote hadith">${body}</li>`, `<li class="src">${esc(h.source)}</li>`]};
@@ -1129,7 +1192,7 @@ function pixelShift(){
 
 // Background photos: the hosted set in photos/ (photos/index.json in the repo). A hosted photo is used only
 // once it has loaded; offline, or if it fails, a bundled one is shown, so the screen is never empty.
-const PHOTO_BASE = 'https://raw.githubusercontent.com/tshi-dev/UrTV/master/photos/';
+const PHOTO_BASE = 'https://raw.githubusercontent.com/jolyan20/YourTV/master/photos/';
 let REMOTE_BGS = (()=>{ try{ return JSON.parse(localStorage.getItem('photoIndex') || '[]'); }catch(e){ return []; } })();
 
 async function loadPhotoIndex(){
@@ -1164,12 +1227,12 @@ function showBackground(url, b){
   ph.style.setProperty('--dim', (1 - (b.d || 0.95)).toFixed(2));
   ph.classList.remove('settle'); void ph.offsetWidth; ph.classList.add('settle');
   const cr = document.getElementById('credit');
-  if(cr) cr.textContent = b.c ? 'الصورة: ' + b.c : '';
+  if(cr) cr.textContent = [b.t, b.c].filter(Boolean).join(' · ');
 }
 
-// Every 4 days a new random set of 5 hosted photos (same draw as the launcher: Park-Miller generator seeded
-// by the 4-day period), rotating every 30 minutes. Only the photo on screen is downloaded.
-const PHOTO_SET = 5, PHOTO_PERIOD_DAYS = 4, PHOTO_SLOT_MIN = 30;
+// Every 2 days a new random set of 8 hosted photos (Park-Miller generator seeded
+// by the 2-day period), rotating every 15 minutes. Only the photo on screen is downloaded.
+const PHOTO_SET = 8, PHOTO_PERIOD_DAYS = 2, PHOTO_SLOT_MIN = 15;
 function riyadhDayNumber(){
   const p = riyadhParts();
   return Math.floor(Date.UTC(p.y, p.mo - 1, p.d) / 86400000);
@@ -1189,7 +1252,7 @@ let BG_SLOT = -1, PREFETCHED = false;
 function applyBackground(force){
   try {
     const p = riyadhParts();
-    const slot = riyadhDayNumber() * 48 + Math.floor((p.h * 60 + p.mi) / PHOTO_SLOT_MIN);
+    const slot = riyadhDayNumber() * (1440 / PHOTO_SLOT_MIN) + Math.floor((p.h * 60 + p.mi) / PHOTO_SLOT_MIN);
     if(slot === BG_SLOT && !force) return;
     BG_SLOT = slot;
     const set = REMOTE_BGS.length ? photoSet(REMOTE_BGS.length).map(k => REMOTE_BGS[k]) : [];
@@ -1211,8 +1274,8 @@ function applyBackground(force){
 }
 
 // Last painted panels, shown at once on the next start while fresh data loads.
-const SNAP_KEY = 'snap2:' + location.hash;   // bump when the panels' markup changes
-const SNAP_SEL = ['.markets', '#week-list', '#match-row'];
+const SNAP_KEY = 'snap3:' + location.hash;   // bump when the panels' markup changes
+const SNAP_SEL = ['#pt-strip', '#week-list', '#match-row'];
 function saveSnap(){
   try{ localStorage.setItem(SNAP_KEY, JSON.stringify(SNAP_SEL.map(q => (document.querySelector(q)||{}).innerHTML || ''))); }catch(e){}
 }
@@ -1238,7 +1301,6 @@ function boot(){
   loadPhotoIndex().then(() => applyBackground(true));
   setInterval(() => applyBackground(false), 60*1000);
   tickClock(); tickDates(); tickRamadan();
-  TICKERS.forEach(loadTicker);
   if(CONFIG.panel === 'none') document.querySelector('.week').style.display = 'none';
   else if(CONFIG.panel !== 'shows') renderPanel(false);   // its own data arrives with prayers, weather, matches
   loadPrayers(); loadMatches(); if(CONFIG.panel === 'shows') loadWeek(); loadWeather();
@@ -1251,7 +1313,6 @@ function boot(){
   setInterval(loadLive, 2*60000);
   setInterval(loadPrayers, 6*3600*1000);
   setInterval(loadMatches, 30*60*1000);
-  setInterval(()=>TICKERS.forEach(loadTicker), 15*60*1000);
   if(CONFIG.panel === 'shows') setInterval(loadWeek, 6*3600*1000);
   setInterval(loadWeather, 30*60*1000);
   setInterval(()=>{
@@ -1259,6 +1320,8 @@ function boot(){
     if(CONFIG.panel === 'matches'){ LIST_PAGE++; renderPanel(matchRows().length > WEEK_ROWS); }
   }, 25*1000);
   setInterval(applyNight, 60*1000);
+  setInterval(tickRamadan, 1000);   // the occasions turn every 15 s; the last day counts down by the second
+  if(CONFIG.panel === 'verse') setInterval(turnCard, CARD_TURN_MS);
   setInterval(pixelShift, 4*60*1000);
   let lastDay = new Intl.DateTimeFormat('en-CA',{timeZone:CONFIG.timezone}).format(new Date());
   setInterval(()=>{
