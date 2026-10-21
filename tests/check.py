@@ -154,7 +154,8 @@ allowed_ip = {"0.0.0.0", "127.0.0.1", "100.64.0.0"}   # 100.64.0.0/10: the Tails
 # the network check and its simulation hold only address ranges and made-up addresses, never someone's network
 network_code = {ROOT / "optimize/find-tv.py", ROOT / "tests/find_tv_test.py"}
 phone_page_code = {ROOT / "android/app/src/main/java/sa/urtv/screensaver" / f
-                   for f in ("ControlServer.java", "ControlStore.java", "SaverReceiver.java", "SettingsActivity.java")}
+                   for f in ("ControlServer.java", "ControlStore.java", "ControlService.java", "SaverReceiver.java",
+                             "SettingsActivity.java")} | {ROOT / "android/app/src/main/AndroidManifest.xml"}   # it reconnects Tailscale
 found = []
 for f in texts:
     if f.name.endswith(".html") or f.parent.name == "photos" or f == Path(__file__).resolve():   # not this scan
