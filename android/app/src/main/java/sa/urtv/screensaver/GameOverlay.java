@@ -77,7 +77,9 @@ final class GameOverlay {
             long now = System.currentTimeMillis();
             boolean active = until > now, draw = canDraw();
             String src = source();
-            boolean onPort = src != null && src.trim().equalsIgnoreCase(port.trim());
+            // the TV names the input by its port while the console is off ("HDMI 4") and by the console once it is
+            // on ("PlayStation 5"): either one is the PlayStation
+            boolean onPort = src != null && (src.trim().equalsIgnoreCase(port.trim()) || src.toLowerCase(java.util.Locale.US).contains("playstation"));
             boolean rules = lock || dailyMax > 0 || (schedule != null && schedule.optBoolean("on"));
             long win = windowEnd(now);
             int used = usedToday();

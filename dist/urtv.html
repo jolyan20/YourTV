@@ -3145,6 +3145,7 @@ function boot(){
   setInterval(() => { autoQuran(); }, 60*1000); setTimeout(autoQuran, 8000);
   setInterval(matchMoments, 15*1000); setTimeout(matchMoments, 20000);
   setInterval(taskMoments, 15*1000);
+  setTimeout(actx, 3000);   // the sound system ready before the first chime or whistle (it starts slowly)
   setInterval(rotateScreens, 15*1000);
   window.switchScreen = switchScreen;   // the remote's left and right, from the app
   if(CONFIG.panel === 'verse'){ const next = () => setTimeout(() => { turnCard(); next(); }, cardMs()); next(); }
