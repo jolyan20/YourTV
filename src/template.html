@@ -1480,29 +1480,39 @@ async function loadLive(){
 const SDB = () => `https://www.thesportsdb.com/api/v1/json/${CONFIG.sportsKey}`;
 const ROUND_CACHE = {}, NEXT_CACHE = {};   // "league|round|season" / league -> {at, ...}
 // the free API allows about 30 calls a minute for the whole home (both TVs share one address): one at a time, 4 s apart
-let SDB_SLOT = 0;
-async function sdbGet(path){
-  const now = Date.now(), wait = Math.max(0, SDB_SLOT - now);
-  SDB_SLOT = Math.max(now, SDB_SLOT) + 4000;
-  if(wait) await new Promise(r => setTimeout(r, wait));
-  return getJSON(`${SDB()}/${path}`, null);
+// Two lines: today's games and live scores go first; the followed teams' month ahead and the channels wait behind.
+const SDB_Q = [[], []];
+let SDB_BUSY = false;
+function sdbGet(path, low){
+  return new Promise(res => { SDB_Q[low ? 1 : 0].push({path, res}); sdbPump(); });
 }
-async function roundEvents(league, round, season, maxAgeMs){
+async function sdbPump(){
+  if(SDB_BUSY) return;
+  SDB_BUSY = true;
+  for(let job; (job = SDB_Q[0].shift() || SDB_Q[1].shift()); ){
+    const t0 = Date.now();
+    job.res(await getJSON(`${SDB()}/${job.path}`, null));
+    const wait = 4000 - (Date.now() - t0);
+    if(wait > 0) await new Promise(r => setTimeout(r, wait));
+  }
+  SDB_BUSY = false;
+}
+async function roundEvents(league, round, season, maxAgeMs, low){
   const key = league + '|' + round + '|' + season, c = ROUND_CACHE[key];
   if(c && Date.now() - c.at < maxAgeMs) return c.events;
   const path = `eventsround.php?id=${league}&r=${round}&s=${encodeURIComponent(season)}`;
-  const j = await sdbGet(path) || await sdbGet(path);   // one retry
+  const j = await sdbGet(path, low) || await sdbGet(path, low);   // one retry
   if(!j) return c ? c.events : null;                     // failed: null, not "no games"
   const events = j.events || [];
   ROUND_CACHE[key] = {at: Date.now(), events};
   return events;
 }
 const SDB_FAIL = {};   // a call that got no answer: not the same as "no games"
-async function nextOfLeague(league){
+async function nextOfLeague(league, low){
   const c = NEXT_CACHE[league];
   if(c && Date.now() - c.at < 10*60000) return c.ev;
   const path = `eventsnextleague.php?id=${league}`;
-  const j = await sdbGet(path) || await sdbGet(path);
+  const j = await sdbGet(path, low) || await sdbGet(path, low);
   if(!j) return c ? c.ev : SDB_FAIL;
   const ev = j.events && j.events[0] || null;
   NEXT_CACHE[league] = {at: Date.now(), ev};
@@ -1510,8 +1520,8 @@ async function nextOfLeague(league){
 }
 // a league's games between `fromMs` and `toMs`, round by round. The API's "next" game can be an old postponed
 // one, so rounds that are wholly past are skipped until the upcoming ones; a past round is kept for a day.
-async function leagueGames(league, fromMs, toMs, maxAgeMs){
-  const nx = await nextOfLeague(league);
+async function leagueGames(league, fromMs, toMs, maxAgeMs, low){
+  const nx = await nextOfLeague(league, low);
   if(nx === SDB_FAIL) return null;
   if(!nx) return [];
   const r = parseInt(nx.intRound, 10);
@@ -1521,7 +1531,7 @@ async function leagueGames(league, fromMs, toMs, maxAgeMs){
   }
   const out = [];
   for(let i = -1; i < 14 && r + i > 0; i++){
-    const evs = await roundEvents(league, r + i, nx.strSeason, maxAgeMs);
+    const evs = await roundEvents(league, r + i, nx.strSeason, maxAgeMs, low);
     if(evs === null) return null;   // a round that did not answer: the caller keeps what it had
     if(!evs.length) break;
     const ts = evs.map(e => toDate(e).getTime());
@@ -1540,7 +1550,7 @@ async function teamLeagues(){
   try{ cache = JSON.parse(localStorage.getItem('teamLeagues') || '{}'); }catch(e){}
   for(const id of CONFIG.teamIds){
     if(cache[id]) continue;
-    const j = await sdbGet(`lookupteam.php?id=${id}`);
+    const j = await sdbGet(`lookupteam.php?id=${id}`, true);
     const t = j && j.teams && j.teams[0];
     if(!t) continue;
     cache[id] = ['idLeague','idLeague2','idLeague3','idLeague4','idLeague5','idLeague6','idLeague7']
@@ -1552,7 +1562,7 @@ async function teamLeagues(){
 async function loadTeamFixtures(){
   const mine = new Set(CONFIG.teamIds), now = Date.now(), seen = new Set(), out = [];
   for(const league of await teamLeagues()){
-    for(const ev of (await leagueGames(league, now - 86400000, now + 30*86400000, 6*3600000)) || []){
+    for(const ev of (await leagueGames(league, now - 86400000, now + 30*86400000, 6*3600000, true)) || []){
       if(!ev || seen.has(ev.idEvent) || !(mine.has(String(ev.idHomeTeam)) || mine.has(String(ev.idAwayTeam)))) continue;
       const t = toDate(ev).getTime();
       if(t < now - 86400000 || t > now + 30*86400000) continue;
@@ -1842,7 +1852,7 @@ function channelOf(ev){
 }
 async function loadChannels(ev){
   if(!ev || !ev.idEvent || TV_CACHE[ev.idEvent]) return;
-  const j = await sdbGet(`lookuptv.php?id=${ev.idEvent}`);
+  const j = await sdbGet(`lookuptv.php?id=${ev.idEvent}`, true);
   if(!j) return;
   TV_CACHE[ev.idEvent] = [...new Set((j.tvevent || []).filter(x => ARAB_TV.test(x.strCountry || '') || ARAB_TV.test(x.strChannel || '')).map(x => x.strChannel))].slice(0, 2);
   try{ localStorage.setItem('tvCh', JSON.stringify(TV_CACHE)); }catch(e){}
@@ -1902,6 +1912,7 @@ async function loadToday(){
     buildToday();   // each league as it arrives
   }
   try{ localStorage.setItem('todayGames', JSON.stringify({day, by: TODAY_BY})); }catch(e){}
+  if(!loadToday.once){ loadToday.once = true; loadTeamFixtures(); }   // the followed teams' month, after today's games
 }
 function buildToday(){
   const got = TOP_LEAGUES.map(([id]) => TODAY_BY[id] || []);
@@ -2682,7 +2693,7 @@ function boot(){
   setInterval(() => {   // the followed teams' card: next page every 10 s
     if(MATCH_PAGES > 1 && document.getElementById('week-hd').textContent === PANEL_TITLE.matches){ MATCH_CARD_PAGE++; renderPanel(false); }
   }, 10000);
-  setTimeout(loadTeamFixtures, 60000); setInterval(loadTeamFixtures, 6*3600000);   // after today's games are in
+  setInterval(loadTeamFixtures, 6*3600000);   // the first run follows today's games (loadToday)
   setInterval(pixelShift, 4*60*1000);
   let lastDay = IDF('en-CA',{timeZone:CONFIG.timezone}).format(new Date());
   setInterval(()=>{
