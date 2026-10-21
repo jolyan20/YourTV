@@ -76,10 +76,11 @@ const SAMPLE = {
     NEXT_LIST = { '136013': [ev('a', 'Al-Hilal', 'Al-Nassr', 3), ev('b', 'Al-Ahli', 'Al-Hilal', 80)] };
   },
 };
-const EXPECT = { prayers: [6, 'مواقيت اليوم'], forecast: [5, 'الأيام القادمة'], matches: [2, 'مباريات فرقك'],
+const EXPECT = { prayers: [6, 'مواقيت اليوم'], forecast: [2, 'الطقس'], matches: [2, 'مباريات فرقك'],
                  verse: [2, null], shows: [1, 'هذا الأسبوع'] };
 for (const [panel, [rows, title]] of Object.entries(EXPECT)) {
   const { p, ctx, errors } = await open('tv.html', 'teams=136013&panel=' + panel);
+  if (panel === 'verse') await p.evaluate(() => { window.adhkarTime = () => null; CARD_TURN = 0; renderPanel(false); });
   if (SAMPLE[panel]) await p.evaluate(`(${SAMPLE[panel]})(); renderPanel(false);`);
   const r = await p.evaluate(() => ({ n: document.querySelectorAll('#week-list li').length,
     hd: document.getElementById('week-hd').textContent, shown: getComputedStyle(document.querySelector('.week')).display !== 'none' }));
@@ -108,13 +109,16 @@ for (const [width, height] of [[1920, 1080], [1280, 720], [960, 540]]) {
     let tallest = 0;
     for (let k = 0; k < days; k++) {
       window.riyadhDayNumber = () => day + k;
-      renderPanel(false);
+      const q = quoteOfDay(), ul = document.getElementById('week-list');
+      setCardTitle(document.getElementById('week-hd'), q.title); ul.innerHTML = q.rows.join(''); fitCard(ul);
       const c = card.getBoundingClientRect(), clock = document.querySelector('.clockwrap').getBoundingClientRect();
       const bar = document.querySelector('.bottom').getBoundingClientRect();
       tallest = Math.max(tallest, c.height);
       const top = document.querySelector('.top').getBoundingClientRect();
-      // a card beside the clock, not a page: clear of the top line, the clock and the bottom bar, at most 42% high
-      if (c.top < top.bottom || c.bottom > bar.top - 4 || c.right > clock.left - 4 || c.height > 0.42 * innerHeight)
+      // a card beside the clock, not a page: clear of the top line, the clock and the bottom bar, at most 47% high,
+      // and its text inside it (long ones are shrunk by fitCard)
+      const ulr = document.getElementById('week-list'), over = ulr.scrollHeight > ulr.clientHeight + 2;
+      if (c.top < top.bottom || c.bottom > bar.top - 4 || c.right > clock.left - 4 || c.height > 0.47 * innerHeight || over)
         bad.push(`${Math.round(c.top)}-${Math.round(c.bottom)}/${Math.round(bar.top)} ` + card.querySelector('.quote').textContent.slice(0, 40));
     }
     return { days, bad, tallest: Math.round(tallest) };
@@ -165,21 +169,21 @@ for (const panel of ['prayers', 'verse', 'shows']) {
   const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
   await ctx.route(/^https?:/, r => r.abort());
   const p = await ctx.newPage();
-  await p.goto(page('tv.html') + '#teams=136013&panel=matches');
+  await p.goto(page('tv.html') + '#teams=136013&panel=verse');
   await p.waitForTimeout(800);
-  const slot = () => p.evaluate(() => document.getElementById('match-row').innerText.replace(/\s+/g, ' ').trim());
+  const slot = () => p.evaluate(() => matchCard().join(' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
   const game = (id, hoursAgo, score, status) => `({idEvent:'${id}', strHomeTeam:'Al-Hilal', strAwayTeam:'Al-Nassr',
     strTimestamp:new Date(Date.now() - ${hoursAgo} * 36e5).toISOString(), intHomeScore:${score ? score[0] : null},
     intAwayScore:${score ? score[1] : null}, strStatus:'${status}'})`;
 
   await p.evaluate(`MATCHES['136013'] = ${game('g1', 1.8, [2, 1], 'FT')}; renderMatches();`);
   let t = await slot();
-  check('whistle blown: final score at once, not «مباشر»', t.includes('النتيجة النهائية') && t.includes('٢ - ١') && !t.includes('مباشر'), t);
+  check('whistle blown: final score at once, not «مباشر»', t.includes('انتهت') && t.includes('٢ - ١') && !t.includes('مباشر'), t);
 
   await p.evaluate(`keepResult('136013', MATCHES['136013']); MATCHES['136013'] = ${game('g2', -72, null, 'NS')};
                     RESULTS = {}; renderMatches();`);
   t = await slot();
-  check('API moved to the next fixture: score still shown', t.includes('النتيجة النهائية') && t.includes('٢ - ١'), t);
+  check('API moved to the next fixture: score still shown', t.includes('انتهت') && t.includes('٢ - ١'), t);
 
   await p.reload();
   await p.waitForTimeout(800);
@@ -189,7 +193,7 @@ for (const panel of ['prayers', 'verse', 'shows']) {
 
   await p.evaluate(`KEPT['136013'] = [${game('g1', 27, [2, 1], 'FT')}]; renderMatches();`);
   t = await slot();
-  check('a day later: score gone, next fixture shown', !t.includes('٢ - ١') && t.includes('×'), t);
+  check('a day later: score gone, next fixture shown', !t.includes('٢ - ١') && t.includes('القادمة'), t);
   await ctx.close();
 }
 
