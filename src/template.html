@@ -821,6 +821,7 @@ async function loadPrayers(){
     try{ buildPrayers(computePrayers()); }catch(_){}
   }
   tickPrayer();
+  applyMode();     // day and night follow the real sunrise and Maghrib as soon as they are known
   tickRamadan();   // Ramadan mode needs the prayer times
   if(CONFIG.panel === 'prayers' || CONFIG.panel === 'home') renderPanel(false);
 }
