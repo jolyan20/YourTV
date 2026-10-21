@@ -7,7 +7,9 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 
 /**
  * Keeps the phone page's server running: started at boot, by the screensaver and by the settings screen.
@@ -16,6 +18,22 @@ import android.os.IBinder;
 public class ControlService extends Service {
     private static final String CHANNEL = "control";
     private ControlServer server;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
+    // Android stops Tailscale now and then and the link from outside home goes dead: ask it to connect again
+    private final Runnable tailscale = new Runnable() {
+        public void run() {
+            if (ControlStore.tailscaleAddress() == null && installed("com.tailscale.ipn")) {
+                Intent i = new Intent("com.tailscale.ipn.CONNECT_VPN").setClassName("com.tailscale.ipn", "com.tailscale.ipn.IPNReceiver");
+                try { sendBroadcast(i); } catch (Exception ignored) { }
+            }
+            handler.postDelayed(this, 60_000);
+        }
+    };
+
+    private boolean installed(String pkg) {
+        try { getPackageManager().getPackageInfo(pkg, 0); return true; } catch (Exception e) { return false; }
+    }
 
     static void start(Context c) {
         Intent i = new Intent(c, ControlService.class);
@@ -36,11 +54,12 @@ public class ControlService extends Service {
             b = new Notification.Builder(this);
         }
         Notification n = b.setSmallIcon(R.mipmap.ic_launcher).setContentTitle("التحكم من الجوال")
-            .setContentText(ControlStore.url() == null ? "" : ControlStore.url()).build();
+            .setContentText(ControlStore.phoneUrl(this) == null ? "" : ControlStore.phoneUrl(this)).build();
         startForeground(1, n);
         ControlStore.pin(this);   // made once, shown in the settings
         server = new ControlServer(this);
         server.start();
+        handler.postDelayed(tailscale, 20_000);
     }
 
     @Override
@@ -48,6 +67,7 @@ public class ControlService extends Service {
 
     @Override
     public void onDestroy() {
+        handler.removeCallbacks(tailscale);
         if (server != null) server.stop();
         super.onDestroy();
     }

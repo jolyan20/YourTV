@@ -173,4 +173,12 @@ final class ControlStore {
         String ip = tailscaleAddress();
         return ip == null ? null : "http://" + ip + ":" + PORT;
     }
+
+    /** the one link for the phone, at home and away: Tailscale's (kept while it reconnects), else the home one */
+    static String phoneUrl(Context c) {
+        String ts = tailscaleUrl();
+        if (ts != null) prefs(c).edit().putString("tailscale_url", ts).apply();
+        else ts = prefs(c).getString("tailscale_url", null);
+        return ts != null ? ts : url();
+    }
 }

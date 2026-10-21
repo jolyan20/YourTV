@@ -16,6 +16,8 @@
     <!-- opens the launcher's «ترتيب المفضلة» from settings -->
     <queries>
         <package android:name="sa.urtv.home" />
+        <!-- turns Tailscale back on when Android stopped it, for the phone page from outside home -->
+        <package android:name="com.tailscale.ipn" />
     </queries>
 
     <uses-feature android:name="android.software.leanback" android:required="false" />

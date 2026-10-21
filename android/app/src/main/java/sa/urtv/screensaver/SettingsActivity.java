@@ -86,9 +86,9 @@ public class SettingsActivity extends Activity {
             startActivity(new Intent(SettingsActivity.this, MainActivity.class)); } }).requestFocus();
 
         header("التحكم من الجوال");
-        String url = ControlStore.url(), ts = ControlStore.tailscaleUrl();
-        row("الرمز السري: " + ControlStore.pin(this), (url == null ? "غير متصل بالشبكة" : "في البيت: " + url.replace("http://", ""))
-            + (ts == null ? "" : " · من أي مكان (Tailscale): " + ts.replace("http://", "")), R.drawable.ic_eye, new Runnable() { public void run() { } });
+        String url = ControlStore.phoneUrl(this);
+        row("الرمز السري: " + ControlStore.pin(this), url == null ? "غير متصل بالشبكة" : "الرابط من البيت ومن برا: " + url.replace("http://", ""),
+            R.drawable.ic_eye, new Runnable() { public void run() { } });
         row("تغيير الرمز السري", "يلغي دخول كل الجوالات، وتدخلون بالرمز الجديد", R.drawable.ic_sync, new Runnable() { public void run() {
             ControlStore.resetPin(SettingsActivity.this); render(); } });
 
