@@ -492,8 +492,11 @@
   /* the 24-hour time: a small clock instead of the words */
   .subline .chip.h24 svg{width:1.15em;height:1.15em;opacity:.85}
   /* the official logos: Founding Day, and the Kingdom's emblem for National Day */
-  .occ-ic.logo img{height:2.1em;width:auto;vertical-align:middle;display:block}
-  .occ-ic.logo.founding img{height:3.4em}
+  /* the label keeps one height whatever its icon: a logo overflows it, it never pushes the panel down */
+  .p-mid .label{height:1.6em;display:flex;align-items:center;justify-content:center;overflow:visible;white-space:nowrap}
+  .occ-ic.logo{height:1.6em;display:inline-flex;align-items:center}
+  .occ-ic.logo img{height:2.1em;width:auto;display:block}
+  .occ-ic.logo.founding img{height:2.9em;margin-top:-.4em}
   /* a child's stars */
   .week li.stars{display:flex;flex-direction:column;align-items:center;gap:1.2vh;border-bottom:none;padding:1.6vh 0}
   .week li.stars .n{font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:3.2em;color:#F3D48A;line-height:1}

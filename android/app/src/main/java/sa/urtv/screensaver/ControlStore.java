@@ -123,7 +123,12 @@ final class ControlStore {
 
     /** value is the section's JSON text, already parsed once by the caller */
     static void save(Context c, String section, String json) {
-        prefs(c).edit().putString(section, json).apply();
+        prefs(c).edit().putString(section, json).putLong("at:" + section, System.currentTimeMillis()).apply();
+    }
+
+    /** a newer copy from another TV of the household (ControlSync), with the time it was changed there */
+    static void saveFrom(Context c, String section, String json, long at) {
+        prefs(c).edit().putString(section, json).putLong("at:" + section, at).apply();
     }
 
     static void setQuran(Context c, boolean on) {

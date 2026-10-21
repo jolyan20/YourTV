@@ -51,6 +51,11 @@ final class ControlPrefs {
 
     /** null when saved, else what was wrong (nothing is saved then) */
     static String apply(Context c, JSONObject o) throws Exception {
+        return apply(c, o, true);
+    }
+
+    /** stamp: a change made here (the phone page), which the other TVs then take; false for one taken from them */
+    static String apply(Context c, JSONObject o, boolean stamp) throws Exception {
         Prefs p = new Prefs(c);
         String[] city = null;
         if (o.has("city")) {
@@ -79,6 +84,7 @@ final class ControlPrefs {
         if (teams != null) p.setList("teams", teams);
         if (panel != null) p.setPanel(panel);
         if (home != null) p.setHomePanel(home);
+        if (stamp && (city != null || teams != null)) ControlStore.prefs(c).edit().putLong("at:prefs", System.currentTimeMillis()).apply();
         return null;
     }
 

@@ -145,6 +145,10 @@ final class ControlServer implements Runnable {
                 reply(s, 200, "application/json", new JSONObject().put("key", ControlStore.newSession(app)).toString(), false); return;
             }
 
+            if ("GET".equals(method) && "/api/sync".equals(path)) {   // the household's other TV (ControlSync), its own key
+                if (!ControlSync.keyMatches(app, get(h, "x-sync", ""))) { failed(who); reply(s, 401, "text/plain", "sync", false); return; }
+                reply(s, 200, "application/json; charset=utf-8", ControlSync.state(app).toString(), false); return;
+            }
             String key = get(h, "x-key", "");
             if (!ControlStore.sessionValid(app, key)) { reply(s, 401, "application/json", "{\"error\":\"session\"}", false); return; }
             if ("GET".equals(method) && "/api/prefs".equals(path)) {

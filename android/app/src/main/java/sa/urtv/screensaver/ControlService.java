@@ -36,6 +36,14 @@ public class ControlService extends Service {
         }
     };
 
+    // the household's other TVs: take what changed there (ControlSync), every minute
+    private final Runnable sync = new Runnable() {
+        public void run() {
+            new Thread(() -> ControlSync.pull(ControlService.this)).start();
+            handler.postDelayed(this, 60_000);
+        }
+    };
+
     private boolean installed(String pkg) {
         try { getPackageManager().getPackageInfo(pkg, 0); return true; } catch (Exception e) { return false; }
     }
@@ -65,6 +73,7 @@ public class ControlService extends Service {
         server = new ControlServer(this);
         server.start();
         handler.postDelayed(tailscale, 20_000);
+        handler.postDelayed(sync, 15_000);
         game = new GameOverlay(this);
         ControlStore.prefs(this).registerOnSharedPreferenceChangeListener(gameChanged);
         game.update();
@@ -77,6 +86,7 @@ public class ControlService extends Service {
     @Override
     public void onDestroy() {
         handler.removeCallbacks(tailscale);
+        handler.removeCallbacks(sync);
         ControlStore.prefs(this).unregisterOnSharedPreferenceChangeListener(gameChanged);
         if (game != null) game.stop();
         if (server != null) server.stop();
