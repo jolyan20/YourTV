@@ -1676,7 +1676,7 @@ function renderMatches(turn){
     else if(!row.querySelector('.mblock')) setHTML(row, '<div class="none-week" style="opacity:.6">جارٍ تحميل المباريات…</div>');
     return;
   }
-  const per = CONFIG.matchesPerPage, pages = Math.ceil(slots.length / per);
+  const per = document.querySelector('.bottom.fam') ? 1 : CONFIG.matchesPerPage, pages = Math.ceil(slots.length / per);   // narrower beside the family panel
   if(turn) MATCH_PAGE++;
   MATCH_PAGE %= pages;
   const html = slots.slice(MATCH_PAGE * per, MATCH_PAGE * per + per).join('');
