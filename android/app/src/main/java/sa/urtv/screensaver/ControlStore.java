@@ -116,6 +116,7 @@ final class ControlStore {
                 if (v != null) o.put(s, new JSONObject("{\"v\":" + v + "}").get("v"));
             }
             o.put(KEY_QURAN, p.getBoolean(KEY_QURAN, false));
+            o.put("gameAsk", p.getLong("gameAsk", 0));   // the PlayStation was locked and someone asked
         } catch (Exception ignored) { }
         return o;
     }

@@ -34,6 +34,7 @@
   html.widget .week{width:100%}
   html,body{
     height:100%;overflow:hidden;background:#040E09;color:var(--sand);
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
     font-family:'Thmanyah',system-ui,sans-serif;
     -webkit-user-select:none;user-select:none;cursor:none;
   }
@@ -45,7 +46,7 @@
     background-size:cover;
     background-position:center 26%;
     background-repeat:no-repeat;
-    transform:scale(1.03);   /* edges stay covered while it settles */
+    /* at rest exactly 1:1 (the photos are 1920×1080 like the screen): no resampling, every pixel sharp */
   }
   /* each photo's darkness as a plain black layer: same look as filter:brightness, nothing to recompute */
   .photo::after{content:'';position:absolute;inset:0;background:#000;opacity:var(--dim,.05)}
@@ -63,7 +64,7 @@
   }
   #credit:empty{display:none}
   .grain{
-    position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.05;
+    position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.022;   /* just enough to break gradient banding */
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='.55'/></svg>");
   }
   .top-veil{
@@ -215,8 +216,8 @@
   /* A new photo settles in over a minute, then holds still: an endless drift kept the TV redrawing
      the whole screen 60 times a second, for hours. */
   @keyframes settle{
-    from{transform:scale(1.055) translate3d(-.55%,-.4%,0)}
-    to{transform:scale(1.03) translate3d(0,0,0)}
+    from{transform:scale(1.025) translate3d(-.4%,-.3%,0)}
+    to{transform:none}
   }
   @media (prefers-reduced-motion:no-preference){.photo.settle{animation:settle 60s ease-out both}}
 
@@ -455,6 +456,33 @@
   .al.game{border-color:#C79BF2;background:rgba(170,120,240,.2);color:#F1E6FF}
   .al.series{border-color:#7FE0A8;background:rgba(87,210,148,.16);color:#D9F5E4}
 
+  /* the morning summary */
+  .week li.sm{display:grid;grid-template-columns:5.2em 1fr;align-items:center;gap:.8em;white-space:normal;padding:.75vh 0}
+  .week li.sm .k{display:flex;align-items:center;gap:.4em;color:#E0BA74;font-size:.82em;max-width:none;overflow:visible;padding:0;margin:0}
+  .week li.sm .k svg{width:1.35em;height:1.35em}
+  .week li.sm .v{color:#F6EEDC;font-size:.92em;line-height:1.45}
+  .week li.sm .v small{color:#B9AE96;font-size:.82em}
+  /* the kick-off panel over the card */
+  .kick{position:absolute;inset:0;z-index:4;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.8vh;
+    border-radius:12px;background:rgba(6,16,26,.95);border:1px solid rgba(157,195,240,.7);text-align:center}
+  .kick.on{display:flex}
+  .kick .k1{font-size:clamp(18px,1.5vw,30px);color:#9DC3F0;letter-spacing:.08em}
+  .kick .k2{display:flex;align-items:center;gap:1.4vw;font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:clamp(30px,2.8vw,58px);color:#FFF3D6}
+  .kick .k2 img{width:1.5em;height:1.5em;object-fit:contain}
+  .kick .k2 i{font-style:normal;color:#9DC3F0;font-size:.7em}
+  .kick .k3{font-size:clamp(15px,1.25vw,25px);color:#D8CDB6}
+  .kick .k3 b{color:#FFE2A6;font-weight:500}
+  /* the daily wird */
+  .week li.quote.wird{font-size:clamp(17px,1.45vw,28px);line-height:2;text-align:justify}
+  .week li.quote.wird .an{font-family:'NotoMarks','Noto Naskh Arabic',serif;color:#D6AF6B;font-size:.85em;padding:0 .2em}
+  .week li.sh{display:block;text-align:center;border-bottom:none;padding:.3vh 0;color:#E0BA74;font-size:.9em}
+  .week li.wp{display:flex;align-items:center;gap:.8em;border-bottom:none;padding:.8vh 0 0;font-size:.72em;color:#B9AE96}
+  .week li.wp .bar{flex:1;height:6px;border-radius:3px;background:rgba(246,239,224,.14);overflow:hidden}
+  .week li.wp .bar i{display:block;height:100%;background:linear-gradient(90deg,#DCB86F,#F3D48A);border-radius:3px}
+  .week li.wd{display:flex;flex-direction:column;align-items:center;gap:1vh;border-bottom:none;padding:2vh 0}
+  .week li.wd b{font-size:1.6em;color:#BFF2D3;font-weight:500}
+  .al.wird{border-color:#DCB86F;background:rgba(220,184,111,.16);color:#FFE7AE}
+
   @media (max-aspect-ratio:5/4){
     .top{flex-direction:column-reverse;gap:1.4vh}
     .bottom{grid-template-columns:1fr 1fr}
@@ -502,6 +530,7 @@
     <div class="week">
       <div class="dots" id="card-dots"></div>
       <div class="adhan" id="adhan"></div>
+      <div class="kick" id="kick"></div>
       <div class="wbody" id="wbody">
         <div class="hd" id="week-hd">هذا الأسبوع</div>
         <ul id="week-list"><li class="empty">جارٍ التحميل…</li></ul>
@@ -723,8 +752,8 @@ function buildPrayers(t){
 
 // Umm al-Qura: Fajr at 18.5°, Maghrib at sunset, Isha 90 min after Maghrib (120 in Ramadan),
 // Asr at shadow factor 1. Same method as Aladhan's method 4, so the offline times match to a minute or two.
-function computePrayers(){
-  const p = riyadhParts(), lat = CONFIG.latitude, lng = CONFIG.longitude;
+function computePrayers(lat = CONFIG.latitude, lng = CONFIG.longitude){
+  const p = riyadhParts();
   const tz = Math.round((Date.UTC(p.y,p.mo-1,p.d,p.h,p.mi,p.s) - Date.now()) / 60000) / 60;
   const rad = d => d*Math.PI/180, deg = r => r*180/Math.PI;
   const fix = (a,b) => { a = a - b*Math.floor(a/b); return a < 0 ? a + b : a; };
@@ -926,7 +955,7 @@ function matchAlerts(now){
     if(now >= t && now < t + 2.5*3600000 && !FINAL.includes((ev.strStatus || '').toUpperCase()))
       out.push(pill('live', `مباشر: ${esc(teamAr(ev.strHomeTeam))} ${scored ? ar(+ev.intHomeScore) + ' - ' + ar(+ev.intAwayScore) : '×'} ${esc(teamAr(ev.strAwayTeam))}`));
     else if(t > now && t - now <= 3*3600000)
-      out.push(pill('match', `${esc(me)} يلعب بعد ${humanRemaining(Math.round((t - now)/1000))} <small>ضد ${esc(them)}</small>`));
+      out.push(pill('match', `${esc(me)} يلعب بعد ${cdn(t, 'الآن')} <small>ضد ${esc(them)}${channelOf(ev) ? ' · ' + esc(channelOf(ev)) : ''}</small>`));
   });
   return out;
 }
@@ -952,7 +981,7 @@ function renderAlerts(){
   const day = mins < maghrib ? new Date() : new Date(now + 86400000);
   const why = fastReasons(day);
   if(why.length) out.push(pill('fast', `${mins < maghrib ? 'اليوم' : 'غداً'}: صيام ${why.join('، ')}`));
-  out.push(...bedtimeAlerts(now), ...gameAlerts(now), ...reminderAlerts(), ...taskAlerts(), ...seriesAlerts(now), ...matchAlerts(now), ...weatherAlerts());
+  out.push(...bedtimeAlerts(now), ...gameAlerts(now), ...wirdAlerts(), ...reminderAlerts(), ...taskAlerts(), ...seriesAlerts(now), ...matchAlerts(now), ...weatherAlerts());
   setHTML(box, out.join(''));
   renderAdhan(mins);
 }
@@ -965,18 +994,72 @@ function renderAdhan(mins){
   setHTML(el, `<div class="a1">حان الآن وقت</div><div class="a2">صلاة ${prayerName(cur)}</div>`
     + `<div class="a3">${fmt12(cur.h, cur.mi)} · بتوقيت ${esc(CONFIG.city)}</div>`);
   el.classList.add('on');
-  if(mins < cur.h*60 + cur.mi + 1) playTakbir(cur);
+  if(mins < cur.h*60 + cur.mi + 1) playAdhan(cur);
 }
-// the opening takbirs of the Makkah adhan (Masjid al-Haram, 2013; Seyfula Islam, CC BY 3.0, Wikimedia Commons),
-// once per prayer, in its first minute; off from the phone page, and Fajr can be left silent
-const TAKBIR_URL = 'https://raw.githubusercontent.com/jolyan20/YourTV/master/assets/audio/adhan-takbir.ogg';
-let TAKBIR_DONE = '';
-function playTakbir(cur){
-  const d = DISP(), key = todayKey() + cur.key;
-  if(TAKBIR_DONE === key || CONFIG.widget) return;
-  TAKBIR_DONE = key;
-  if(d.adhanSound === false || (cur.key === 'Fajr' && d.adhanFajr === false)) return;
-  try{ const a = new Audio(TAKBIR_URL); a.volume = 1; a.play().catch(() => {}); }catch(e){}
+// The Makkah adhan, once per prayer in its first minute, from the Haram's own channel (شؤون الأئمة والمؤذنين,
+// youtube.com/@Emam_moathen), played by the app in the stream's window (YouTube's player stays visible): in full,
+// or the opening takbirs only (its first 30 s). Chosen on the phone page, Fajr apart: full | takbir | off.
+const ADHAN_VIDEO = {
+  main: 'CC21hm_Qor0',   // Isha, 28 Jumada al-Akhirah 1446, Sheikh Ali Mulla
+  fajr: 'cv8qarn65og',   // Fajr, 1 Rajab 1446, Sheikh Ibrahim Al-Madani
+};
+let ADHAN_DONE = '';
+function adhanMode(fajr){
+  const d = DISP(), ok = m => ['full', 'takbir', 'off'].includes(m) ? m : null;
+  if(d.adhanSound === false) return 'off';                        // older phone pages
+  if(fajr) return ok(d.adhanFajrMode) || (d.adhanFajr === false ? 'off' : ok(d.adhanMode) || 'full');
+  return ok(d.adhanMode) || 'full';
+}
+function playAdhan(cur){
+  const key = todayKey() + cur.key;
+  if(ADHAN_DONE === key || CONFIG.widget) return;
+  ADHAN_DONE = key;
+  const mode = adhanMode(cur.key === 'Fajr');
+  if(mode === 'off') return;
+  const id = cur.key === 'Fajr' ? ADHAN_VIDEO.fajr : ADHAN_VIDEO.main;
+  fetch('http://127.0.0.1:8765/api/adhan', {method: 'POST', body: JSON.stringify({id, start: 0, end: mode === 'full' ? 300 : 30})}).catch(() => {});
+}
+// short sounds made here (no files): a soft chime, and a referee's whistle for kick-off
+let ACTX = null;
+function actx(){ try{ ACTX = ACTX || new (window.AudioContext || window.webkitAudioContext)(); if(ACTX.state === 'suspended') ACTX.resume(); }catch(e){} return ACTX; }
+function chime(){
+  const A = actx(); if(!A) return;
+  [[880, 0], [1318.5, .38], [1760, .76]].forEach(([f, at]) => {
+    const o = A.createOscillator(), g = A.createGain(), t = A.currentTime + .05 + at;
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.28, t + .02); g.gain.exponentialRampToValueAtTime(.001, t + 1.4);
+    o.connect(g); g.connect(A.destination); o.start(t); o.stop(t + 1.5);
+  });
+}
+function whistle(){
+  const A = actx(); if(!A) return;
+  [[0, .32], [.48, .32], [.96, 1.2]].forEach(([at, d]) => {
+    const o = A.createOscillator(), g = A.createGain(), lfo = A.createOscillator(), lg = A.createGain(), t = A.currentTime + .05 + at;
+    o.type = 'sine'; o.frequency.value = 3050; lfo.frequency.value = 34; lg.gain.value = 220;   // the pea's trill
+    lfo.connect(lg); lg.connect(o.frequency);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.3, t + .025); g.gain.setValueAtTime(.3, t + d - .06); g.gain.linearRampToValueAtTime(0, t + d);
+    o.connect(g); g.connect(A.destination); o.start(t); lfo.start(t); o.stop(t + d + .05); lfo.stop(t + d + .05);
+  });
+}
+// the live Makkah stream by itself for the Friday prayer and for Taraweeh in Ramadan (Makkah's own times),
+// switched off again at the end unless it was already on; off from the phone page
+function autoQuran(){
+  if(CONFIG.widget || DISP().autoQuran === false) return;
+  let w = null;
+  try{
+    const mk = computePrayers(21.4225, 39.8262), m = s => hm2m(s, null), p = riyadhParts(), now = p.h*60 + p.mi;
+    if(weekdayOf(new Date()) === 'Fri' && m(mk.Dhuhr) != null) w = {k: todayKey() + ':fri', from: m(mk.Dhuhr) - 15, to: m(mk.Dhuhr) + 50};
+    else if(hijriMonthNow() === 9 && m(mk.Isha) != null) w = {k: todayKey() + ':tar', from: m(mk.Isha) - 5, to: m(mk.Isha) + 150};
+    if(w && !(now >= w.from && now < w.to)) w = null;
+  }catch(e){ return; }
+  const set = on => fetch('http://127.0.0.1:8765/api/autoquran', {method: 'POST', body: JSON.stringify({on})}).catch(() => {});
+  let st = {};
+  try{ st = JSON.parse(localStorage.getItem('autoQ') || '{}'); }catch(e){}
+  if(w && st.k !== w.k){
+    st = {k: w.k, mine: !CTRL.quran};
+    if(!CTRL.quran) set(true);
+  }else if(!w && st.mine){ set(false); st.mine = false; }
+  try{ localStorage.setItem('autoQ', JSON.stringify(st)); }catch(e){}
 }
 
 let RAM_CACHE = {day:'', val:null};
@@ -1612,6 +1695,55 @@ async function refreshLive(){
   if(live.length){ Object.keys(MATCHES).forEach(id => keepResult(id, MATCHES[id])); renderMatches(); renderAlerts(); if(CONFIG.panel === 'verse') renderPanel(false); }
 }
 
+// Where to watch, in Saudi Arabia: TheSportsDB's listing when it names an Arab channel, else the competition's usual
+// broadcaster (edit here when rights change)
+const CHANNELS = {'4668': 'ثمانية', '4480': 'beIN SPORTS', '4328': 'beIN SPORTS'};
+const ARAB_TV = /saudi|arab|mena|middle east|qatar|emirates|uae|kuwait|bahrain|oman/i;
+const TV_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('tvCh') || '{}'); }catch(e){ return {}; } })();
+function channelOf(ev){
+  const c = TV_CACHE[ev.idEvent];
+  return (c && c.length ? c.join(' · ') : '') || CHANNELS[String(ev.idLeague)] || '';
+}
+async function loadChannels(ev){
+  if(!ev || !ev.idEvent || TV_CACHE[ev.idEvent]) return;
+  const j = await sdbGet(`lookuptv.php?id=${ev.idEvent}`);
+  if(!j) return;
+  TV_CACHE[ev.idEvent] = [...new Set((j.tvevent || []).filter(x => ARAB_TV.test(x.strCountry || '') || ARAB_TV.test(x.strChannel || '')).map(x => x.strChannel))].slice(0, 2);
+  try{ localStorage.setItem('tvCh', JSON.stringify(TV_CACHE)); }catch(e){}
+}
+// the followed teams' games, one list
+function teamEvents(){
+  const seen = new Set(), out = [];
+  const add = ev => { if(ev && ev.idEvent && !seen.has(ev.idEvent)){ seen.add(ev.idEvent); out.push(ev); } };
+  CONFIG.teamIds.forEach(id => { add(MATCHES[id]); (NEXT_LIST[id] || []).forEach(add); });
+  TEAM_FIX.forEach(add);
+  return out;
+}
+let KICK_SHOWN = (()=>{ try{ return JSON.parse(localStorage.getItem('kick') || '{}'); }catch(e){ return {}; } })();
+function matchMoments(){
+  if(CONFIG.widget) return;
+  const now = Date.now(), el = document.getElementById('kick'), sound = DISP().matchSound !== false;
+  let live = null;
+  teamEvents().forEach(ev => {
+    const t = toDate(ev).getTime(), id = ev.idEvent;
+    if(t - now <= 3*3600000 && t - now > 0) loadChannels(ev);
+    if(t - now <= 60*60000 && t - now > 50*60000 && !KICK_SHOWN[id + 'h']){ KICK_SHOWN[id + 'h'] = now; if(sound) chime(); }
+    if(now >= t && now < t + 3*60000){
+      live = ev;
+      if(!KICK_SHOWN[id + 'k']){ KICK_SHOWN[id + 'k'] = now; if(sound) whistle(); }
+    }
+  });
+  for(const k in KICK_SHOWN) if(now - KICK_SHOWN[k] > 3*86400000) delete KICK_SHOWN[k];
+  try{ localStorage.setItem('kick', JSON.stringify(KICK_SHOWN)); }catch(e){}
+  if(!el) return;
+  if(!live){ el.classList.remove('on'); return; }
+  const tv = channelOf(live), img = u => u ? `<img src="${esc(u)}/tiny" alt="" onerror="this.remove()">` : '';
+  setHTML(el, `<div class="k1">⚽ بدأت المباراة</div>`
+    + `<div class="k2">${img(live.strHomeBadge || live.strHomeTeamBadge)}${esc(teamAr(live.strHomeTeam))}<i>×</i>${esc(teamAr(live.strAwayTeam))}${img(live.strAwayBadge || live.strAwayTeamBadge)}</div>`
+    + `<div class="k3">${esc(live.strLeague ? leagueAr(live) : '')}${tv ? ` · على <b>${esc(tv)}</b>` : ''}</div>`);
+  el.classList.add('on');
+}
+const leagueAr = ev => (TOP_LEAGUES.find(([id]) => id === String(ev.idLeague)) || [0, ev.strLeague || ''])[1];
 // The bottom panel: today's biggest games from the leagues that matter here, two at a time, a new pair every
 // 15 s. Live games first, then the followed teams', then by league (Roshn first), then by kick-off.
 const TOP_LEAGUES = [['4668','دوري روشن'], ['5649','كأس الملك'], ['5650','كأس السوبر السعودي'],
@@ -1662,7 +1794,7 @@ function todaySlot(x, now){
     : st === 'live' ? `<span class="live">مباشر</span>${ev.strProgress && !isNaN(parseInt(ev.strProgress, 10)) ? ' · الدقيقة ' + ar(parseInt(ev.strProgress, 10)) : ''}`
     : fmt12(+p.hour % 24, +p.minute);
   return `<div class="mblock"><div class="big"><span><span class="${hc}">${homeSide(ev)}</span>${mid}<span class="${ac}">${awaySide(ev)}</span></span></div>`
-       + `<div class="sub">${x.lg} · ${when}</div></div>`;
+       + `<div class="sub">${x.lg} · ${when}${channelOf(ev) && st !== 'done' ? ' · ' + esc(channelOf(ev)) : ''}</div></div>`;
 }
 let MATCH_PAGE = 0;
 function renderMatches(turn){
@@ -1825,10 +1957,50 @@ function dhikrSlide(when){
     rows: [x.title ? `<li class="mh">${esc(x.title)}</li>` : '', `<li class="quote">${body}</li>`,
       `<li class="src">${COUNT_WORD(x.count)}</li>`, `<li class="bio">${x.quran ? 'ثبت فضلها صباحاً ومساءً في ' : 'رواه '}${esc(src)}</li>`].filter(Boolean)};
 }
+// «ملخص اليوم»: from Fajr until 11 in the morning, the first card: weather, tasks, the day's first game, the next
+// prayer and the nearest occasion
+const SUM_IC = {
+  wx: null,
+  task: `<path d="M5 12l4 4 10-10" fill="none" stroke="${'#D6AF6B'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  ball: `<circle cx="12" cy="12" r="8.5" fill="none" stroke="#D6AF6B" stroke-width="1.6"/><path d="M12 8l3.3 2.4-1.3 3.9h-4l-1.3-3.9z" fill="#D6AF6B"/>`,
+  pray: `<path d="M4 20h16 M6 20v-7a6 6 0 0 1 12 0v7 M12 4v3" fill="none" stroke="#D6AF6B" stroke-width="1.6"/>`,
+};
+function summaryTime(){
+  const p = riyadhParts(), m = p.h*60 + p.mi;
+  return m >= minutesOf('Fajr', 4*60+30) && m < 11*60;
+}
+function summarySlide(){
+  const ic = k => k === 'wx' ? svgIcon(wxIcon(WX_NOW != null && WX_NOW !== 'dust' ? WX_NOW : (FORECAST[0] || {}).code, false)) : `<svg viewBox="0 0 24 24">${SUM_IC[k]}</svg>`;
+  const row = (k, label, v) => `<li class="sm"><span class="k">${ic(k)}${label}</span><span class="v">${v}</span></li>`;
+  const rows = [], t = FORECAST[0];
+  if(t) rows.push(row('wx', 'الطقس', `${WX_CODES[t.code] || ''} · العظمى ${ar(Math.round(t.hi))}° · الصغرى ${ar(Math.round(t.lo))}°`));
+  const now = Date.now(), today = todayKey();
+  const open = (CTRL.tasks || []).filter(x => !x.done), dueToday = open.filter(x => x.due && x.due.slice(0, 10) === today);
+  const rems = todaysReminders().filter(x => !x.past);
+  const firstR = rems[0];
+  rows.push(row('task', 'مهامي', open.length || rems.length
+    ? [open.length ? `${ar(open.length)} ${open.length >= 3 && open.length <= 10 ? 'مهام' : 'مهمة'}${dueToday.length ? ` (${ar(dueToday.length)} اليوم)` : ''}` : '',
+       firstR ? `أقرب تذكير: ${esc(firstR.r.text)} <small>${fmt12(firstR.h, firstR.mi)}</small>` : ''].filter(Boolean).join(' · ')
+    : 'لا مهام ولا تذكيرات اليوم'));
+  const mine = teamEvents().filter(ev => riyadhDay(toDate(ev)) === today).sort((a, b) => toDate(a) - toDate(b))[0];
+  const g = mine || (TODAY_GAMES[0] && TODAY_GAMES[0].ev);
+  if(g){
+    const p = IDF('en-GB', {timeZone: CONFIG.timezone, hour: '2-digit', minute: '2-digit', hour12: false}).formatToParts(toDate(g)).reduce((a, y) => (a[y.type] = y.value, a), {});
+    rows.push(row('ball', mine ? 'مباراة فريقك' : 'أبرز مباراة', `${esc(teamAr(g.strHomeTeam))} × ${esc(teamAr(g.strAwayTeam))} <small>${fmt12(+p.hour % 24, +p.minute)}${channelOf(g) ? ' · ' + esc(channelOf(g)) : ''}</small>`));
+  } else rows.push(row('ball', 'المباريات', 'لا مباريات مهمة اليوم'));
+  if(PRAYERS.length){
+    const pp = riyadhParts(), mins = pp.h*60 + pp.mi, nx = PRAYERS.find(x => x.h*60 + x.mi > mins);
+    if(nx) rows.push(row('pray', 'الصلاة', `${prayerName(nx)} ${fmt12(nx.h, nx.mi)} <small>بعد ${humanRemaining(Math.round((nx.h*60 + nx.mi - mins)*60))}</small>`));
+  }
+  return {title: 'ملخص اليوم', rows};
+}
+const tag = (kind, f) => (f.kind = kind, f);
 function cardSlides(){
   const day = riyadhDayNumber(), slides = [];
   const dk = adhkarTime();
-  if(dk && ADHKAR.length && cardOn('adhkar')) slides.push(() => dhikrSlide(dk));
+  if(summaryTime() && cardOn('summary')) slides.push(tag('summary', () => summarySlide()));
+  if(dk && ADHKAR.length && cardOn('adhkar')) slides.push(tag('dhikr', () => dhikrSlide(dk)));
+  if(CTRL.wird && CTRL.wird.on !== false && cardOn('wird')) slides.push(tag('wird', () => wirdSlide()));
   if(VERSES.length && cardOn('verse')) slides.push(() => verseOfDay(day));
   if(HADITH.length && cardOn('hadith')) slides.push(() => hadithOfDay(day));
   if(WISDOM.length && cardOn('wisdom')) slides.push(() => wisdomOfDay(day));
@@ -1851,11 +2023,77 @@ function rotatingCard(){
 // the card leaves downward and the next one comes in from above, slowly
 function turnCard(){
   const body = document.getElementById('wbody');
-  if(adhkarTime() && CARD_TURN % cardSlides().length === 0) DHIKR_TURN++;   // the dhikr slide just left: next one next time
+  const all = cardSlides(), left = all.length && all[CARD_TURN % all.length];
+  if(left && left.kind === 'dhikr') DHIKR_TURN++;   // the dhikr slide just left: next one next time
+  if(left && left.kind === 'wird') WIRD_TURN++;     // and the wird goes on with its next part
   CARD_TURN++;
   crossfade(body, () => renderPanel(false));
 }
 
+// «الورد اليومي»: the household reads N pages a day (set on the phone page, which marks them read); the card shows
+// today's pages a part at a time, with the khatma's progress. The text: api.alquran.cloud, quran-simple (Tanzil), as is.
+let WIRD_TURN = 0, WIRD_PAGES = {};
+async function wirdLoad(page){
+  if(WIRD_PAGES[page]) return WIRD_PAGES[page];
+  try{ const c = JSON.parse(localStorage.getItem('wird:' + page) || 'null'); if(c){ WIRD_PAGES[page] = c; return c; } }catch(e){}
+  const j = await getJSON(`https://api.alquran.cloud/v1/page/${page}/quran-simple`, null);
+  const a = j && j.data && j.data.ayahs;
+  if(!a || !a.length) return null;
+  const v = a.map(x => ({s: x.surah.number, n: x.numberInSurah, name: x.surah.name, t: x.text}));
+  WIRD_PAGES[page] = v;
+  try{ localStorage.setItem('wird:' + page, JSON.stringify(v)); }catch(e){}
+  return v;
+}
+function wirdState(){
+  const w = CTRL.wird || {}, per = Math.min(20, Math.max(1, +w.perDay || 1));
+  const page = Math.min(604, Math.max(1, +w.page || 1));
+  const doneToday = w.lastDone === todayKey();
+  return {per, page, doneToday, pages: Array.from({length: per}, (_, i) => page + i).filter(x => x <= 604)};
+}
+const BASMALA = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
+function wirdParts(st){
+  const ayahs = st.pages.flatMap(p => WIRD_PAGES[p] || []);
+  const parts = [];
+  let cur = [], len = 0;
+  ayahs.forEach(a => {
+    const L = a.t.length + (a.n === 1 ? 60 : 0);
+    if(cur.length && len + L > 420){ parts.push(cur); cur = []; len = 0; }
+    cur.push(a); len += L;
+  });
+  if(cur.length) parts.push(cur);
+  return parts;
+}
+function wirdSlide(){
+  if(+(CTRL.wird || {}).page > 604) return {title: 'الورد اليومي', rows: ['<li class="wd"><b>ختمتم القرآن الكريم 🤲</b><span>تقبل الله منكم · ابدأ ختمة جديدة من الجوال</span></li>']};
+  const st = wirdState(), pct = Math.round((st.page - 1) / 604 * 100);
+  const prog = `<li class="wp"><span>الختمة ${ar(pct)}٪</span><span class="bar"><i style="width:${pct}%"></i></span><span>ص ${ar(st.page)} من ٦٠٤</span></li>`;
+  if(st.doneToday)
+    return {title: 'الورد اليومي', rows: [`<li class="wd"><b>✓ تم ورد اليوم</b><span>تقبل الله منكم · ورد الغد من صفحة ${ar(st.page)}</span></li>`, prog]};
+  st.pages.forEach(p => { if(!WIRD_PAGES[p]) wirdLoad(p).then(v => { if(v) renderPanel(false); }); });
+  const parts = wirdParts(st);
+  if(!parts.length) return {title: 'الورد اليومي', rows: [`<li class="empty">جارٍ تحميل صفحة ${ar(st.page)}…</li>`, prog]};
+  const k = WIRD_TURN % parts.length, part = parts[k], rows = [];
+  let text = '';
+  part.forEach(a => {
+    let t = a.t;
+    if(a.n === 1){
+      if(text){ rows.push(`<li class="quote wird">${text}</li>`); text = ''; }
+      rows.push(`<li class="sh">${esc(a.name)}</li>`);
+      if(a.s !== 1 && a.s !== 9 && t.startsWith(BASMALA)){ rows.push(`<li class="sh">${BASMALA}</li>`); t = t.slice(BASMALA.length).trim(); }
+    }
+    text += `${esc(t)} <span class="an">﴿${ar(a.n)}﴾</span> `;
+  });
+  if(text) rows.push(`<li class="quote wird">${text}</li>`);
+  rows.push(prog);
+  const range = st.pages.length > 1 ? `ص ${ar(st.pages[0])}–${ar(st.pages[st.pages.length - 1])}` : `ص ${ar(st.page)}`;
+  return {title: `الورد اليومي · ${range}${parts.length > 1 ? ` · ${ar(k + 1)}/${ar(parts.length)}` : ''}`, rows};
+}
+function wirdAlerts(){
+  const w = CTRL.wird;
+  if(!w || w.on === false || wirdState().doneToday) return [];
+  const p = riyadhParts();
+  return p.h*60 + p.mi >= minutesOf('Isha', 19*60) ? [pill('wird', '📖 ورد اليوم لم يُقرأ بعد')] : [];
+}
 // «مختارات»: one a day — a proverb and what it means, a verse with its poet, a saying, or a poet's profile.
 // The household's own verses (assets/shared/my-verses.json) come first.
 const WISDOM = __WISDOM__;   // assets/shared/my-verses.json + assets/shared/wisdom-ar.json
@@ -1910,6 +2148,8 @@ const CARD_ICONS = [
   [/^مواقيت/, `<circle cx="12" cy="12" r="8.5" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M12 7v5l3.5 2" stroke="${G}" stroke-width="1.6" stroke-linecap="round" fill="none"/>`],
   [/^(مهامي|تذكيراتي)/, `<rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M8 12l3 3 5-6" fill="none" stroke="${G}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`],
   [/^وقت النوم/, `<path d="M3 18.5h18M3 18.5V8M21 18.5v-4.5a2.5 2.5 0 0 0-2.5-2.5H10v7 M6.5 13.2a1.6 1.6 0 1 0 0-.01" fill="none" stroke="${G}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 4.5h3l-3 3.5h3" fill="none" stroke="${G}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>`],
+  [/^ملخص اليوم/, `<path d="M5 4h14v16H5z M8 8h8 M8 12h8 M8 16h5" fill="none" stroke="${G}" stroke-width="1.6" stroke-linejoin="round"/>`],
+  [/^الورد اليومي/, `<path d="M4 5.5C6.5 4.5 9.5 4.5 12 6c2.5-1.5 5.5-1.5 8-.5V19c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5z M12 6v13.5" fill="none" stroke="${G}" stroke-width="1.6" stroke-linejoin="round"/>`],
   [/^مسلسلاتي/, `<rect x="3" y="7" width="18" height="13" rx="2" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M8 3l4 4 4-4 M10 11v5.5l4.5-2.75z" fill="none" stroke="${G}" stroke-width="1.5" stroke-linejoin="round"/>`],
   [/^هذا الأسبوع/, `<rect x="3" y="5" width="18" height="12" rx="2" fill="none" stroke="${G}" stroke-width="1.6"/><path d="M8 20h8" stroke="${G}" stroke-width="1.6"/>`],
 ];
@@ -2297,6 +2537,8 @@ function boot(){
   setInterval(applyNight, 60*1000);
   setInterval(() => { tickRamadan(); tickFamily(); tickCountdowns(); }, 1000);   // occasions turn every 15 s; countdowns by the second
   setInterval(() => loadSeries(true), 3*3600000);   // new episodes as they air
+  setInterval(() => { autoQuran(); }, 60*1000); setTimeout(autoQuran, 8000);
+  setInterval(matchMoments, 15*1000); setTimeout(matchMoments, 20000);
   if(CONFIG.panel === 'verse'){ const next = () => setTimeout(() => { turnCard(); next(); }, cardMs()); next(); }
   setInterval(() => {   // the followed teams' card: next page every 10 s
     if(MATCH_PAGES > 1 && document.getElementById('week-hd').textContent === PANEL_TITLE.matches){ MATCH_CARD_PAGE++; renderPanel(false); }

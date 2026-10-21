@@ -18,7 +18,8 @@ public class ScreenDream extends DreamService {
     // the phone page switched the Quran window: follow it
     private final SharedPreferences.OnSharedPreferenceChangeListener follow = (p, key) -> {
         if (ControlStore.KEY_QURAN.equals(key) && quran != null && quran.isOn() != ControlStore.quran(this)) quran.toggle();
-        if ("display".equals(key) && quran != null && quran.isOn()) { quran.toggle(); quran.toggle(); }   // new size or place
+        if ("display".equals(key) && quran != null && quran.isOn()) { quran.toggle(); quran.toggle(); }
+        if ("adhanPlay".equals(key) && quran != null) quran.adhan(p.getString(key, "{}"));   // new size or place
     };
     // city, teams or cards changed from the phone: load the page again with them
     private final Runnable reloadNow = () -> { if (web != null) web.loadUrl(new Prefs(this).dashboardUrl(this)); };

@@ -58,6 +58,9 @@
   .bt-row{display:flex;align-items:center;gap:10px;padding:6px 0}
   .bt-row span{flex:0 0 70px;color:var(--dim)} .bt-row input{flex:1}
   .show img{width:42px;height:58px;object-fit:cover;border-radius:6px;background:var(--card2)}
+  .wbar{height:10px;border-radius:5px;background:var(--card2);overflow:hidden;margin:8px 0}
+  .wbar i{display:block;height:100%;background:var(--gold)}
+  .ask{border-color:#8a5a2a;background:#2a1c10}
   .order button{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:8px;width:32px;height:32px}
 </style>
 </head>
@@ -84,6 +87,7 @@
       </div>
       <p class="muted">تظهر النافذة على شاشة التوقف أو المعاينة. إذا كان التلفزيون في تطبيق، تظهر أول ما تشتغل شاشة التوقف.</p>
     </div>
+    <div class="card ask" id="home-ask" hidden></div>
     <div class="card" id="home-msg"></div>
     <div class="card"><h2>💊 تذكيرات اليوم</h2><ul id="home-rem"></ul></div>
     <div class="card"><h2>✅ مهامي</h2><ul id="home-tasks"></ul></div>
@@ -183,9 +187,13 @@
     </div>
     <div class="card">
       <h2>🕌 صوت الأذان</h2>
-      <p class="muted">أول تكبيرتين من أذان المسجد الحرام، وقت دخول كل صلاة (والشاشة شغالة).</p>
-      <div class="switch"><span>تشغيل صوت الأذان</span><input id="adhan-on" type="checkbox"></div>
-      <div class="switch"><span>مع صلاة الفجر</span><input id="adhan-fajr" type="checkbox"></div>
+      <p class="muted">أذان المسجد الحرام وقت دخول كل صلاة (والشاشة شغالة).</p>
+      <div class="row">
+        <div><label>الصلوات</label><select id="adhan-mode"><option value="full">الأذان كامل</option><option value="takbir">أول تكبيرتين</option><option value="off">بدون صوت</option></select></div>
+        <div><label>الفجر</label><select id="adhan-fajr-mode"><option value="full">الأذان كامل</option><option value="takbir">أول تكبيرتين</option><option value="off">بدون صوت</option></select></div>
+      </div>
+      <div class="switch"><span>بث الحرم المكي تلقائياً وقت صلاة الجمعة والتراويح</span><input id="auto-quran" type="checkbox"></div>
+      <div class="switch"><span>صوت تنبيه مباريات فريقك (قبلها بساعة، وصافرة البداية)</span><input id="match-sound" type="checkbox"></div>
       <button class="main" onclick="saveDisplay()">حفظ إعدادات الشاشة</button>
     </div>
   </section>
@@ -223,6 +231,35 @@
       <div class="switch" style="margin-top:10px"><span>لما ينتهي الوقت يرجع التلفزيون للشاشة الرئيسية</span><input id="g-home" type="checkbox" checked></div>
       <p class="muted">يظهر عد تنازلي صغير في زاوية الشاشة فوق البلايستيشن، ويصير برتقالي آخر ٥ دقائق، وبالنهاية تظهر «انتهى وقت اللعب».</p>
     </div>
+    <div class="card">
+      <h2>🔒 قفل البلايستيشن</h2>
+      <p class="muted">إذا تفعّل: ما يفتح البلايستيشن إلا وقت لعب تبدأه من هنا. أي محاولة ثانية ترجع التلفزيون للرئيسية ويوصلك طلب هنا.</p>
+      <div class="switch"><span>قفل البلايستيشن بدون موافقة</span><input id="g-lock" type="checkbox"></div>
+      <label>مدخل البلايستيشن</label>
+      <select id="g-port"><option>HDMI 1</option><option>HDMI 2</option><option>HDMI 3</option><option selected>HDMI 4</option></select>
+      <button class="main" onclick="saveLock()">حفظ</button>
+    </div>
+  </section>
+
+  <section id="s-wird">
+    <div class="card">
+      <h2>📖 الورد اليومي والختمة</h2>
+      <div class="big" id="w-now">—</div>
+      <div class="wbar"><i id="w-bar" style="width:0"></i></div>
+      <p class="muted" id="w-note"></p>
+      <button class="main" onclick="wirdDone()">قرأت ورد اليوم ✔</button>
+      <button class="ghost" style="width:100%;margin-top:8px" onclick="wirdUndo()">تراجع</button>
+    </div>
+    <div class="card">
+      <h2>⚙️ الإعداد</h2>
+      <div class="row">
+        <div><label>صفحات كل يوم</label><select id="w-per"><option value="1">صفحة (ختمة بالسنة تقريباً)</option><option value="2">صفحتين</option><option value="4">٤ صفحات (جزء كل ٥ أيام)</option><option value="10">١٠ صفحات (ختمة بشهرين)</option><option value="20">٢٠ صفحة (ختمة بالشهر)</option></select></div>
+        <div><label>الصفحة الحالية</label><input id="w-page" type="number" min="1" max="604" inputmode="numeric"></div>
+      </div>
+      <div class="switch"><span>بطاقة الورد على الشاشة</span><input id="w-on" type="checkbox" checked></div>
+      <button class="main" onclick="wirdSave()">حفظ</button>
+      <button class="ghost small danger" style="margin-top:8px" onclick="wirdNew()">ختمة جديدة من البداية</button>
+    </div>
   </section>
 
   <section id="s-series">
@@ -240,10 +277,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const TABS = [['home','🏠 الرئيسية'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات'],['game','🎮 اللعب'],['series','🎬 مسلسلاتي'],['sleep','🌙 النوم'],['screen','🖥️ الشاشة']];
+const TABS = [['home','🏠 الرئيسية'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات'],['wird','📖 الورد'],['game','🎮 اللعب'],['series','🎬 مسلسلاتي'],['sleep','🌙 النوم'],['screen','🖥️ الشاشة']];
 const DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const PRESETS = ['العشاء جاهز 🍽️','الغداء جاهز','حياكم الله 🌹','وقت النوم 🌙','لا تنسون أغراضكم'];
-const CARDS = [['adhkar','أذكار الصباح والمساء'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['tasks','مهامي وتذكيراتي'],['bedtime','وقت النوم'],['series','مسلسلاتي'],['weather','الطقس'],['matches','مباريات فرقك']];
+const CARDS = [['adhkar','أذكار الصباح والمساء'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['summary','ملخص اليوم (الصباح)'],['wird','الورد اليومي'],['tasks','مهامي وتذكيراتي'],['bedtime','وقت النوم'],['series','مسلسلاتي'],['weather','الطقس'],['matches','مباريات فرقك']];
 // the PIN is sent once; the TV answers with a session key (30 days), kept on this phone instead of the PIN
 let KEY = localStorage.getItem('tvkey') || '', STATE = {}, PREFS = null;
 const $ = id => document.getElementById(id);
@@ -327,7 +364,10 @@ function render(){
   $('cards').innerHTML = CARDS.map(([k, t]) => `<div class="switch"><span>${t}</span><input type="checkbox" data-card="${k}" ${cards[k] === false ? '' : 'checked'}></div>`).join('');
   $('card-sec').value = String(d.cardSec || 30); $('photo-min').value = String(d.photoMin || 30);
   $('q-size').value = d.quranSize || 's'; $('q-pos').value = d.quranPos || 'tc';
-  $('adhan-on').checked = d.adhanSound !== false; $('adhan-fajr').checked = d.adhanFajr !== false;
+  const am = m => ['full', 'takbir', 'off'].includes(m) ? m : null;
+  $('adhan-mode').value = d.adhanSound === false ? 'off' : am(d.adhanMode) || 'full';
+  $('adhan-fajr-mode').value = d.adhanSound === false ? 'off' : am(d.adhanFajrMode) || (d.adhanFajr === false ? 'off' : am(d.adhanMode) || 'full');
+  $('auto-quran').checked = d.autoQuran !== false; $('match-sound').checked = d.matchSound !== false;
   const bt = STATE.bedtime || {}, times = bt.times || [];
   if(!$('bt-days').dataset.done){
     $('bt-days').innerHTML = DAYS.map((n, i) => `<div class="bt-row"><span>${n}</span><input type="time" data-bt="${i}"></div>`).join('');
@@ -339,6 +379,18 @@ function render(){
   $('series-list').innerHTML = ser.length ? ser.map((x, i) => `<li class="show">${x.img ? `<img src="${esc(x.img)}" alt="">` : ''}<span class="t">${esc(x.name)}<small>${esc(x.net || '')} ${esc(x.year || '')}</small></span>
       <button class="x" onclick="delItem('series', ${i})" aria-label="حذف">×</button></li>`).join('') : '<li class="muted">ما فيه مسلسلات</li>';
   renderGame();
+  const w = wirdNow(), pages = Math.min(604, w.page) - 1, left = Math.max(0, 605 - w.page), days = Math.ceil(left / w.per);
+  $('w-now').textContent = w.page > 604 ? 'ختمت القرآن 🤲' : (w.lastDone === today() ? '✔ تم ورد اليوم · ' : '') + 'صفحة ' + w.page + (w.per > 1 ? '–' + Math.min(604, w.page + w.per - 1) : '');
+  $('w-bar').style.width = Math.round(pages / 604 * 100) + '%';
+  $('w-note').textContent = `الختمة ${Math.round(pages / 604 * 100)}٪ · باقي ${left} صفحة · تختم بعد ${days} يوم تقريباً`;
+  if(document.activeElement !== $('w-page')) $('w-page').value = Math.min(604, w.page);
+  $('w-per').value = String(w.per); $('w-on').checked = w.on;
+  const g = STATE.game || {};
+  $('g-lock').checked = !!g.lock; $('g-port').value = g.port || 'HDMI 4';
+  const asked = STATE.gameAsk && Date.now() - STATE.gameAsk < 30*60000 && !(g.until > Date.now());
+  $('home-ask').hidden = !asked;
+  if(asked) $('home-ask').innerHTML = `<h2>🎮 طلب لعب</h2><p>أحد حاول يفتح البلايستيشن الساعة ${new Date(STATE.gameAsk).toLocaleTimeString('ar-SA', {hour:'numeric', minute:'2-digit'})}.</p>
+    <div class="grid3"><button onclick="startGame(30)">موافقة ٣٠ د</button><button onclick="startGame(60)">موافقة ساعة</button><button onclick="openTab('game')">المزيد</button></div>`;
 }
 // game time: the countdown here follows the TV's
 function renderGame(){
@@ -351,9 +403,19 @@ function renderGame(){
   if(g.home !== undefined && document.activeElement !== $('g-home')) $('g-home').checked = g.home !== false;
 }
 setInterval(() => { if(!$('app').hidden) renderGame(); }, 1000);
-function startGame(min){ save('game', {until: Date.now() + min*60000, minutes: min, home: $('g-home').checked, at: Date.now()}, true).then(() => toast('بدأ وقت اللعب: ' + min + ' دقيقة')); }
+// game time keeps the lock settings; the lock keeps the game time
+const gameBase = () => { const g = STATE.game || {}; return {lock: !!g.lock, port: g.port || 'HDMI 4', home: g.home !== false}; };
+function startGame(min){ save('game', Object.assign(gameBase(), {until: Date.now() + min*60000, minutes: min, home: $('g-home').checked, at: Date.now()}), true).then(() => toast('بدأ وقت اللعب: ' + min + ' دقيقة')); }
 function addGame(min){ const g = STATE.game || {}; if(!(g.until > Date.now())) return startGame(min); save('game', Object.assign({}, g, {until: g.until + min*60000}), true).then(() => toast('تمت إضافة ' + min + ' دقيقة')); }
-function stopGame(){ save('game', {until: 0, at: Date.now()}, true).then(() => toast('تم إيقاف وقت اللعب')); }
+function stopGame(){ save('game', Object.assign(gameBase(), {until: 0, at: Date.now()}), true).then(() => toast('تم إيقاف وقت اللعب')); }
+function saveLock(){ save('game', Object.assign({}, STATE.game || {}, {lock: $('g-lock').checked, port: $('g-port').value})); }
+// the wird: N pages a day; «قرأت» moves on to the next pages
+function wirdNow(){ const w = STATE.wird || {}; return {page: Math.min(604, Math.max(1, +w.page || 1)), per: +w.perDay || 1, on: w.on !== false, lastDone: w.lastDone || '', prev: w.prev}; }
+function wirdDone(){ const w = wirdNow(); if(w.lastDone === today()) return toast('ورد اليوم مسجّل');
+  save('wird', {page: Math.min(605, w.page + w.per), perDay: w.per, on: w.on, lastDone: today(), prev: {page: w.page, lastDone: w.lastDone}}, true).then(() => toast(w.page + w.per > 604 ? 'ختمت القرآن، تقبل الله 🤲' : 'تقبل الله ✔')); }
+function wirdUndo(){ const w = wirdNow(); if(!w.prev) return toast('ما فيه شي للتراجع'); save('wird', {page: w.prev.page, perDay: w.per, on: w.on, lastDone: w.prev.lastDone || ''}); }
+function wirdSave(){ const pg = Math.min(604, Math.max(1, +$('w-page').value || 1)); const w = wirdNow(); save('wird', {page: pg, perDay: +$('w-per').value, on: $('w-on').checked, lastDone: w.lastDone}); }
+function wirdNew(){ if(!confirm('تبدأ ختمة جديدة من صفحة ١؟')) return; const w = wirdNow(); save('wird', {page: 1, perDay: w.per, on: w.on, lastDone: ''}); }
 function btAll(){ document.querySelectorAll('[data-bt]').forEach(x => x.value = $('bt-all').value); }
 function saveBedtime(){ const times = [...document.querySelectorAll('[data-bt]')].sort((a, b) => a.dataset.bt - b.dataset.bt).map(x => x.value || ''); save('bedtime', {on: $('bt-on').checked, times}); }
 async function searchSeries(){
@@ -425,7 +487,7 @@ function saveSleep(){ save('sleep', {from: $('sleep-from').value || '00:00', to:
 function saveDisplay(){
   const cards = {}; document.querySelectorAll('[data-card]').forEach(x => cards[x.dataset.card] = x.checked);
   save('display', {cards, cardSec: +$('card-sec').value, photoMin: +$('photo-min').value, quranSize: $('q-size').value, quranPos: $('q-pos').value,
-    adhanSound: $('adhan-on').checked, adhanFajr: $('adhan-fajr').checked});
+    adhanMode: $('adhan-mode').value, adhanFajrMode: $('adhan-fajr-mode').value, autoQuran: $('auto-quran').checked, matchSound: $('match-sound').checked});
 }
 
 // the screensaver's own settings: city and teams

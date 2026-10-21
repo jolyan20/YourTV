@@ -113,6 +113,23 @@ final class ControlServer implements Runnable {
                 if ("OPTIONS".equals(method)) { reply(s, 204, "text/plain", "", true); return; }
                 reply(s, 200, "application/json; charset=utf-8", ControlStore.state(app).toString(), true); return;
             }
+            if ("/api/autoquran".equals(path)) {   // the screensaver page: the Makkah stream for Jumu'ah and Taraweeh
+                if (!from.isLoopbackAddress()) { reply(s, 403, "text/plain", "local only", false); return; }
+                if ("OPTIONS".equals(method)) { reply(s, 204, "text/plain", "", true); return; }
+                ControlStore.setQuran(app, new JSONObject(new String(body, StandardCharsets.UTF_8)).optBoolean("on"));
+                reply(s, 200, "application/json", "{\"ok\":true}", true); return;
+            }
+            if ("/api/adhan".equals(path)) {   // the screensaver page: play the adhan video now
+                if (!from.isLoopbackAddress()) { reply(s, 403, "text/plain", "local only", false); return; }
+                if ("OPTIONS".equals(method)) { reply(s, 204, "text/plain", "", true); return; }
+                JSONObject a = new JSONObject(new String(body, StandardCharsets.UTF_8));
+                String id = a.optString("id");
+                if (!id.matches("[A-Za-z0-9_-]{11}")) { reply(s, 400, "text/plain", "id", true); return; }
+                ControlStore.prefs(app).edit().putString("adhanPlay", new JSONObject().put("id", id)
+                    .put("start", Math.max(0, a.optInt("start"))).put("end", Math.min(600, a.optInt("end", 240)))
+                    .put("at", System.currentTimeMillis()).toString()).apply();
+                reply(s, 200, "application/json", "{\"ok\":true}", true); return;
+            }
             if (!"POST".equals(method) && !"GET".equals(method)) { reply(s, 405, "text/plain", "method", false); return; }
 
             if ("/api/login".equals(path) && "POST".equals(method)) {

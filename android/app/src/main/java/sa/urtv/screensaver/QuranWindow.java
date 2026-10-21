@@ -38,11 +38,29 @@ final class QuranWindow {
     boolean isOn() { return player != null; }
 
     void toggle() {
-        if (player == null) show(); else hide();
+        if (player == null) show(null, 0, 0); else hide();
+    }
+
+    /** one video for a while (the adhan from the Haram's own channel), then the window closes and `done` runs */
+    void playVideo(String id, int start, int end, final Runnable done) {
+        hide();
+        show(id, start, end);
+        final WebView mine = player;
+        root.postDelayed(() -> { if (player == mine) hide(); if (done != null) done.run(); }, (end - start + 5) * 1000L);
+    }
+
+    /** the page asked for the adhan (ControlServer /api/adhan): play it, then bring the stream back if it was on */
+    void adhan(String json) {
+        try {
+            org.json.JSONObject a = new org.json.JSONObject(json);
+            if (System.currentTimeMillis() - a.optLong("at") > 60_000) return;
+            final boolean wasOn = isOn();
+            playVideo(a.getString("id"), a.optInt("start"), a.optInt("end", 240), () -> { if (wasOn && !isOn()) toggle(); });
+        } catch (Exception ignored) { }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private void show() {
+    private void show(final String fixed, final int start, final int end) {
         Context c = root.getContext();
         final WebView w = new WebView(c);
         w.setBackgroundColor(0xFF000000);
@@ -78,9 +96,10 @@ final class QuranWindow {
         player = w;
         // YouTube no longer plays the channel's generic live link in an embed: find today's live video first
         new Thread(() -> {
-            String id = liveVideoId();
+            String id = fixed != null ? fixed : liveVideoId();
             String src = "https://www.youtube.com/embed/" + (id != null ? id : FALLBACK_VIDEO)
-                + "?autoplay=1&controls=0&modestbranding=1&rel=0&playsinline=1";
+                + "?autoplay=1&controls=0&modestbranding=1&rel=0&playsinline=1"
+                + (fixed != null ? "&start=" + start + "&end=" + end : "");
             final String page = html.replace("__SRC__", src);
             w.post(() -> { if (player == w) w.loadDataWithBaseURL(ORIGIN, page, "text/html", "utf-8", null); });
         }).start();

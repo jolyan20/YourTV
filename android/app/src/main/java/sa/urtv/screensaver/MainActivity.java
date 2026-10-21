@@ -21,6 +21,7 @@ public class MainActivity extends Activity {
     private final SharedPreferences.OnSharedPreferenceChangeListener follow = (p, key) -> {
         if (ControlStore.KEY_QURAN.equals(key) && quran != null && quran.isOn() != ControlStore.quran(this)) quran.toggle();
         if ("display".equals(key) && quran != null && quran.isOn()) { quran.toggle(); quran.toggle(); }
+        if ("adhanPlay".equals(key) && quran != null) quran.adhan(p.getString(key, "{}"));
     };
 
     @Override
