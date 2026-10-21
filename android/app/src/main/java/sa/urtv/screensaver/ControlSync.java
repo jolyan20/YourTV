@@ -20,7 +20,7 @@ import java.security.MessageDigest;
  * The TVs prove themselves to each other with a shared random key; the phone's PIN is not involved.
  */
 final class ControlSync {
-    static final String[] SECTIONS = {"tasks", "reminders", "family", "sleep", "display", "series", "bedtime", "wird", "screens"};
+    static final String[] SECTIONS = {"tasks", "reminders", "family", "sleep", "display", "series", "bedtime", "wird", "screens", "tmdb"};
 
     private ControlSync() {}
 
@@ -38,6 +38,7 @@ final class ControlSync {
                 .put("at", ControlStore.prefs(c).getLong("at:" + s, 0)));
         }
         out.put("sections", secs);
+        out.put("files", Uploads.list(c));
         JSONObject pr = ControlPrefs.read(c);
         out.put("prefs", new JSONObject().put("at", ControlStore.prefs(c).getLong("at:prefs", 0))
             .put("v", new JSONObject().put("city", pr.getJSONArray("city").getString(0)).put("teams", pr.getJSONArray("teams"))));
@@ -52,13 +53,21 @@ final class ControlSync {
             peer = peer.trim();
             if (!peer.matches("[0-9.]{7,15}")) continue;
             try {
-                JSONObject o = new JSONObject(get(peer, key));
+                JSONObject o = new JSONObject(new String(fetch(peer, key, "/api/sync"), StandardCharsets.UTF_8));
                 JSONObject secs = o.optJSONObject("sections");
                 for (String s : SECTIONS) {
                     JSONObject x = secs == null ? null : secs.optJSONObject(s);
                     if (x == null || !x.has("v")) continue;
                     long at = x.optLong("at");
                     if (at > ControlStore.prefs(c).getLong("at:" + s, 0)) ControlStore.saveFrom(c, s, x.get("v").toString(), at);
+                }
+                JSONObject files = o.optJSONObject("files"), mine = Uploads.list(c);
+                if (files != null) for (java.util.Iterator<String> it = files.keys(); it.hasNext(); ) {
+                    String name = it.next();
+                    JSONObject f = files.optJSONObject(name), m = mine.optJSONObject(name);
+                    if (f == null || !Uploads.okName(name) || f.optLong("at") <= (m == null ? 0 : m.optLong("at"))) continue;
+                    if (f.optLong("size") < 0) Uploads.delete(c, name, f.optLong("at"));
+                    else Uploads.save(c, name, fetch(peer, key, "/api/syncfile?name=" + name), f.optLong("at"), f.optString("type"));
                 }
                 JSONObject pr = o.optJSONObject("prefs");
                 if (pr != null && pr.optLong("at") > ControlStore.prefs(c).getLong("at:prefs", 0)
@@ -70,22 +79,25 @@ final class ControlSync {
     }
 
     /** a plain GET over a socket (the app allows no other clear-text connections), home network or Tailscale only */
-    private static String get(String host, String key) throws Exception {
+    private static byte[] fetch(String host, String key, String path) throws Exception {
         try (Socket s = new Socket()) {
             s.connect(new InetSocketAddress(host, ControlStore.PORT), 4000);
             s.setSoTimeout(8000);
             OutputStream out = s.getOutputStream();
-            out.write(("GET /api/sync HTTP/1.0\r\nHost: " + host + "\r\nX-Sync: " + key + "\r\nConnection: close\r\n\r\n")
+            out.write(("GET " + path + " HTTP/1.0\r\nHost: " + host + "\r\nX-Sync: " + key + "\r\nConnection: close\r\n\r\n")
                 .getBytes(StandardCharsets.UTF_8));
             out.flush();
             InputStream in = s.getInputStream();
             ByteArrayOutputStream b = new ByteArrayOutputStream();
             byte[] buf = new byte[16384];
             int n;
-            while ((n = in.read(buf)) > 0 && b.size() < 4_000_000) b.write(buf, 0, n);
-            String all = b.toString("UTF-8");
-            if (!all.startsWith("HTTP/1.1 200") && !all.startsWith("HTTP/1.0 200")) throw new Exception("status");
-            return all.substring(all.indexOf("\r\n\r\n") + 4);
+            while ((n = in.read(buf)) > 0 && b.size() < Uploads.MAX + 65536) b.write(buf, 0, n);
+            byte[] all = b.toByteArray();
+            String head = new String(all, 0, Math.min(all.length, 16), StandardCharsets.ISO_8859_1);
+            if (!head.startsWith("HTTP/1.1 200") && !head.startsWith("HTTP/1.0 200")) throw new Exception("status");
+            for (int i = 0; i + 3 < all.length; i++)
+                if (all[i] == 13 && all[i + 1] == 10 && all[i + 2] == 13 && all[i + 3] == 10) return java.util.Arrays.copyOfRange(all, i + 4, all.length);
+            throw new Exception("head");
         }
     }
 }

@@ -129,9 +129,58 @@ final class ControlPrefs {
     }
 
     /** series for «مسلسلاتي»: TVmaze's search, from the TV */
-    static JSONArray searchShows(String q) throws Exception {
+    /** the household's TMDB key (the phone page's «مسلسلاتي»): a v4 read token, or a v3 key */
+    static String tmdbToken(Context c) {
+        try { return new JSONObject(ControlStore.prefs(c).getString("tmdb", "{}")).optString("token").trim(); } catch (Exception e) { return ""; }
+    }
+
+    /** a TMDB request with the household's key; the answer's JSON text */
+    static String tmdb(Context c, String path) throws Exception {
+        String t = tmdbToken(c);
+        boolean v3 = t.matches("[0-9a-f]{32}");
+        HttpURLConnection con = (HttpURLConnection) new URL("https://api.themoviedb.org/3" + path
+            + (v3 ? (path.contains("?") ? "&" : "?") + "api_key=" + t : "")).openConnection();
+        if (!v3) con.setRequestProperty("Authorization", "Bearer " + t);
+        con.setRequestProperty("Accept", "application/json");
+        con.setConnectTimeout(10000);
+        con.setReadTimeout(15000);
+        try (InputStream in = con.getInputStream()) {
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0 && b.size() < 2_000_000) b.write(buf, 0, n);
+            return b.toString("UTF-8");
+        } finally {
+            con.disconnect();
+        }
+    }
+
+    /** series and films in any language, searched in Arabic or English (TMDB); TVmaze while there is no key */
+    static JSONArray searchShows(Context c, String q) throws Exception {
         q = q == null ? "" : q.trim();
         if (q.length() < 2 || q.length() > 60) return new JSONArray();
+        if (tmdbToken(c).length() >= 32) {
+            JSONArray hits = new JSONObject(tmdb(c, "/search/multi?language=ar-SA&include_adult=false&query=" + URLEncoder.encode(q, "UTF-8")))
+                .optJSONArray("results");
+            JSONArray out = new JSONArray();
+            for (int i = 0; hits != null && i < hits.length() && out.length() < 12; i++) {
+                JSONObject h = hits.getJSONObject(i);
+                String type = h.optString("media_type");
+                if (!"tv".equals(type) && !"movie".equals(type)) continue;
+                boolean tv = "tv".equals(type);
+                String date = h.optString(tv ? "first_air_date" : "release_date", "");
+                String poster = h.optString("poster_path", "");
+                out.put(new JSONObject().put("src", "tmdb").put("type", type).put("id", h.optInt("id"))
+                    .put("name", h.optString(tv ? "name" : "title")).put("orig", h.optString(tv ? "original_name" : "original_title"))
+                    .put("year", date.length() >= 4 ? date.substring(0, 4) : "").put("lang", h.optString("original_language"))
+                    .put("img", poster.startsWith("/") ? "https://image.tmdb.org/t/p/w185" + poster : ""));
+            }
+            return out;
+        }
+        return searchTvmaze(q);
+    }
+
+    static JSONArray searchTvmaze(String q) throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL("https://api.tvmaze.com/search/shows?q="
             + URLEncoder.encode(q, "UTF-8")).openConnection();
         con.setConnectTimeout(10000);

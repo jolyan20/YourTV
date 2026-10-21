@@ -11,6 +11,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 
+import org.json.JSONObject;
+
 /**
  * Keeps the phone page's server running: started at boot, by the screensaver and by the settings screen.
  * A foreground service, so Android does not stop it while the TV sits on another app.
@@ -19,6 +21,20 @@ public class ControlService extends Service {
     private static final String CHANNEL = "control";
     private ControlServer server;
     private GameOverlay game;
+    private WeatherWatch weather;
+    // the TV coming out of standby: the screen opens at once (the phone page can turn this off)
+    private final android.content.BroadcastReceiver screenOn = new android.content.BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) { handler.postDelayed(() -> openScreen(c), 1500); }
+    };
+
+    /** the household's screen, now, unless the phone page turned «open on power» off */
+    static void openScreen(Context c) {
+        try {
+            JSONObject d = ControlStore.state(c).optJSONObject("display");
+            if (d != null && d.has("startOnPower") && !d.optBoolean("startOnPower")) return;
+            c.startActivity(new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP));
+        } catch (Exception ignored) { }
+    }
     private final android.content.SharedPreferences.OnSharedPreferenceChangeListener gameChanged = (p, key) -> {
         if ("game".equals(key) && game != null) game.update();
         if ("alarm".equals(key)) MorningAlarm.schedule(this);
@@ -78,6 +94,9 @@ public class ControlService extends Service {
         ControlStore.prefs(this).registerOnSharedPreferenceChangeListener(gameChanged);
         game.update();
         MorningAlarm.schedule(this);
+        weather = new WeatherWatch(this);
+        weather.start();
+        registerReceiver(screenOn, new android.content.IntentFilter(Intent.ACTION_SCREEN_ON));
     }
 
     @Override
@@ -89,6 +108,8 @@ public class ControlService extends Service {
         handler.removeCallbacks(sync);
         ControlStore.prefs(this).unregisterOnSharedPreferenceChangeListener(gameChanged);
         if (game != null) game.stop();
+        if (weather != null) weather.stop();
+        try { unregisterReceiver(screenOn); } catch (Exception ignored) { }
         if (server != null) server.stop();
         super.onDestroy();
     }

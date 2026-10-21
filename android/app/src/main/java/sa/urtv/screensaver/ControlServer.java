@@ -93,7 +93,9 @@ final class ControlServer implements Runnable {
             }
             int len = 0;
             try { len = Integer.parseInt(get(h, "content-length", "0")); } catch (Exception ignored) { }
-            if (len < 0 || len > 200_000) { reply(s, 413, "text/plain", "too large", false); return; }
+            boolean upload = path.startsWith("/api/upload");
+            if (len < 0 || len > (upload ? Uploads.MAX : 200_000)) { reply(s, 413, "text/plain", "too large", false); return; }
+            if (upload) s.setSoTimeout(90_000);   // a few megabytes from the phone, maybe over Tailscale
             byte[] body = new byte[len];
             for (int got = 0; got < len; ) { int n = in.read(body, got, len - got); if (n < 0) break; got += n; }
             String query = path.contains("?") ? path.substring(path.indexOf('?') + 1) : "";
@@ -145,6 +147,19 @@ final class ControlServer implements Runnable {
                 reply(s, 200, "application/json", new JSONObject().put("key", ControlStore.newSession(app)).toString(), false); return;
             }
 
+            if ("GET".equals(method) && path.startsWith("/file/")) {   // the screensaver page on this TV: the adhan, a photo
+                String name = path.substring(6);
+                byte[] f = from.isLoopbackAddress() && Uploads.okName(name) ? Uploads.read(app, name) : null;
+                if (f == null) { reply(s, 404, "text/plain", "none", false); return; }
+                replyBytes(s, Uploads.type(app, name), f); return;
+            }
+            if ("GET".equals(method) && "/api/syncfile".equals(path)) {   // the sister TV takes a file (ControlSync)
+                if (!ControlSync.keyMatches(app, get(h, "x-sync", ""))) { failed(who); reply(s, 401, "text/plain", "sync", false); return; }
+                String name = query.startsWith("name=") ? query.substring(5) : "";
+                byte[] f = Uploads.okName(name) ? Uploads.read(app, name) : null;
+                if (f == null) { reply(s, 404, "text/plain", "none", false); return; }
+                replyBytes(s, Uploads.type(app, name), f); return;
+            }
             if ("GET".equals(method) && "/api/sync".equals(path)) {   // the household's other TV (ControlSync), its own key
                 if (!ControlSync.keyMatches(app, get(h, "x-sync", ""))) { failed(who); reply(s, 401, "text/plain", "sync", false); return; }
                 reply(s, 200, "application/json; charset=utf-8", ControlSync.state(app).toString(), false); return;
@@ -158,9 +173,25 @@ final class ControlServer implements Runnable {
                 String q = query.startsWith("q=") ? java.net.URLDecoder.decode(query.substring(2), "UTF-8") : "";
                 reply(s, 200, "application/json; charset=utf-8", ControlPrefs.searchTeams(app, q).toString(), false); return;
             }
+            if ("POST".equals(method) && upload) {   // ?name=adhan-main|adhan-fajr|fam-<id> [&del=1], the file as the body
+                String name = "", del = "";
+                for (String kv : query.split("&")) {
+                    if (kv.startsWith("name=")) name = kv.substring(5);
+                    if (kv.startsWith("del=")) del = kv.substring(4);
+                }
+                String type = get(h, "content-type", "").split(";")[0].trim().toLowerCase();
+                boolean audio = name.startsWith("adhan-");
+                if (!Uploads.okName(name)) { reply(s, 400, "application/json", "{\"error\":\"name\"}", false); return; }
+                if ("1".equals(del)) { Uploads.delete(app, name, System.currentTimeMillis()); reply(s, 200, "application/json", "{\"ok\":true}", false); return; }
+                if (body.length < 1000 || !(audio ? type.startsWith("audio/") : type.matches("image/(jpeg|png|webp)"))) {
+                    reply(s, 400, "application/json", "{\"error\":\"type\"}", false); return;
+                }
+                Uploads.save(app, name, body, System.currentTimeMillis(), type);
+                reply(s, 200, "application/json", "{\"ok\":true}", false); return;
+            }
             if ("GET".equals(method) && "/api/shows".equals(path)) {
                 String q = query.startsWith("q=") ? java.net.URLDecoder.decode(query.substring(2), "UTF-8") : "";
-                reply(s, 200, "application/json; charset=utf-8", ControlPrefs.searchShows(q).toString(), false); return;
+                reply(s, 200, "application/json; charset=utf-8", ControlPrefs.searchShows(app, q).toString(), false); return;
             }
             if ("POST".equals(method) && "/api/prefs".equals(path)) {
                 String err = ControlPrefs.apply(app, new JSONObject(new String(body, StandardCharsets.UTF_8)));

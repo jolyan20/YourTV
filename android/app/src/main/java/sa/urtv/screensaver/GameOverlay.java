@@ -26,6 +26,8 @@ import org.json.JSONObject;
  * page shows the countdown.
  * The lock: with it on, the PlayStation's input (the TV says which input is on screen) is closed outside game
  * time: a «يحتاج موافقة» notice, back to the home screen, and the request shows on the phone page.
+ * Rules from the phone page, on top of that: allowed hours per weekday (open without asking inside them), and a
+ * daily limit counted while the PlayStation is on screen. Either one closes the PlayStation outside them.
  */
 final class GameOverlay {
     private static final long END_SHOW_MS = 20_000;
@@ -38,6 +40,9 @@ final class GameOverlay {
     private boolean home, lock;
     private String port = "HDMI 4";
     private boolean blocking;
+    private JSONObject schedule;   // {on, days: [ {from:"16:00", to:"19:00"} | null ] × 7, Sunday first}
+    private int dailyMax;          // minutes a day, 0 = no limit
+    private long lastWin;
 
     GameOverlay(Context c) {
         this.c = c.getApplicationContext();
@@ -52,6 +57,8 @@ final class GameOverlay {
             home = g.optBoolean("home", true);
             lock = g.optBoolean("lock", false);
             port = g.optString("port", "HDMI 4");
+            schedule = g.optJSONObject("schedule");
+            dailyMax = Math.max(0, g.optInt("dailyMax", 0));
         } catch (Exception e) {
             until = 0;
         }
@@ -71,23 +78,77 @@ final class GameOverlay {
             boolean active = until > now, draw = canDraw();
             String src = source();
             boolean onPort = src != null && src.trim().equalsIgnoreCase(port.trim());
-            // the countdown: over the PlayStation (or everywhere, on a TV that does not say which input is on)
-            if (active && draw && (onPort || src == null)) showChip(until - now); else hideChip();
+            boolean rules = lock || dailyMax > 0 || (schedule != null && schedule.optBoolean("on"));
+            long win = windowEnd(now);
+            int used = usedToday();
+            boolean overLimit = dailyMax > 0 && used >= dailyMax * 60;
+            boolean allowed = (active || win > 0) && !overLimit;
+            if (onPort && allowed) addUsed(1);
+            // the countdown, to whichever comes first: the game time, the end of the allowed hours, the day's limit
+            long left = Long.MAX_VALUE;
+            if (active) left = until - now;
+            if (win > 0) left = Math.min(active ? left : Long.MAX_VALUE, win - now);
+            if (dailyMax > 0) left = Math.min(left, (dailyMax * 60L - used) * 1000);
+            if ((active || win > 0) && draw && (onPort || src == null) && left > 0 && left != Long.MAX_VALUE) showChip(left); else hideChip();
             if (!active && until > 0 && now <= until + END_SHOW_MS
                     && ControlStore.prefs(c).getLong("gameDone", 0) != until) {   // once per game time, even after a restart
                 ControlStore.prefs(c).edit().putLong("gameDone", until).apply();
                 if (draw) showFull("🎮 انتهى وقت اللعب", "حان وقت الراحة", now);
-                if (home || lock) goHome();
-            } else if (lock && !active && onPort && !blocking) {
+                if (home || rules) goHome();
+            } else if (lastWin > 0 && win == 0 && onPort && !active) {   // the allowed hours just ended
+                if (draw) showFull("🎮 انتهى وقت اللعب", "انتهت ساعات اللعب المسموحة اليوم", now);
+                goHome();
+            } else if (rules && !allowed && onPort && !blocking) {
                 blocking = true;
                 ControlStore.prefs(c).edit().putLong("gameAsk", now).apply();
-                if (draw) showFull("🎮 البلايستيشن يحتاج موافقة", "اطلب وقت لعب من لوحة التحكم في الجوال", now);
+                if (draw) showFull(overLimit ? "🎮 انتهى حد اللعب اليوم" : "🎮 البلايستيشن يحتاج موافقة",
+                    "اطلب وقت لعب من لوحة التحكم في الجوال", now);
                 handler.postDelayed(() -> { goHome(); blocking = false; }, 3500);
             }
+            lastWin = win;
             if (full != null && now > fullUntil) hideFull();
-            if (active || lock || full != null || now <= until + END_SHOW_MS) handler.postDelayed(this, 1000 - now % 1000);
+            if (rules || active || full != null || now <= until + END_SHOW_MS) handler.postDelayed(this, 1000 - now % 1000);
         }
     };
+
+    /** the end of today's allowed hours if now is inside them, else 0 */
+    private long windowEnd(long now) {
+        if (schedule == null || !schedule.optBoolean("on")) return 0;
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis(now);
+        org.json.JSONArray days = schedule.optJSONArray("days");
+        JSONObject d = days == null ? null : days.optJSONObject(cal.get(java.util.Calendar.DAY_OF_WEEK) - 1);
+        if (d == null) return 0;
+        int from = mins(d.optString("from")), to = mins(d.optString("to")), m = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE);
+        if (from < 0 || to <= from || m < from || m >= to) return 0;
+        cal.set(java.util.Calendar.HOUR_OF_DAY, to / 60); cal.set(java.util.Calendar.MINUTE, to % 60);
+        cal.set(java.util.Calendar.SECOND, 0); cal.set(java.util.Calendar.MILLISECOND, 0);
+        return cal.getTimeInMillis();
+    }
+
+    private static int mins(String hm) {
+        try { String[] p = hm.split(":"); return Integer.parseInt(p[0]) * 60 + Integer.parseInt(p[1]); } catch (Exception e) { return -1; }
+    }
+
+    /** seconds the PlayStation was on screen today (kept for the phone page's report too) */
+    private int usedToday() {
+        String v = ControlStore.prefs(c).getString("gameUsed", ""), day = today();
+        return (v.startsWith(day + ":") ? Integer.parseInt(v.substring(day.length() + 1)) : 0) + unsaved;
+    }
+
+    private int unsaved;   // seconds not yet written: the preferences are saved every half minute, not every second
+
+    private void addUsed(int sec) {
+        unsaved += sec;
+        if (unsaved < 30) return;
+        int total = usedToday();
+        unsaved = 0;
+        ControlStore.prefs(c).edit().putString("gameUsed", today() + ":" + total).apply();
+    }
+
+    private static String today() {
+        return new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(new java.util.Date());
+    }
 
     /** the input on screen, as the TV names it ("HDMI 4"), or null where the TV does not say */
     private String source() {

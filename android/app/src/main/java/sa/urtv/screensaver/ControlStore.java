@@ -24,7 +24,7 @@ import java.util.Iterator;
  */
 final class ControlStore {
     static final int PORT = 8765;
-    static final String[] SECTIONS = {"message", "tasks", "reminders", "family", "sleep", "display", "series", "bedtime", "game", "wird", "screens", "guest", "alarm"};
+    static final String[] SECTIONS = {"message", "tasks", "reminders", "family", "sleep", "display", "series", "bedtime", "game", "wird", "screens", "guest", "alarm", "tmdb"};
     static final String KEY_QURAN = "quran";
     private static final String FILE = "control";
     private static final long SESSION_MS = 30L * 24 * 3600 * 1000;
@@ -117,6 +117,8 @@ final class ControlStore {
             }
             o.put(KEY_QURAN, p.getBoolean(KEY_QURAN, false));
             o.put("gameAsk", p.getLong("gameAsk", 0));   // the PlayStation was locked and someone asked
+            o.put("gameUsed", p.getString("gameUsed", ""));   // today's minutes on the PlayStation: "date:seconds"
+            o.put("files", Uploads.list(c));   // the household's own files: the adhan, birthday photos
         } catch (Exception ignored) { }
         return o;
     }

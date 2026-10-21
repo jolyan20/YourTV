@@ -14,5 +14,7 @@ public class BootReceiver extends BroadcastReceiver {
     public void onReceive(Context c, Intent i) {
         UpdateJob.schedule(c);
         ControlService.start(c);   // the phone page
+        String a = String.valueOf(i.getAction());
+        if (!a.equals(Intent.ACTION_MY_PACKAGE_REPLACED)) ControlService.openScreen(c);   // the TV just started: the screen first
     }
 }
