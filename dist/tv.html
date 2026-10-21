@@ -554,6 +554,27 @@
   .wk span.today{color:#FFE7AE} .wk span.today i{box-shadow:0 0 14px rgba(243,212,138,.6)}
   .wk b{font-weight:500;color:#F1CF8A;font-size:1.15em}
 
+  /* today's games as small scoreboards (the household's design): the state with its icon, a row per team
+     (crest, short name, goals), then the competition and the channel */
+  .mrow{gap:1.4vw;align-items:stretch}
+  .mrow .mx{flex:1 1 0;min-width:0;max-width:50%;display:flex;flex-direction:column;gap:.55vh;text-align:center}
+  .mrow .mx + .mx{padding-inline-start:1.4vw;border-inline-start:1px solid rgba(220,184,111,.25)}
+  .mx-h{display:flex;align-items:center;justify-content:center;gap:.45em;white-space:nowrap;font-size:clamp(13px,1.02vw,20px);font-weight:500}
+  .mx-h svg{width:1.35em;height:1.35em;flex:0 0 auto}
+  .mx-h small{font-size:.78em;font-weight:400;opacity:.85}
+  .mx-h.live{color:#5FD38D} .mx-h.next{color:#F0A35E} .mx-h.done{color:#C9C2B2}
+  .mx-h.live .bars rect{animation:eq 1.1s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  .mx-h.live .bars rect:nth-child(2){animation-delay:.25s} .mx-h.live .bars rect:nth-child(3){animation-delay:.5s} .mx-h.live .bars rect:nth-child(4){animation-delay:.15s}
+  @keyframes eq{50%{transform:scaleY(.4)}}
+  .mx-r{display:grid;grid-template-columns:2.2em 1fr 2.2em;gap:.3vw;align-items:stretch;font-size:clamp(14px,1.12vw,22px)}
+  .mx-r > span{display:flex;align-items:center;justify-content:center;min-width:0;height:2.1em;border-radius:7px;background:rgba(21,78,104,.62);border:1px solid rgba(120,180,210,.18)}
+  .mx-r .nm{color:#F2F6F8;font-weight:500;padding:0 .5em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:block;line-height:2.1em}
+  .mx-r .lg img{width:1.5em;height:1.5em;object-fit:contain;margin:0}
+  .mx-r .gl{font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:1.1em;color:#FFFFFF}
+  .mx-r.ls{opacity:.55} .mx-r.wn .nm,.mx-r.wn .gl{color:#FFE7AE}
+  .mx-f{display:flex;flex-direction:column;gap:.1vh;line-height:1.3;font-size:clamp(11px,.85vw,16px);white-space:nowrap;overflow:hidden}
+  .mx-f .c{color:#F0A35E} .mx-f .t{color:#E8823A;opacity:.85;font-size:.92em}
+
   @media (max-aspect-ratio:5/4){
     .top{flex-direction:column-reverse;gap:1.4vh}
     .bottom{grid-template-columns:1fr 1fr}
@@ -2101,15 +2122,27 @@ function todaySlot(x, now){
   const scored = ev.intHomeScore != null && ev.intAwayScore != null;
   let hc = '', ac = '';
   if(st === 'done' && scored){ if(hs > as){ hc = 'wn'; ac = 'ls'; } else if(hs < as){ hc = 'ls'; ac = 'wn'; } }
-  const mid = scored && st !== 'next' ? ` <span class="sc">${ar(hs)} - ${ar(as)}</span> ` : ' × ';
+
   const p = IDF('en-GB',{timeZone:CONFIG.timezone,hour:'2-digit',minute:'2-digit',hour12:false})
     .formatToParts(new Date(x.t)).reduce((a, y) => (a[y.type] = y.value, a), {});
-  const when = st === 'done' ? (scored && hs === as ? 'تعادل' : 'انتهت')
-    : st === 'live' ? `<span class="live">مباشر</span>${ev.strProgress && !isNaN(parseInt(ev.strProgress, 10)) ? ' · الدقيقة ' + ar(parseInt(ev.strProgress, 10)) : ''}`
-    : fmt12(+p.hour % 24, +p.minute);
-  const hs2 = `${crest(ev.strHomeTeamBadge)}${esc(shortTeam(teamAr(ev.strHomeTeam)))}`, as2 = `${esc(shortTeam(teamAr(ev.strAwayTeam)))}${crest(ev.strAwayTeamBadge)}`;
-  return `<div class="mblock"><div class="big"><span><span class="${hc}">${hs2}</span>${mid}<span class="${ac}">${as2}</span></span></div>`
-       + `<div class="sub">${LG_SHORT[x.lg] || x.lg} · ${when}${channelOf(ev) && st !== 'done' ? ' · ' + esc(channelOf(ev).replace('beIN SPORTS', 'beIN')) : ''}</div></div>`;
+  // the state, with its icon
+  const IC = {
+    live: '<svg class="bars" viewBox="0 0 24 24" fill="#5FD38D"><rect x="2" y="9" width="2.4" height="6" rx="1"/><rect x="6.5" y="4" width="2.4" height="16" rx="1"/><rect x="11" y="7" width="2.4" height="10" rx="1"/><rect x="15.5" y="3" width="2.4" height="18" rx="1"/><rect x="20" y="8" width="2.4" height="8" rx="1"/></svg>',
+    next: '<svg viewBox="0 0 24 24" fill="none" stroke="#F0A35E" stroke-width="1.8" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/><path d="M9.5 19h5l-2.5-3z" fill="#F0A35E"/></svg>',
+    done: '<svg viewBox="0 0 24 24" fill="none" stroke="#C9C2B2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
+  };
+  const minute = ev.strProgress && !isNaN(parseInt(ev.strProgress, 10)) ? ` <small>الدقيقة ${ar(parseInt(ev.strProgress, 10))}</small>` : '';
+  const head = st === 'live' ? `${IC.live}مباشر${minute}`
+    : st === 'done' ? `${IC.done}${scored && hs === as ? 'انتهت بالتعادل' : 'انتهت'}`
+    : `${IC.next}${fmt12(+p.hour % 24, +p.minute)} <small>باقي ${humanRemaining(Math.max(60, Math.round((x.t - now) / 1000)))}</small>`;
+  const goals = v => scored && st !== 'next' ? ar(v) : '–';
+  const row = (name, badge, g, cls) => `<div class="mx-r ${cls}"><span class="lg">${badge ? `<img src="${esc(badge)}/tiny" alt="" onerror="this.remove()">` : ''}</span>`
+    + `<span class="nm">${esc(shortTeam(teamAr(name)))}</span><span class="gl">${goals(g)}</span></div>`;
+  const tv = channelOf(ev);
+  return `<div class="mx"><div class="mx-h ${st}">${head}</div>`
+    + row(ev.strHomeTeam, ev.strHomeTeamBadge, hs, hc === 'wn' ? 'wn' : hc === 'ls' ? 'ls' : '')
+    + row(ev.strAwayTeam, ev.strAwayTeamBadge, as, ac === 'wn' ? 'wn' : ac === 'ls' ? 'ls' : '')
+    + `<div class="mx-f"><span class="c">${esc(x.lg)}</span>${tv && st !== 'done' ? `<span class="t">${esc(tv)}</span>` : ''}</div></div>`;
 }
 let MATCH_PAGE = 0;
 function renderMatches(turn){
@@ -2120,7 +2153,7 @@ function renderMatches(turn){
     const all = TOP_LEAGUES.every(([id]) => TODAY_DONE.has(id));
     // still loading: keep what is shown (the saved games), never a false «none»
     if(all) setHTML(row, '<div class="none-week">لا مباريات اليوم</div>');
-    else if(!row.querySelector('.mblock')) setHTML(row, '<div class="none-week" style="opacity:.6">جارٍ تحميل المباريات…</div>');
+    else if(!row.querySelector('.mx')) setHTML(row, '<div class="none-week" style="opacity:.6">جارٍ تحميل المباريات…</div>');
     return;
   }
   const per = CONFIG.matchesPerPage, pages = Math.ceil(slots.length / per);
