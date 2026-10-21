@@ -36,6 +36,8 @@ async function open(file, hash, { width = 1920, height = 1080, seed = true } = {
   await p.goto(page(file) + '#' + hash);
   await p.waitForFunction(() => document.documentElement.classList.contains('ready'), null, { timeout: 4000 })
     .catch(() => errors.push('never revealed'));
+  // the screen sleeps from midnight until Fajr (the household's default): the checks must not depend on the hour
+  await p.evaluate(() => { window.applySleep = () => {}; document.documentElement.classList.remove('sleep'); }).catch(() => {});
   await p.waitForTimeout(300);
   return { p, ctx, errors };
 }
