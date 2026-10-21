@@ -578,6 +578,30 @@
   .mx-f .t::before{content:' · ';color:rgba(240,163,94,.6)}
   .mx-f .c{color:#F0A35E} .mx-f .t{color:#E8823A;opacity:.85;font-size:.92em}
 
+  /* scoreboards without boxes: the same order, plain */
+  .mx-r > span{background:none;border:none;height:1.6em}
+  .mx-r .nm{line-height:1.6em;text-align:center}
+  .mx-r .gl{font-size:1.15em;color:#FFE2A6}
+  /* an occasion: the icon or logo large at the side; the name, the days left, the age, the dates */
+  .p-mid{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto 1fr;column-gap:1.1vw;row-gap:.4vh;align-items:center;text-align:center}
+  .p-mid .oc-ic{grid-row:1 / span 3;grid-column:1;display:flex;align-items:center;justify-content:center;width:7.4vh;height:100%}
+  .p-mid .oc-ic svg{width:6.4vh;height:6.4vh}
+  .p-mid .oc-ic img{width:7.4vh;height:auto;max-height:10vh;object-fit:contain}
+  .p-mid .oc-ic .occ-ic{margin:0;height:auto}
+  .p-mid .oc-ic .occ-ic.logo img{height:auto;width:7.6vh;max-height:10vh;margin:0}
+  .p-mid .oc-ic .occ-ic.logo.founding img{width:9vh}
+  .p-mid .label{grid-column:2;height:auto;justify-content:center;font-size:clamp(14px,1.12vw,22px);color:#FFE7AE;letter-spacing:0;margin:0}
+  .p-mid .big{grid-column:2;display:flex !important;align-items:center;justify-content:center;gap:.35em;line-height:1}
+  .p-mid .big .dw i{font-style:normal}
+  .p-mid .big .dw{display:inline-flex;flex-direction:column;align-items:flex-start;font-family:'Thmanyah',sans-serif;font-size:.36em;font-weight:400;color:#E8B07A;line-height:1.15}
+  .p-mid .sub{grid-column:2;align-self:start;gap:.15vh !important}
+  .p-mid .sub span{display:block;white-space:nowrap}
+  .p-mid .sub .ord{color:#F1CF8A;font-weight:500}
+  .p-mid .sub .wd{color:#E8DFC9}
+  .p-mid .sub .d2{color:#D6AF6B}
+  /* whose screen: only on a person's own */
+  .who.fam{display:none !important}
+
   @media (max-aspect-ratio:5/4){
     .top{flex-direction:column-reverse;gap:1.4vh}
     .bottom{grid-template-columns:1fr 1fr}
@@ -644,14 +668,16 @@
     </div>
 
     <div class="panel p-mid" id="p-occ">
+      <div class="oc-ic" id="occ-ic"></div>
       <div class="label" id="ramadan-label">رمضان ١٤٤٨</div>
-      <div class="big"><span class="num" id="ramadan-days">—</span></div>
+      <div class="big" id="ramadan-days">—</div>
       <div class="sub" id="ramadan-sub">—</div>
     </div>
 
     <div class="panel p-mid p-fam" id="p-fam">
+      <div class="oc-ic" id="fam-ic"></div>
       <div class="label" id="fam-label">مناسبات العائلة</div>
-      <div class="big"><span class="num" id="fam-days">—</span></div>
+      <div class="big" id="fam-days">—</div>
       <div class="sub" id="fam-sub"></div>
     </div>
 
@@ -1370,27 +1396,37 @@ const hijriDate = t => IDF('ar-SA-u-ca-islamic-umalqura-nu-arab',{timeZone:'UTC'
   .format(new Date(t + 12*3600000)).replace(/\s*هـ\s*$/, '') + ' هـ';
 // the date on two lines: the Gregorian, then the Umm al-Qura Hijri
 const twoDates = (word, t) => `<span class="d1">${word} ${esc(longDate(t))}</span><span class="d2">${esc(hijriDate(t))}</span>`;
+// The household's layout: the icon or logo at the side; the name; the days left large with «يوم متبقي» beside
+// them; the age or the anniversary's number; the weekday and the Gregorian date; the Hijri date.
+const gregDay = t => IDF(GREG, {timeZone: 'UTC', weekday: 'long'}).format(new Date(t + 12*3600000));
+const gregDate = t => IDF(GREG, {timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric'}).format(new Date(t + 12*3600000)).replace('،', '') + 'م';
 function renderOccasion(x, elL, elD, elS){
-  setHTML(elL, x.ic === 'founding' ? occIcon(x.ic) : occIcon(x.ic) + esc(x.school && x.days <= 0 ? x.o.name : x.label));
+  const ic = elL.parentNode.querySelector('.oc-ic');
+  if(ic) setHTML(ic, occIcon(x.ic));
+  setHTML(elL, esc(x.school ? x.o.name : x.label));
+  const dates = (t, lead) => (x.ord ? `<span class="ord">${x.ord}</span><span class="wd">${lead ? lead + ' ' : ''}${esc(gregDay(t))} ${esc(gregDate(t))}</span>`
+                                    : `<span class="wd">${lead ? lead + ' ' : ''}${esc(gregDay(t))}</span><span class="wd">${esc(gregDate(t))}</span>`)
+    + `<span class="d2">${esc(hijriDate(t))}</span>`;
   if(x.school && x.days <= 0){          // during the holiday: the day school starts again
     setHTML(elD, '<span class="greet">' + esc(x.o.greet) + '</span>');
-    setHTML(elS, twoDates('العودة', x.school.to + 86400000));
+    setHTML(elS, dates(x.school.to + 86400000, 'العودة'));
     return;
   }
   if(x.days <= 0){
     setHTML(elD, '<span class="greet">' + esc(x.o.greet) + '</span>');
-    setHTML(elS, x.ord ? `<span class="ord">${x.ord}</span>` : 'اليوم');
+    setHTML(elS, (x.ord ? `<span class="ord">${x.ord}</span>` : '') + '<span class="wd">اليوم</span>');
     return;
   }
   if(x.days === 1){                      // the last day: hours, minutes, seconds to midnight
     const p = riyadhParts(), left = 86400 - (p.h*3600 + p.mi*60 + p.s);
     const hh = Math.floor(left/3600), mm = Math.floor(left%3600/60), ss = left%60;
     setHTML(elD, '<span class="cd">' + ar(pad(hh)) + ':' + ar(pad(mm)) + ':' + ar(pad(ss)) + '</span>');
-    setHTML(elS, '<b>' + esc(x.o.greet) + '</b> · غداً' + (x.ord ? `<span class="ord">${x.ord}</span>` : ''));
+    setHTML(elS, (x.ord ? `<span class="ord">${x.ord}</span>` : '') + `<span class="wd"><b>${esc(x.o.greet)}</b> · غداً</span>`);
     return;
   }
-  setHTML(elD, '<span class="left">باقي</span> ' + dayWord(x.days));
-  setHTML(elS, (x.ord ? `<span class="ord">${x.ord}</span>` : '') + twoDates(x.school ? 'تبدأ' : 'يوافق', x.t));
+  const n = x.days, unit = n >= 3 && n <= 10 ? 'أيام' : 'يوم';
+  setHTML(elD, `<span class="num">${ar(n)}</span><span class="dw"><i>${unit}</i><i>${unit === 'أيام' ? 'متبقية' : 'متبقي'}</i></span>`);
+  setHTML(elS, dates(x.t, x.school ? 'تبدأ' : ''));
 }
 // the family's own occasions, in their panel; the next one every 15 s, between the turns of the other panel
 let FAM_CACHE = {key:'', list:[]}, FAM_K = -1;
@@ -1441,8 +1477,9 @@ function tickRamadan(){
     else { label = 'الإمساك'; targetM = fajrM + 1440; }
     const th = Math.floor((targetM % 1440) / 60), tm = targetM % 60;
     elL.textContent = label;
-    elD.innerHTML = ar(th%12===0?12:th%12) + ':' + ar(String(tm).padStart(2,'0'))
-                  + ' <span class="unit">' + (th < 12 ? 'ص' : 'م') + '</span>';
+    const ic0 = document.getElementById('occ-ic'); if(ic0) setHTML(ic0, occIcon('ramadan'));
+    elD.innerHTML = '<span class="num">' + ar(th%12===0?12:th%12) + ':' + ar(String(tm).padStart(2,'0'))
+                  + '</span> <span class="unit">' + (th < 12 ? 'ص' : 'م') + '</span>';
     elS.innerHTML = 'بعد <b>' + humanRemaining(Math.max(0, Math.round((targetM - mins)*60))) + '</b>';
   }
 }
@@ -1751,6 +1788,7 @@ function renderWho(){
   if(!el) return;
   const show = !GUEST() && l.length > 1;
   el.classList.toggle('on', show);
+  el.classList.toggle('fam', sc.id === 'family');
   if(show) setHTML(el, `<span>${esc(sc.icon || '👤')}</span><span>${sc.id === 'family' ? 'شاشة العائلة' : 'شاشة ' + esc(sc.name)}</span>`
     + (sc.kid ? `<span class="st">⭐ ${ar(+sc.stars || 0)}</span>` : ''));
 }
