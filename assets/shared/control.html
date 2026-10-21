@@ -61,6 +61,17 @@
   .wbar{height:10px;border-radius:5px;background:var(--card2);overflow:hidden;margin:8px 0}
   .wbar i{display:block;height:100%;background:var(--gold)}
   .ask{border-color:#8a5a2a;background:#2a1c10}
+  .scr{border:1px solid var(--line);border-radius:14px;padding:10px;margin:8px 0;background:var(--card2)}
+  .scr .top{display:flex;align-items:center;gap:8px}
+  .scr .top b{flex:1;font-size:17px}
+  .scr .ic{font-size:26px}
+  .scr .st{display:flex;align-items:center;gap:8px;margin-top:6px}
+  .scr .st button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);font-size:20px}
+  .scr .st span{font-size:18px;color:var(--gold);min-width:70px;text-align:center}
+  .scr details{margin-top:6px} .scr summary{color:var(--dim);font-size:14px;cursor:pointer}
+  .rep{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)} .rep:last-child{border-bottom:0}
+  .rep b{color:var(--gold)}
+  .mic{width:100%;margin-top:8px;background:var(--card2);border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:12px;font-size:17px}
   .order button{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:8px;width:32px;height:32px}
 </style>
 </head>
@@ -88,6 +99,13 @@
       <p class="muted">تظهر النافذة على شاشة التوقف أو المعاينة. إذا كان التلفزيون في تطبيق، تظهر أول ما تشتغل شاشة التوقف.</p>
     </div>
     <div class="card ask" id="home-ask" hidden></div>
+    <div class="card">
+      <h2>👋 وضع الضيوف</h2>
+      <p class="muted">يخفي المهام والتذكيرات والمناسبات الخاصة، ويعرض ترحيب.</p>
+      <input id="guest-text" maxlength="60" placeholder="حياكم الله">
+      <div class="row" style="margin-top:8px"><button class="main" style="margin:0" onclick="setGuest(true)">تشغيل</button><button class="ghost" onclick="setGuest(false)">إيقاف</button></div>
+      <p class="muted" id="guest-state"></p>
+    </div>
     <div class="card" id="home-msg"></div>
     <div class="card"><h2>💊 تذكيرات اليوم</h2><ul id="home-rem"></ul></div>
     <div class="card"><h2>✅ مهامي</h2><ul id="home-tasks"></ul></div>
@@ -100,6 +118,7 @@
       <div class="chips" id="presets"></div>
       <label>الرسالة</label>
       <textarea id="msg-text" maxlength="140" placeholder="اكتب رسالتك"></textarea>
+      <button type="button" class="mic" onclick="speak()">🎤 تحدث وتنكتب الرسالة</button>
       <div class="row">
         <div><label>النوع</label>
           <select id="msg-style"><option value="info">💬 عادية</option><option value="welcome">🌹 ترحيب</option><option value="urgent">⚠️ مهمة</option></select></div>
@@ -117,6 +136,7 @@
       <input id="task-text" maxlength="80" placeholder="مثلاً: دفع فاتورة الكهرباء">
       <label>موعد (اختياري) · ينبّه قبلها بنص ساعة</label>
       <input id="task-due" type="datetime-local">
+      <label>لمن</label><select id="task-who" class="who-sel"></select>
       <button class="main" onclick="addTask()">إضافة</button>
     </div>
     <div class="card"><ul id="task-list"></ul>
@@ -129,6 +149,7 @@
       <input id="rem-text" maxlength="60" placeholder="مثلاً: دواء الضغط">
       <label>الوقت</label>
       <input id="rem-time" type="time" value="08:00">
+      <label>لمن</label><select id="rem-who" class="who-sel"></select>
       <label>الأيام</label>
       <div class="chips" id="rem-days"></div>
       <div class="chips" style="margin-top:8px">
@@ -194,6 +215,8 @@
       </div>
       <div class="switch"><span>بث الحرم المكي تلقائياً وقت صلاة الجمعة والتراويح</span><input id="auto-quran" type="checkbox"></div>
       <div class="switch"><span>صوت تنبيه مباريات فريقك (قبلها بساعة، وصافرة البداية)</span><input id="match-sound" type="checkbox"></div>
+      <label>صوت الصافرة</label><select id="whistle"><option value="2">صافرة حقيقية</option><option value="1">صافرة ناعمة</option></select>
+      <div class="switch"><span>تنبيه صغير وقت المهام والتذكيرات</span><input id="task-sound" type="checkbox"></div>
       <button class="main" onclick="saveDisplay()">حفظ إعدادات الشاشة</button>
     </div>
   </section>
@@ -262,6 +285,42 @@
     </div>
   </section>
 
+  <section id="s-screens">
+    <div class="card">
+      <h2>👥 الشاشات</h2>
+      <p class="muted">شاشة العائلة دايم موجودة. أضف شاشة لكل شخص: تعرض مهامه وتذكيراته والبطاقات اللي تختارها له. الأسهم يمين ويسار في الريموت تنقل بين الشاشات.</p>
+      <label>التبديل التلقائي بين الشاشات</label>
+      <select id="scr-rotate"><option value="0">بدون تبديل</option><option value="2">كل دقيقتين</option><option value="5">كل ٥ دقائق</option><option value="10">كل ١٠ دقائق</option><option value="15">كل ربع ساعة</option><option value="30">كل نص ساعة</option></select>
+      <div id="scr-list"></div>
+    </div>
+    <div class="card">
+      <h2>➕ شخص جديد</h2>
+      <div class="row"><input id="scr-name" maxlength="20" placeholder="الاسم"><select id="scr-icon" style="flex:0 0 80px"><option>👨</option><option>👩</option><option>👦</option><option>👧</option><option>🧒</option><option>👶</option><option>🧕</option><option>👴</option><option>👵</option></select></div>
+      <div class="switch"><span>طفل (له نجوم)</span><input id="scr-kid" type="checkbox"></div>
+      <button class="main" onclick="addScreen()">إضافة</button>
+    </div>
+  </section>
+
+  <section id="s-report">
+    <div class="card"><h2>📊 تقرير آخر ٧ أيام</h2><div id="report"></div></div>
+  </section>
+
+  <section id="s-alarm">
+    <div class="card">
+      <h2>⏰ المنبه الصباحي</h2>
+      <p class="muted">في الوقت المحدد يشتغل التلفزيون وتبدأ أذكار الصباح بصوت هادئ.</p>
+      <div class="switch"><span>تشغيل المنبه</span><input id="al-on" type="checkbox"></div>
+      <label>الوقت</label><input id="al-time" type="time" value="06:30">
+      <label>الأيام</label><div class="chips" id="al-days"></div>
+      <label>الصوت</label>
+      <select id="al-video"><option value="OIWahnI8rSI">أذكار الصباح · مشاري العفاسي</option><option value="fD4uDIoCn3M">أذكار الصباح · أحمد النفيس</option><option value="custom">رابط يوتيوب من عندي</option></select>
+      <input id="al-link" placeholder="الصق رابط يوتيوب" style="margin-top:8px" hidden>
+      <label>مستوى الصوت: <b id="al-vol-l"></b>٪</label><input id="al-vol" type="range" min="10" max="100" step="5" value="30" oninput="$('al-vol-l').textContent=this.value">
+      <button class="main" onclick="saveAlarm()">حفظ المنبه</button>
+      <p class="muted">إذا كان التلفزيون مطفي من الفيش ما يقدر يشتغل. من الريموت (وضع الاستعداد) يشتغل بإذن الله.</p>
+    </div>
+  </section>
+
   <section id="s-series">
     <div class="card">
       <h2>🎬 مسلسلاتي</h2>
@@ -277,10 +336,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const TABS = [['home','🏠 الرئيسية'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات'],['wird','📖 الورد'],['game','🎮 اللعب'],['series','🎬 مسلسلاتي'],['sleep','🌙 النوم'],['screen','🖥️ الشاشة']];
+const TABS = [['home','🏠 الرئيسية'],['screens','👥 الشاشات'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات'],['wird','📖 الورد'],['game','🎮 اللعب'],['series','🎬 مسلسلاتي'],['alarm','⏰ المنبه'],['report','📊 التقرير'],['sleep','🌙 النوم'],['screen','🖥️ الشاشة']];
 const DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const PRESETS = ['العشاء جاهز 🍽️','الغداء جاهز','حياكم الله 🌹','وقت النوم 🌙','لا تنسون أغراضكم'];
-const CARDS = [['adhkar','أذكار الصباح والمساء'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['summary','ملخص اليوم (الصباح)'],['wird','الورد اليومي'],['tasks','مهامي وتذكيراتي'],['bedtime','وقت النوم'],['series','مسلسلاتي'],['weather','الطقس'],['matches','مباريات فرقك']];
+const CARDS = [['adhkar','أذكار الصباح والمساء'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['summary','ملخص اليوم (الصباح)'],['stars','النجوم (للأطفال)'],['wird','الورد اليومي'],['tasks','مهامي وتذكيراتي'],['bedtime','وقت النوم'],['series','مسلسلاتي'],['weather','الطقس'],['matches','مباريات فرقك']];
 // the PIN is sent once; the TV answers with a session key (30 days), kept on this phone instead of the PIN
 let KEY = localStorage.getItem('tvkey') || '', STATE = {}, PREFS = null;
 const $ = id => document.getElementById(id);
@@ -368,6 +427,13 @@ function render(){
   $('adhan-mode').value = d.adhanSound === false ? 'off' : am(d.adhanMode) || 'full';
   $('adhan-fajr-mode').value = d.adhanSound === false ? 'off' : am(d.adhanFajrMode) || (d.adhanFajr === false ? 'off' : am(d.adhanMode) || 'full');
   $('auto-quran').checked = d.autoQuran !== false; $('match-sound').checked = d.matchSound !== false;
+  $('whistle').value = d.whistle === '1' ? '1' : '2'; $('task-sound').checked = d.taskSound !== false;
+  renderScreens(); renderReport(); renderAlarm();
+  const g0 = STATE.guest || {};
+  $('guest-state').textContent = g0.on ? '● وضع الضيوف شغّال' : '';
+  if(document.activeElement !== $('guest-text')) $('guest-text').value = g0.text || '';
+  const opts = '<option value="">الكل (العائلة)</option>' + screensList().map(x => `<option value="${esc(x.id)}">${esc(x.icon || '')} ${esc(x.name)}</option>`).join('');
+  document.querySelectorAll('.who-sel').forEach(el => { const v = el.value; el.innerHTML = opts; el.value = v; });
   const bt = STATE.bedtime || {}, times = bt.times || [];
   if(!$('bt-days').dataset.done){
     $('bt-days').innerHTML = DAYS.map((n, i) => `<div class="bt-row"><span>${n}</span><input type="time" data-bt="${i}"></div>`).join('');
@@ -405,17 +471,90 @@ function renderGame(){
 setInterval(() => { if(!$('app').hidden) renderGame(); }, 1000);
 // game time keeps the lock settings; the lock keeps the game time
 const gameBase = () => { const g = STATE.game || {}; return {lock: !!g.lock, port: g.port || 'HDMI 4', home: g.home !== false}; };
-function startGame(min){ save('game', Object.assign(gameBase(), {until: Date.now() + min*60000, minutes: min, home: $('g-home').checked, at: Date.now()}), true).then(() => toast('بدأ وقت اللعب: ' + min + ' دقيقة')); }
-function addGame(min){ const g = STATE.game || {}; if(!(g.until > Date.now())) return startGame(min); save('game', Object.assign({}, g, {until: g.until + min*60000}), true).then(() => toast('تمت إضافة ' + min + ' دقيقة')); }
-function stopGame(){ save('game', Object.assign(gameBase(), {until: 0, at: Date.now()}), true).then(() => toast('تم إيقاف وقت اللعب')); }
+const gameHist = () => ((STATE.game || {}).history || []).filter(x => x.from > Date.now() - 30*86400000).slice(-60);
+function startGame(min){ const until = Date.now() + min*60000; save('game', Object.assign(gameBase(), {until, minutes: min, home: $('g-home').checked, at: Date.now(), history: [...gameHist(), {from: Date.now(), until}]}), true).then(() => toast('بدأ وقت اللعب: ' + min + ' دقيقة')); }
+function addGame(min){ const g = STATE.game || {}; if(!(g.until > Date.now())) return startGame(min);
+  const h = gameHist(); if(h.length) h[h.length - 1] = Object.assign({}, h[h.length - 1], {until: g.until + min*60000});
+  save('game', Object.assign({}, g, {until: g.until + min*60000, history: h}), true).then(() => toast('تمت إضافة ' + min + ' دقيقة')); }
+function stopGame(){ const h = gameHist(); if(h.length && (h[h.length - 1].until || 0) > Date.now()) h[h.length - 1] = Object.assign({}, h[h.length - 1], {to: Date.now()});
+  save('game', Object.assign(gameBase(), {until: 0, at: Date.now(), history: h}), true).then(() => toast('تم إيقاف وقت اللعب')); }
 function saveLock(){ save('game', Object.assign({}, STATE.game || {}, {lock: $('g-lock').checked, port: $('g-port').value})); }
 // the wird: N pages a day; «قرأت» moves on to the next pages
 function wirdNow(){ const w = STATE.wird || {}; return {page: Math.min(604, Math.max(1, +w.page || 1)), per: +w.perDay || 1, on: w.on !== false, lastDone: w.lastDone || '', prev: w.prev}; }
 function wirdDone(){ const w = wirdNow(); if(w.lastDone === today()) return toast('ورد اليوم مسجّل');
-  save('wird', {page: Math.min(605, w.page + w.per), perDay: w.per, on: w.on, lastDone: today(), prev: {page: w.page, lastDone: w.lastDone}}, true).then(() => toast(w.page + w.per > 604 ? 'ختمت القرآن، تقبل الله 🤲' : 'تقبل الله ✔')); }
-function wirdUndo(){ const w = wirdNow(); if(!w.prev) return toast('ما فيه شي للتراجع'); save('wird', {page: w.prev.page, perDay: w.per, on: w.on, lastDone: w.prev.lastDone || ''}); }
-function wirdSave(){ const pg = Math.min(604, Math.max(1, +$('w-page').value || 1)); const w = wirdNow(); save('wird', {page: pg, perDay: +$('w-per').value, on: $('w-on').checked, lastDone: w.lastDone}); }
-function wirdNew(){ if(!confirm('تبدأ ختمة جديدة من صفحة ١؟')) return; const w = wirdNow(); save('wird', {page: 1, perDay: w.per, on: w.on, lastDone: ''}); }
+  save('wird', {page: Math.min(605, w.page + w.per), perDay: w.per, on: w.on, lastDone: today(), prev: {page: w.page, lastDone: w.lastDone}, hist: [...((STATE.wird || {}).hist || []).slice(-60), today()]}, true).then(() => toast(w.page + w.per > 604 ? 'ختمت القرآن، تقبل الله 🤲' : 'تقبل الله ✔')); }
+function wirdUndo(){ const w = wirdNow(); if(!w.prev) return toast('ما فيه شي للتراجع'); save('wird', {page: w.prev.page, perDay: w.per, on: w.on, lastDone: w.prev.lastDone || '', hist: ((STATE.wird || {}).hist || []).filter(d => d !== today())}); }
+function wirdSave(){ const pg = Math.min(604, Math.max(1, +$('w-page').value || 1)); const w = wirdNow(); save('wird', Object.assign({}, STATE.wird || {}, {page: pg, perDay: +$('w-per').value, on: $('w-on').checked, lastDone: w.lastDone})); }
+function wirdNew(){ if(!confirm('تبدأ ختمة جديدة من صفحة ١؟')) return; const w = wirdNow(); save('wird', Object.assign({}, STATE.wird || {}, {page: 1, perDay: w.per, on: w.on, lastDone: ''})); }
+// ---- screens: one per person ----
+const screensList = () => ((STATE.screens || {}).list || []);
+function saveScreens(list, extra, quiet){ return save('screens', Object.assign({}, STATE.screens || {}, {list}, extra || {}), quiet); }
+const SCARDS = [['summary','ملخص اليوم'],['adhkar','الأذكار'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['wird','الورد'],['tasks','مهامي'],['stars','النجوم'],['bedtime','وقت النوم'],['series','مسلسلاتي'],['weather','الطقس'],['matches','المباريات']];
+function renderScreens(){
+  const l = screensList();
+  if(document.activeElement !== $('scr-rotate')) $('scr-rotate').value = String((STATE.screens || {}).rotate || 0);
+  $('scr-rotate').onchange = () => save('screens', Object.assign({}, STATE.screens || {}, {list: l, rotate: +$('scr-rotate').value}));
+  $('scr-list').innerHTML = `<div class="scr"><div class="top"><span class="ic">🏠</span><b>العائلة</b><button class="ghost small" onclick="showNow('family')">اعرض الحين</button></div></div>`
+    + l.map((x, i) => `<div class="scr"><div class="top"><span class="ic">${esc(x.icon || '👤')}</span><b>${esc(x.name)}</b>
+        <button class="ghost small" onclick="showNow('${esc(x.id)}')">اعرض الحين</button><button class="x" onclick="delScreen(${i})" aria-label="حذف">×</button></div>
+      ${x.kid ? `<div class="st"><button onclick="setStars('${esc(x.id)}', ${(+x.stars || 0) - 1})">−</button><span>⭐ ${+x.stars || 0}</span><button onclick="setStars('${esc(x.id)}', ${(+x.stars || 0) + 1})">+</button></div>` : ''}
+      <details><summary>البطاقات في شاشته</summary>${SCARDS.filter(([k]) => k !== 'stars' || x.kid).map(([k, t]) => `<div class="switch"><span>${t}</span><input type="checkbox" ${(x.cards || {})[k] === false ? '' : 'checked'} onchange="setCard(${i}, '${k}', this.checked)"></div>`).join('')}</details></div>`).join('');
+}
+function addScreen(){
+  const name = $('scr-name').value.trim(); if(!name) return toast('اكتب الاسم', true);
+  const l = screensList(); if(l.length >= 8) return toast('الحد ٨ أشخاص', true);
+  saveScreens([...l, {id: uid(), name, icon: $('scr-icon').value, kid: $('scr-kid').checked, stars: 0, cards: {}}]);
+  $('scr-name').value = ''; $('scr-kid').checked = false;
+}
+function delScreen(i){ if(!confirm('حذف شاشة ' + screensList()[i].name + '؟')) return; const l = screensList().slice(); l.splice(i, 1); saveScreens(l); }
+function setCard(i, k, on){ const l = screensList().map(x => Object.assign({}, x)); l[i].cards = Object.assign({}, l[i].cards || {}, {[k]: on}); saveScreens(l, null, true); }
+function setStars(id, n, quiet){ const l = screensList().map(x => x.id === id ? Object.assign({}, x, {stars: Math.max(0, n)}) : x); return saveScreens(l, null, quiet); }
+function showNow(id){ saveScreens(screensList(), {now: {id, at: Date.now()}}, true).then(() => toast('تظهر الحين على التلفزيون')); }
+function setGuest(on){ save('guest', {on, text: $('guest-text').value.trim()}); }
+// ---- speak: the phone's own dictation ----
+function speak(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR || !window.isSecureContext){ $('msg-text').focus(); return toast('اضغط زر المايك 🎤 في الكيبورد وتكلم'); }
+  const r = new SR(); r.lang = 'ar-SA'; r.interimResults = false;
+  r.onresult = e => { $('msg-text').value = e.results[0][0].transcript; };
+  r.onerror = () => { $('msg-text').focus(); toast('اضغط زر المايك 🎤 في الكيبورد وتكلم'); };
+  r.start(); toast('تكلم الحين…');
+}
+// ---- the week's report ----
+function renderReport(){
+  const wk = Date.now() - 7*86400000, g = STATE.game || {}, h = (g.history || []).filter(x => x.from > wk);
+  const gameMin = h.reduce((a, x) => a + Math.max(0, Math.round((Math.min(x.to || x.until || Date.now(), Date.now()) - x.from) / 60000)), 0);
+  const w = STATE.wird || {}, wd = (w.hist || []).filter(d => new Date(d + 'T12:00:00').getTime() > wk);
+  const done = (STATE.tasks || []).filter(t => t.done && t.doneAt > wk);
+  const per = {}; done.forEach(t => { const n = (screensList().find(x => x.id === t.who) || {name: 'العائلة'}).name; per[n] = (per[n] || 0) + 1; });
+  const row = (k, v) => `<div class="rep"><span>${k}</span><b>${v}</b></div>`;
+  $('report').innerHTML = row('🎮 وقت البلايستيشن', gameMin >= 60 ? `${Math.floor(gameMin / 60)} ساعة و${gameMin % 60} دقيقة` : `${gameMin} دقيقة`)
+    + row('🎮 مرات اللعب', h.length)
+    + row('📖 أيام الورد', `${wd.length} من ٧`)
+    + row('✅ مهام منجزة', done.length)
+    + Object.entries(per).map(([n, c]) => row('　· ' + esc(n), c)).join('')
+    + screensList().filter(x => x.kid).map(x => row(`⭐ نجوم ${esc(x.name)}`, +x.stars || 0)).join('');
+}
+// ---- the morning alarm ----
+function renderAlarm(){
+  const a = STATE.alarm || {};
+  if(!$('al-days').dataset.done){ $('al-days').innerHTML = DAYS.map((d, i) => `<label><input type="checkbox" value="${i}">${d}</label>`).join(''); $('al-days').dataset.done = 1;
+    $('al-video').onchange = () => $('al-link').hidden = $('al-video').value !== 'custom'; }
+  if(document.activeElement && document.activeElement.closest && document.activeElement.closest('#s-alarm')) return;
+  $('al-on').checked = !!a.on; $('al-time').value = a.time || '06:30';
+  const days = a.days || [0, 1, 2, 3, 4];
+  document.querySelectorAll('#al-days input').forEach(x => x.checked = days.includes(+x.value));
+  const known = ['OIWahnI8rSI', 'fD4uDIoCn3M'];
+  $('al-video').value = !a.video || known.includes(a.video) ? (a.video || 'OIWahnI8rSI') : 'custom';
+  $('al-link').hidden = $('al-video').value !== 'custom'; if($('al-video').value === 'custom') $('al-link').value = 'https://youtu.be/' + a.video;
+  $('al-vol').value = a.volume || 30; $('al-vol-l').textContent = a.volume || 30;
+}
+function saveAlarm(){
+  let video = $('al-video').value;
+  if(video === 'custom'){ const m = /(?:v=|youtu\.be\/|live\/|embed\/)([A-Za-z0-9_-]{11})/.exec($('al-link').value); if(!m) return toast('الرابط غير صحيح', true); video = m[1]; }
+  const days = [...document.querySelectorAll('#al-days input:checked')].map(x => +x.value);
+  save('alarm', {on: $('al-on').checked, time: $('al-time').value || '06:30', days, video, volume: +$('al-vol').value});
+}
 function btAll(){ document.querySelectorAll('[data-bt]').forEach(x => x.value = $('bt-all').value); }
 function saveBedtime(){ const times = [...document.querySelectorAll('[data-bt]')].sort((a, b) => a.dataset.bt - b.dataset.bt).map(x => x.value || ''); save('bedtime', {on: $('bt-on').checked, times}); }
 async function searchSeries(){
@@ -457,10 +596,16 @@ function sendMessage(){
 function clearMessage(){ save('message', {text: '', until: 0, at: Date.now()}); }
 function addTask(){
   const text = $('task-text').value.trim(); if(!text) return toast('اكتب المهمة', true);
-  save('tasks', [...(STATE.tasks || []), {id: uid(), text, due: $('task-due').value || '', done: false}]);
+  save('tasks', [...(STATE.tasks || []), {id: uid(), text, due: $('task-due').value || '', done: false, who: $('task-who').value || ''}]);
   $('task-text').value = ''; $('task-due').value = '';
 }
-function toggleTask(i){ const t = (STATE.tasks || []).slice(); t[i] = Object.assign({}, t[i], {done: !t[i].done}); save('tasks', t, true); }
+function toggleTask(i){
+  const t = (STATE.tasks || []).slice(), done = !t[i].done;
+  t[i] = Object.assign({}, t[i], {done, doneAt: done ? Date.now() : 0});
+  save('tasks', t, true);
+  const sc = screensList().find(x => x.id === t[i].who);
+  if(sc && sc.kid) setStars(sc.id, (+sc.stars || 0) + (done ? 1 : -1), true);
+}
 function clearDone(){ save('tasks', (STATE.tasks || []).filter(t => !t.done)); }
 function delItem(section, i){ if(!confirm('حذف؟')) return; const a = (STATE[section] || []).slice(); a.splice(i, 1); save(section, a); }
 function pickDays(list){ document.querySelectorAll('#rem-days input').forEach(x => x.checked = list.includes(+x.value)); }
@@ -468,7 +613,7 @@ function addReminder(){
   const text = $('rem-text').value.trim(); if(!text) return toast('اكتب التذكير', true);
   const days = [...document.querySelectorAll('#rem-days input:checked')].map(x => +x.value);
   if(!days.length) return toast('اختر يوماً واحداً على الأقل', true);
-  save('reminders', [...(STATE.reminders || []), {id: uid(), text, time: $('rem-time').value || '08:00', days}]);
+  save('reminders', [...(STATE.reminders || []), {id: uid(), text, time: $('rem-time').value || '08:00', days, who: $('rem-who').value || ''}]);
   $('rem-text').value = '';
 }
 function doneToday(i){
@@ -487,7 +632,8 @@ function saveSleep(){ save('sleep', {from: $('sleep-from').value || '00:00', to:
 function saveDisplay(){
   const cards = {}; document.querySelectorAll('[data-card]').forEach(x => cards[x.dataset.card] = x.checked);
   save('display', {cards, cardSec: +$('card-sec').value, photoMin: +$('photo-min').value, quranSize: $('q-size').value, quranPos: $('q-pos').value,
-    adhanMode: $('adhan-mode').value, adhanFajrMode: $('adhan-fajr-mode').value, autoQuran: $('auto-quran').checked, matchSound: $('match-sound').checked});
+    adhanMode: $('adhan-mode').value, adhanFajrMode: $('adhan-fajr-mode').value, autoQuran: $('auto-quran').checked, matchSound: $('match-sound').checked,
+    whistle: $('whistle').value, taskSound: $('task-sound').checked});
 }
 
 // the screensaver's own settings: city and teams

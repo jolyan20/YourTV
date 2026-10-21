@@ -38,6 +38,23 @@ public class MainActivity extends Activity {
             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         ControlStore.prefs(this).registerOnSharedPreferenceChangeListener(follow);
         if (ControlStore.quran(this)) root.postDelayed(() -> { if (quran != null && !quran.isOn()) quran.toggle(); }, 2500);
+        morning(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(android.content.Intent i) {
+        super.onNewIntent(i);
+        morning(i);
+    }
+
+    /** opened by the morning alarm: the screen on, and the adhkar in the window (up to 30 minutes) */
+    @SuppressWarnings("deprecation")
+    private void morning(android.content.Intent i) {
+        String video = i == null ? null : i.getStringExtra("alarmVideo");
+        if (video == null) return;
+        if (android.os.Build.VERSION.SDK_INT >= 27) setTurnScreenOn(true);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+        root.postDelayed(() -> { if (quran != null) quran.playVideo(video, 0, 1800, null); }, 3000);
     }
 
     @Override
@@ -51,6 +68,11 @@ public class MainActivity extends Activity {
                     quran.toggle();
                     ControlStore.setQuran(this, quran.isOn());
                 }
+                return true;
+            case KeyEvent.KEYCODE_DPAD_LEFT:     // the screens (family, each person): next and back
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                if (e.getAction() == KeyEvent.ACTION_UP && web != null)
+                    web.evaluateJavascript("window.switchScreen && switchScreen(" + (e.getKeyCode() == KeyEvent.KEYCODE_DPAD_LEFT ? 1 : -1) + ")", null);
                 return true;
             case KeyEvent.KEYCODE_VOLUME_UP:
             case KeyEvent.KEYCODE_VOLUME_DOWN:

@@ -483,6 +483,25 @@
   .week li.wd b{font-size:1.6em;color:#BFF2D3;font-weight:500}
   .al.wird{border-color:#DCB86F;background:rgba(220,184,111,.16);color:#FFE7AE}
 
+  /* whose screen: above the clock */
+  .who{display:none;align-items:center;gap:.5em;margin-bottom:1.4vh;padding:.3em 1.1em;border-radius:999px;
+    font-size:clamp(14px,1.2vw,24px);color:#FFF3D6;background:rgba(0,0,0,.32);border:1px solid rgba(220,184,111,.45)}
+  .who.on{display:inline-flex}
+  .who .st{color:#F3D48A}
+  .clockwrap .who{align-self:center}
+  /* the 24-hour time: a small clock instead of the words */
+  .subline .chip.h24 svg{width:1.15em;height:1.15em;opacity:.85}
+  /* the official logos: Founding Day, and the Kingdom's emblem for National Day */
+  .occ-ic.logo img{height:2.1em;width:auto;vertical-align:middle;display:block}
+  .occ-ic.logo.founding img{height:3.4em}
+  /* a child's stars */
+  .week li.stars{display:flex;flex-direction:column;align-items:center;gap:1.2vh;border-bottom:none;padding:1.6vh 0}
+  .week li.stars .n{font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:3.2em;color:#F3D48A;line-height:1}
+  .week li.stars .row{font-size:1.5em;letter-spacing:.1em;white-space:normal;text-align:center}
+  .week li.guest{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;border-bottom:none;padding:3vh 0;text-align:center;white-space:normal}
+  .week li.guest b{font-family:'ThmanyahDisplay','Thmanyah',serif;font-size:2.6em;color:#FFF3D6;font-weight:700;line-height:1.2}
+  .week li.guest span{color:#D8CDB6;font-size:1.1em}
+
   @media (max-aspect-ratio:5/4){
     .top{flex-direction:column-reverse;gap:1.4vh}
     .bottom{grid-template-columns:1fr 1fr}
@@ -520,10 +539,11 @@
 
   <section class="mid">
     <div class="clockwrap">
+      <div class="who" id="who"></div>
       <div class="clock">
         <span class="ampm" id="ck-ap">—</span><span class="d" id="ck-h">--</span><span class="sep">:</span><span class="d" id="ck-m">--</span>
       </div>
-      <div class="subline"><span class="chip mode" id="mode"></span><span class="chip city" id="clock-sub">بتوقيت الرياض</span><span class="chip h24"><b id="ck-24"></b><small>٢٤ ساعة</small></span></div>
+      <div class="subline"><span class="chip mode" id="mode"></span><span class="chip city" id="clock-sub">بتوقيت الرياض</span><span class="chip h24"><svg viewBox="0 0 24 24" fill="none" stroke="#D6AF6B" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><b id="ck-24"></b></span></div>
       <div class="alerts" id="alerts"></div>
     </div>
 
@@ -985,7 +1005,8 @@ function renderAlerts(){
   const day = mins < maghrib ? new Date() : new Date(now + 86400000);
   const why = fastReasons(day);
   if(why.length) out.push(pill('fast', `${mins < maghrib ? 'اليوم' : 'غداً'}: صيام ${why.join('، ')}`));
-  out.push(...bedtimeAlerts(now), ...gameAlerts(now), ...wirdAlerts(), ...reminderAlerts(), ...taskAlerts(), ...seriesAlerts(now), ...matchAlerts(now), ...weatherAlerts());
+  if(!GUEST()) out.push(...bedtimeAlerts(now), ...gameAlerts(now), ...wirdAlerts(), ...reminderAlerts(), ...taskAlerts(), ...seriesAlerts(now));
+  out.push(...matchAlerts(now), ...weatherAlerts());
   setHTML(box, out.join(''));
   renderAdhan(mins);
 }
@@ -1004,7 +1025,7 @@ function renderAdhan(mins){
 // youtube.com/@Emam_moathen), played by the app in the stream's window (YouTube's player stays visible): in full,
 // or the opening takbirs only (its first 30 s). Chosen on the phone page, Fajr apart: full | takbir | off.
 const ADHAN_VIDEO = {
-  main: 'CC21hm_Qor0',   // Isha, 28 Jumada al-Akhirah 1446, Sheikh Ali Mulla
+  main: 'tJPNo41mOjg',   // Sheikh Ali Mulla (بروق المباسم من نداءات المواسم), picked by the household
   fajr: 'cv8qarn65og',   // Fajr, 1 Rajab 1446, Sheikh Ibrahim Al-Madani
 };
 let ADHAN_DONE = '';
@@ -1035,7 +1056,54 @@ function chime(){
     o.connect(g); g.connect(A.destination); o.start(t); o.stop(t + 1.5);
   });
 }
+function softChime(){
+  const A = actx(); if(!A) return;
+  [[784, 0], [1046.5, .22]].forEach(([f, at]) => {
+    const o = A.createOscillator(), g = A.createGain(), t = A.currentTime + .05 + at;
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.18, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + .9);
+    o.connect(g); g.connect(A.destination); o.start(t); o.stop(t + 1);
+  });
+}
+// tasks and reminders at their time (every person's, the sound is for the house); off on the phone page
+let CHIMED = (()=>{ try{ return JSON.parse(localStorage.getItem('chimed') || '{}'); }catch(e){ return {}; } })();
+function taskMoments(){
+  if(CONFIG.widget || DISP().taskSound === false) return;
+  const now = Date.now(), p = riyadhParts(), mins = p.h*60 + p.mi, wd = new Date(Date.UTC(p.y, p.mo-1, p.d)).getUTCDay();
+  let ring = false;
+  (CTRL.tasks || []).forEach(t => {
+    if(t.done || !t.due) return;
+    const due = new Date(t.due).getTime(), k = 't' + (t.id || t.text) + t.due;
+    if(now >= due && now - due < 90000 && !CHIMED[k]){ CHIMED[k] = now; ring = true; }
+  });
+  (CTRL.reminders || []).forEach(r => {
+    const [h, mi] = String(r.time || '0:0').split(':').map(Number), k = 'r' + (r.id || r.text) + todayKey();
+    if((r.days || []).includes(wd) && mins === h*60 + mi && r.doneOn !== todayKey() && !CHIMED[k]){ CHIMED[k] = now; ring = true; }
+  });
+  for(const k in CHIMED) if(now - CHIMED[k] > 3*86400000) delete CHIMED[k];
+  try{ localStorage.setItem('chimed', JSON.stringify(CHIMED)); }catch(e){}
+  if(ring) softChime();
+}
 function whistle(){
+  if(DISP().whistle === '1') return whistle1();
+  const A = actx(); if(!A) return;
+  // a pea whistle: the tone with its trill, and the breath through it
+  const noise = A.createBuffer(1, A.sampleRate * 2.6, A.sampleRate), d = noise.getChannelData(0);
+  for(let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  [[0, .32], [.48, .32], [.96, 1.2]].forEach(([at, dur]) => {
+    const t = A.currentTime + .05 + at;
+    const o = A.createOscillator(), g = A.createGain(), lfo = A.createOscillator(), lg = A.createGain();
+    o.type = 'sine'; o.frequency.value = 3050; lfo.frequency.value = 40; lg.gain.value = 300;
+    lfo.connect(lg); lg.connect(o.frequency);
+    const n = A.createBufferSource(), bp = A.createBiquadFilter(), ng = A.createGain();
+    n.buffer = noise; bp.type = 'bandpass'; bp.frequency.value = 3100; bp.Q.value = 6;
+    n.connect(bp); bp.connect(ng); ng.connect(g); o.connect(g); g.connect(A.destination);
+    ng.gain.value = .9;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.3, t + .025); g.gain.setValueAtTime(.3, t + dur - .06); g.gain.linearRampToValueAtTime(0, t + dur);
+    o.start(t); lfo.start(t); n.start(t, at); o.stop(t + dur + .05); lfo.stop(t + dur + .05); n.stop(t + dur + .05);
+  });
+}
+function whistle1(){
   const A = actx(); if(!A) return;
   [[0, .32], [.48, .32], [.96, 1.2]].forEach(([at, d]) => {
     const o = A.createOscillator(), g = A.createGain(), lfo = A.createOscillator(), lg = A.createGain(), t = A.currentTime + .05 + at;
@@ -1128,7 +1196,11 @@ const OCC_SVG = {
 };
 // the phone page's family kinds (their emoji) to the icons
 const FAM_IC = {'🎂':'birthday','💍':'anniv','✈️':'travel','📅':'appt','🎓':'grad','👶':'baby','💒':'wedding','🏥':'health','🏠':'home','🎉':'other'};
-const occIcon = k => OCC_SVG[k] ? `<span class="occ-ic ${k}"><svg viewBox="0 0 24 24">${OCC_SVG[k]}</svg></span>` : '';
+// Founding Day's official logo (foundingday.sa) and the Kingdom's emblem, from the app (assets/logos)
+const LOGO_BASE = 'https://raw.githubusercontent.com/jolyan20/YourTV/master/assets/logos/';
+const occIcon = k => k === 'founding' ? `<span class="occ-ic logo founding"><img src="${LOGO_BASE}founding-day.svg" alt="يوم التأسيس"></span>`
+  : k === 'national' ? `<span class="occ-ic logo national"><img src="${LOGO_BASE}saudi-emblem.svg" alt=""></span>`
+  : OCC_SVG[k] ? `<span class="occ-ic ${k}"><svg viewBox="0 0 24 24">${OCC_SVG[k]}</svg></span>` : '';
 const OCC_SLIDE_MS = 15000;
 let OCC_CACHE = {day:'', list:[]};
 function occasionDates(){
@@ -1195,7 +1267,7 @@ const hijriDate = t => IDF('ar-SA-u-ca-islamic-umalqura-nu-arab',{timeZone:'UTC'
 // the date on two lines: the Gregorian, then the Umm al-Qura Hijri
 const twoDates = (word, t) => `<span class="d1">${word} ${esc(longDate(t))}</span><span class="d2">${esc(hijriDate(t))}</span>`;
 function renderOccasion(x, elL, elD, elS){
-  setHTML(elL, occIcon(x.ic) + esc(x.school && x.days <= 0 ? x.o.name : x.label));
+  setHTML(elL, x.ic === 'founding' ? occIcon(x.ic) : occIcon(x.ic) + esc(x.school && x.days <= 0 ? x.o.name : x.label));
   if(x.school && x.days <= 0){          // during the holiday: the day school starts again
     setHTML(elD, '<span class="greet">' + esc(x.o.greet) + '</span>');
     setHTML(elS, twoDates('العودة', x.school.to + 86400000));
@@ -1219,6 +1291,7 @@ function renderOccasion(x, elL, elD, elS){
 // the family's own occasions, in their panel; the next one every 15 s, between the turns of the other panel
 let FAM_CACHE = {key:'', list:[]}, FAM_K = -1;
 function familyList(){
+  if(GUEST()) return [];
   const key = todayKey() + JSON.stringify(CTRL.family || []);
   if(FAM_CACHE.key !== key){ const p = riyadhParts(); FAM_CACHE = {key, list: familyOccasions(Date.UTC(p.y, p.mo-1, p.d)).sort((a, b) => a.t - b.t)}; }
   return FAM_CACHE.list;
@@ -1512,7 +1585,16 @@ async function loadControl(){
     const changed = JSON.stringify(next.family || []) !== JSON.stringify(CTRL.family || []);
     const mine = o => JSON.stringify([o.tasks || [], o.reminders || []]);
     const todo = Object.keys(CTRL).length && mine(next) !== mine(CTRL);
+    const nowAsk = (next.screens || {}).now, oldAsk = (CTRL.screens || {}).now;
+    const guestWas = GUEST();
     CTRL = next;
+    // «اعرض الحين» on the phone: that screen at once
+    if(nowAsk && nowAsk.at && (!oldAsk || oldAsk.at !== nowAsk.at) && Date.now() - nowAsk.at < 60000){
+      const k = SCREENS().findIndex(x => x.id === nowAsk.id);
+      if(k >= 0 && k !== SCREEN_K % SCREENS().length){ SCREEN_K = k; SCREEN_AT = Date.now(); CARD_TURN = 0; crossfade(document.querySelector('.mid'), () => { renderWho(); renderPanel(false); }); }
+    }
+    if(guestWas !== GUEST()){ CARD_TURN = 0; FAM_CACHE.key = ''; tickFamily(); crossfade(document.querySelector('.mid'), () => renderPanel(false)); }
+    renderWho();
     if(changed){ OCC_CACHE.day = ''; tickFamily(); }   // family occasions changed: recount
     loadSeries(false);
     renderMessage(); renderAlerts(); applySleep();
@@ -1527,7 +1609,60 @@ async function loadControl(){
 }
 // the phone page's screen options, with their defaults
 const DISP = () => (typeof CTRL !== 'undefined' && CTRL.display) || {};
-const cardOn = k => !(DISP().cards && DISP().cards[k] === false);
+// Screens: the family's (the default) and one per person, picked and filled on the phone page; they take turns
+// every few minutes (or by the remote's left/right). A person's screen shows their own tasks and reminders and
+// the cards chosen for them; a child's screen also their stars. Guest mode keeps to the family screen and hides
+// everything personal.
+const GUEST = () => !!(typeof CTRL !== 'undefined' && CTRL.guest && CTRL.guest.on);
+const PERSONAL = ['tasks', 'bedtime', 'series', 'wird', 'stars'];
+function SCREENS(){
+  const l = (typeof CTRL !== 'undefined' && CTRL.screens && Array.isArray(CTRL.screens.list)) ? CTRL.screens.list : [];
+  return [{id: 'family', name: 'العائلة', icon: '🏠'}, ...l.filter(x => x && x.id && x.id !== 'family' && x.on !== false)];
+}
+let SCREEN_K = 0;
+const SCREEN = () => { const l = SCREENS(); return GUEST() ? l[0] : l[SCREEN_K % l.length]; };
+const cardOn = k => {
+  if(GUEST() && PERSONAL.includes(k)) return false;
+  const sc = SCREEN();
+  if(sc.id !== 'family' && sc.cards) return sc.cards[k] !== false && (k !== 'stars' || !!sc.kid);
+  if(k === 'stars') return !!sc.kid;
+  return !(DISP().cards && DISP().cards[k] === false);
+};
+// on a person's screen, only their own tasks and reminders; none for guests
+const mine = list => { if(GUEST()) return []; const sc = SCREEN(); return sc.id === 'family' ? list : list.filter(x => x && x.who === sc.id); };
+const myTasks = () => mine(CTRL.tasks || []);
+const myRems = () => mine(CTRL.reminders || []);
+function renderWho(){
+  const el = document.getElementById('who'), l = SCREENS(), sc = SCREEN();
+  if(!el) return;
+  const show = !GUEST() && l.length > 1;
+  el.classList.toggle('on', show);
+  if(show) setHTML(el, `<span>${esc(sc.icon || '👤')}</span><span>${sc.id === 'family' ? 'شاشة العائلة' : 'شاشة ' + esc(sc.name)}</span>`
+    + (sc.kid ? `<span class="st">⭐ ${ar(+sc.stars || 0)}</span>` : ''));
+}
+let SCREEN_AT = Date.now();
+function switchScreen(d){
+  const n = SCREENS().length;
+  if(n < 2 || GUEST()) return;
+  SCREEN_K = ((SCREEN_K + d) % n + n) % n; SCREEN_AT = Date.now(); CARD_TURN = 0;
+  crossfade(document.querySelector('.mid'), () => { renderWho(); renderPanel(false); renderAlerts(); });
+}
+function rotateScreens(){
+  const min = +((CTRL.screens || {}).rotate) || 0;
+  if(min > 0 && Date.now() - SCREEN_AT >= min * 60000) switchScreen(1);
+}
+// «النجوم»: a child's stars, given on the phone page (and one for each of their tasks marked done)
+function starsSlide(){
+  const sc = SCREEN(), n = Math.max(0, +sc.stars || 0);
+  const row = n ? '⭐'.repeat(Math.min(n, 20)) + (n > 20 ? ' …' : '') : 'ابدأ تجمع نجومك اليوم!';
+  const done = (CTRL.tasks || []).filter(t => t.who === sc.id && t.done).slice(-3).map(t => `<li class="task"><span>✔ ${esc(t.text)}</span></li>`);
+  return {title: `نجوم ${sc.name}`, rows: [`<li class="stars"><span class="n">${ar(n)}</span><span class="row">${row}</span></li>`, ...done]};
+}
+// guest mode: a welcome on the card, first
+function guestSlide(){
+  const g = CTRL.guest || {};
+  return {title: 'أهلاً وسهلاً', rows: [`<li class="guest"><b>${esc(g.text || 'حياكم الله')}</b><span>نورتونا 🌹</span></li>`]};
+}
 const cardMs = () => Math.min(120, Math.max(10, +DISP().cardSec || 30)) * 1000;
 const photoMin = () => [15, 30, 60, 120].includes(+DISP().photoMin) ? +DISP().photoMin : 30;
 const todayKey = () => IDF('en-CA', {timeZone: CONFIG.timezone}).format(new Date());
@@ -1547,7 +1682,7 @@ function renderMessage(){
 // «مهامي»: the open tasks, the late ones first and marked
 function todaysReminders(){
   const p = riyadhParts(), wd = new Date(Date.UTC(p.y, p.mo-1, p.d)).getUTCDay(), mins = p.h*60 + p.mi;
-  return (CTRL.reminders || []).filter(r => (r.days || []).includes(wd)).map(r => {
+  return myRems().filter(r => (r.days || []).includes(wd)).map(r => {
     const [h, mi] = String(r.time || '0:0').split(':').map(Number), at = h*60 + mi;
     const done = r.doneOn === todayKey();
     return {r, h, mi, at, done, now: !done && mins >= at && mins < at + 60, past: done || mins >= at + 60};
@@ -1555,7 +1690,7 @@ function todaysReminders(){
 }
 function tasksSlide(){
   const now = Date.now();
-  const open = (CTRL.tasks || []).filter(t => !t.done).map(t => ({t, due: t.due ? new Date(t.due).getTime() : 0}))
+  const open = myTasks().filter(t => !t.done).map(t => ({t, due: t.due ? new Date(t.due).getTime() : 0}))
     .sort((a, b) => (a.due || 9e15) - (b.due || 9e15)).slice(0, 5);
   const rows = open.map(({t, due}) => {
     const late = due && due < now;
@@ -1575,7 +1710,7 @@ function tasksSlide(){
 // reminders: from their time, for an hour, on their days
 function reminderAlerts(){
   const p = riyadhParts(), mins = p.h*60 + p.mi, wd = new Date(Date.UTC(p.y, p.mo-1, p.d)).getUTCDay();
-  return (CTRL.reminders || []).filter(r => {
+  return myRems().filter(r => {
     const [h, mi] = String(r.time || '0:0').split(':').map(Number), at = h*60 + mi;
     return (r.days || []).includes(wd) && mins >= at && mins < at + 60 && r.doneOn !== todayKey();
   }).map(r => { const [h, mi] = r.time.split(':').map(Number); return pill('rem', `${esc(r.text)} <small>· ${fmt12(h, mi)}</small>`); });
@@ -1583,7 +1718,7 @@ function reminderAlerts(){
 // tasks with a time: from 30 minutes before it, and once it is late (that day)
 function taskAlerts(){
   const now = Date.now(), today = todayKey();
-  return (CTRL.tasks || []).filter(t => !t.done && t.due).map(t => ({t, due: new Date(t.due).getTime()}))
+  return myTasks().filter(t => !t.done && t.due).map(t => ({t, due: new Date(t.due).getTime()}))
     .filter(x => x.due - now <= 30*60000 && x.t.due.slice(0, 10) === today)
     .map(x => pill('rem', x.due > now ? `${esc(x.t.text)} <small>· بعد ${cdn(x.due, 'الآن')}</small>`
                                      : `${esc(x.t.text)} <small>· متأخرة</small>`));
@@ -2150,7 +2285,7 @@ function summarySlide(){
   const rows = [], t = FORECAST[0];
   if(t) rows.push(row('wx', 'الطقس', `${WX_CODES[t.code] || ''} · العظمى ${ar(Math.round(t.hi))}° · الصغرى ${ar(Math.round(t.lo))}°`));
   const now = Date.now(), today = todayKey();
-  const open = (CTRL.tasks || []).filter(x => !x.done), dueToday = open.filter(x => x.due && x.due.slice(0, 10) === today);
+  const open = myTasks().filter(x => !x.done), dueToday = open.filter(x => x.due && x.due.slice(0, 10) === today);
   const rems = todaysReminders().filter(x => !x.past);
   const firstR = rems[0];
   rows.push(row('task', 'مهامي', open.length || rems.length
@@ -2173,13 +2308,15 @@ const tag = (kind, f) => (f.kind = kind, f);
 function cardSlides(){
   const day = riyadhDayNumber(), slides = [];
   const dk = adhkarTime();
+  if(GUEST()) slides.push(() => guestSlide());
   if(summaryTime() && cardOn('summary')) slides.push(tag('summary', () => summarySlide()));
   if(dk && ADHKAR.length && cardOn('adhkar')) slides.push(tag('dhikr', () => dhikrSlide(dk)));
   if(CTRL.wird && CTRL.wird.on !== false && cardOn('wird')) slides.push(tag('wird', () => wirdSlide()));
   if(VERSES.length && cardOn('verse')) slides.push(() => verseOfDay(day));
   if(HADITH.length && cardOn('hadith')) slides.push(() => hadithOfDay(day));
   if(WISDOM.length && cardOn('wisdom')) slides.push(() => wisdomOfDay(day));
-  if(cardOn('tasks') && ((CTRL.tasks || []).some(t => !t.done) || todaysReminders().length)) slides.push(() => tasksSlide());
+  if(cardOn('tasks') && (myTasks().some(t => !t.done) || todaysReminders().length)) slides.push(() => tasksSlide());
+  if(cardOn('stars')) slides.push(() => starsSlide());
   const bt = nextBedtime();
   if(bt && cardOn('bedtime') && bt.t - Date.now() <= 3*3600000) slides.push(() => bedtimeSlide());
   if(cardOn('series') && seriesItems().length) slides.push(() => seriesSlide());
@@ -2435,13 +2572,11 @@ function matchCard(){
          + `<span class="mid">${mid}</span>`
          + `<span class="tt a ${ac}"><span>${esc(teamAr(ev.strAwayTeam))}</span>${crest(ev.strAwayTeamBadge)}</span>${st}</li>`;
   };
-  // results first, then the next 5 games; 4 games a page, the page turns every 10 s while the card is up
-  const all = [...done.map(x => ['النتائج', x]), ...rest.slice(0, 5).map(x => ['القادمة', x])];
-  const pages = Math.max(1, Math.ceil(all.length / 4));
-  MATCH_PAGES = pages;
-  const page = all.slice((MATCH_CARD_PAGE % pages) * 4, (MATCH_CARD_PAGE % pages) * 4 + 4);
+  // the last result (a day long), then the next 5 games: all in one card
+  const all = [...done.slice(-1).map(x => ['النتيجة', x]), ...rest.slice(0, 5).map(x => ['القادمة', x])];
+  MATCH_PAGES = 1;
   const out = [];
-  page.forEach(([head, x], i) => { if(i === 0 || page[i-1][0] !== head) out.push(`<li class="mh">${head}${pages > 1 && i === 0 ? ` <span>${ar(MATCH_CARD_PAGE % pages + 1)}/${ar(pages)}</span>` : ''}</li>`); out.push(row(x)); });
+  all.forEach(([head, x], i) => { if(i === 0 || all[i-1][0] !== head) out.push(`<li class="mh">${head}</li>`); out.push(row(x)); });
   return out;
 }
 let MATCH_CARD_PAGE = 0, MATCH_PAGES = 1;
@@ -2714,6 +2849,9 @@ function boot(){
   setInterval(() => loadSeries(true), 3*3600000);   // new episodes as they air
   setInterval(() => { autoQuran(); }, 60*1000); setTimeout(autoQuran, 8000);
   setInterval(matchMoments, 15*1000); setTimeout(matchMoments, 20000);
+  setInterval(taskMoments, 15*1000);
+  setInterval(rotateScreens, 15*1000);
+  window.switchScreen = switchScreen;   // the remote's left and right, from the app
   if(CONFIG.panel === 'verse'){ const next = () => setTimeout(() => { turnCard(); next(); }, cardMs()); next(); }
   setInterval(() => {   // the followed teams' card: next page every 10 s
     if(MATCH_PAGES > 1 && document.getElementById('week-hd').textContent === PANEL_TITLE.matches){ MATCH_CARD_PAGE++; renderPanel(false); }

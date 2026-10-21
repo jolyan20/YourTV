@@ -21,6 +21,7 @@ public class ControlService extends Service {
     private GameOverlay game;
     private final android.content.SharedPreferences.OnSharedPreferenceChangeListener gameChanged = (p, key) -> {
         if ("game".equals(key) && game != null) game.update();
+        if ("alarm".equals(key)) MorningAlarm.schedule(this);
     };
     private final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -67,6 +68,7 @@ public class ControlService extends Service {
         game = new GameOverlay(this);
         ControlStore.prefs(this).registerOnSharedPreferenceChangeListener(gameChanged);
         game.update();
+        MorningAlarm.schedule(this);
     }
 
     @Override
