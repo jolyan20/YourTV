@@ -528,8 +528,11 @@
   .p-mid .sub .ord{color:#F1CF8A;white-space:nowrap}
 
   /* v5: the alerts in one row above the bottom line; the next prayer under the prayer times; a lighter bottom */
-  .stage{grid-template-rows:auto 1fr auto auto}
-  .alerts{margin:0;max-width:none;flex-wrap:nowrap;justify-content:center;overflow:hidden;gap:.7vw;padding:0 0 .2vh;min-height:0}
+  .stage{grid-template-rows:auto minmax(0,1fr) auto auto}
+  /* its own height, always: a scroll box in a grid row would otherwise shrink to nothing */
+  .alerts{margin:0;max-width:none;flex-wrap:nowrap;justify-content:center;align-items:center;overflow:hidden;gap:.7vw;padding:0;min-height:calc(clamp(12px,.95vw,19px) * 2.3)}
+  .week{height:41vh}
+  html.qtop .week{height:37vh}
   .al{font-size:clamp(12px,.95vw,19px);padding:.32em .9em}
   .pt-next{margin-top:1vh;text-align:left;white-space:nowrap;font-size:clamp(13px,1.08vw,21px);color:#D8CDB6}
   .pt-next b{color:#FFE7AE;font-weight:500}
@@ -542,7 +545,7 @@
   .p-mid .label{min-width:0;overflow:hidden;text-overflow:ellipsis}
   /* today's games: shorter names, smaller */
   .p-match .big,.mrow .big,.mrow:has(.mblock + .mblock) .big{font-size:clamp(15px,1.25vw,26px)}
-  .p-match .sub{font-size:clamp(11px,.82vw,16px)}
+  .p-match .sub{font-size:clamp(11px,.82vw,16px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .mrow .crest{width:.95em;height:.95em}
   /* a child's stars: the total and the last seven days */
   .week li.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:.6vw;align-items:end;border-bottom:none;padding:1vh 0 0;height:14vh}
@@ -2085,6 +2088,8 @@ const SHORT_TEAM = {'مانشستر يونايتد': 'مان يونايتد', '�
   'سبورتينغ لشبونة': 'سبورتينغ', 'آر بي لايبزيغ': 'لايبزيغ', 'باير ليفركوزن': 'ليفركوزن', 'أولمبيك مارسيليا': 'مارسيليا', 'أولمبيك ليون': 'ليون'};
 const shortTeam = n => { n = String(n || '').replace(/^نادي\s+/, '').trim(); if(SHORT_TEAM[n]) return SHORT_TEAM[n];
   const w = n.split(/\s+/); return n.length > 13 && w.length > 2 ? w.slice(0, 2).join(' ') : n; };
+const LG_SHORT = {'دوري أبطال أوروبا': 'أبطال أوروبا', 'أبطال آسيا للنخبة': 'آسيا للنخبة', 'الدوري الإنجليزي': 'الإنجليزي',
+  'الدوري الإسباني': 'الإسباني', 'الدوري الإيطالي': 'الإيطالي', 'كأس السوبر السعودي': 'السوبر', 'دوري روشن': 'روشن'};
 function gameState(x, now){
   const ev = x.ev, scored = ev.intHomeScore != null && ev.intAwayScore != null;
   if(FINAL.includes((ev.strStatus || '').toUpperCase()) || (scored && now > x.t + 2.5*3600000)) return 'done';
@@ -2104,7 +2109,7 @@ function todaySlot(x, now){
     : fmt12(+p.hour % 24, +p.minute);
   const hs2 = `${crest(ev.strHomeTeamBadge)}${esc(shortTeam(teamAr(ev.strHomeTeam)))}`, as2 = `${esc(shortTeam(teamAr(ev.strAwayTeam)))}${crest(ev.strAwayTeamBadge)}`;
   return `<div class="mblock"><div class="big"><span><span class="${hc}">${hs2}</span>${mid}<span class="${ac}">${as2}</span></span></div>`
-       + `<div class="sub">${x.lg} · ${when}${channelOf(ev) && st !== 'done' ? ' · ' + esc(channelOf(ev)) : ''}</div></div>`;
+       + `<div class="sub">${LG_SHORT[x.lg] || x.lg} · ${when}${channelOf(ev) && st !== 'done' ? ' · ' + esc(channelOf(ev).replace('beIN SPORTS', 'beIN')) : ''}</div></div>`;
 }
 let MATCH_PAGE = 0;
 function renderMatches(turn){
