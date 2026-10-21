@@ -527,6 +527,30 @@
   .bday .o{color:#F1CF8A;font-size:1.05em}
   .p-mid .sub .ord{color:#F1CF8A;white-space:nowrap}
 
+  /* v5: the alerts in one row above the bottom line; the next prayer under the prayer times; a lighter bottom */
+  .stage{grid-template-rows:auto 1fr auto auto}
+  .alerts{margin:0;max-width:none;flex-wrap:nowrap;justify-content:center;overflow:hidden;gap:.7vw;padding:0 0 .2vh;min-height:0}
+  .al{font-size:clamp(12px,.95vw,19px);padding:.32em .9em}
+  .pt-next{margin-top:1vh;text-align:left;white-space:nowrap;font-size:clamp(13px,1.08vw,21px);color:#D8CDB6}
+  .pt-next b{color:#FFE7AE;font-weight:500}
+  .pt-next .cdn{color:#F1CF8A}
+  .pt-next.now b{color:#9FF0C2}
+  .p-prayer{display:none}
+  .bottom{grid-template-columns:1fr 1.5fr}
+  .bottom.fam{grid-template-columns:1fr 1fr 1.35fr;gap:2vw}
+  .bottom.fam .p-mid .sub{font-size:clamp(11px,.88vw,17px)}
+  .p-mid .label{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  /* today's games: shorter names, smaller */
+  .p-match .big,.mrow .big,.mrow:has(.mblock + .mblock) .big{font-size:clamp(15px,1.25vw,26px)}
+  .p-match .sub{font-size:clamp(11px,.82vw,16px)}
+  .mrow .crest{width:.95em;height:.95em}
+  /* a child's stars: the total and the last seven days */
+  .week li.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:.6vw;align-items:end;border-bottom:none;padding:1vh 0 0;height:14vh}
+  .wk span{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:.4vh;height:100%;font-size:.62em;color:#9C9279}
+  .wk i{display:block;width:62%;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#F3D48A,#C99A45);min-height:3px}
+  .wk span.today{color:#FFE7AE} .wk span.today i{box-shadow:0 0 14px rgba(243,212,138,.6)}
+  .wk b{font-weight:500;color:#F1CF8A;font-size:1.15em}
+
   @media (max-aspect-ratio:5/4){
     .top{flex-direction:column-reverse;gap:1.4vh}
     .bottom{grid-template-columns:1fr 1fr}
@@ -559,6 +583,7 @@
       <div class="wxsub"><span id="wx-city">الرياض</span><span class="wxr" id="wx-range"></span></div>
       <div class="rule l"></div>
       <div class="pt" id="pt-strip"></div>
+      <div class="pt-next" id="pt-next"></div>
     </div>
   </header>
 
@@ -569,7 +594,6 @@
         <span class="ampm" id="ck-ap">—</span><span class="d" id="ck-h">--</span><span class="sep">:</span><span class="d" id="ck-m">--</span>
       </div>
       <div class="subline"><span class="chip mode" id="mode"></span><span class="chip city" id="clock-sub">بتوقيت الرياض</span><span class="chip h24"><svg viewBox="0 0 24 24" fill="none" stroke="#D6AF6B" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><b id="ck-24"></b></span></div>
-      <div class="alerts" id="alerts"></div>
     </div>
 
     <div class="week">
@@ -582,6 +606,8 @@
       </div>
     </div>
   </section>
+
+  <div class="alerts" id="alerts"></div>
 
   <footer class="bottom">
     <div class="panel p-prayer">
@@ -922,7 +948,7 @@ function tickPrayer(){
 }
 
 // top left: the day's prayers with sunrise and the middle of the night; the next one (prayer or event) is boxed
-// in gold. The time left to it is in the bottom panel only. Between adhan and iqama the prayer that has come stays boxed.
+// in gold, and under the strip the time left to it. Between adhan and iqama the prayer that has come stays boxed.
 function renderPrayerStrip(mins){
   const strip = document.getElementById('pt-strip');
   if(!strip || !PRAYERS.length) return;
@@ -948,6 +974,17 @@ function renderPrayerStrip(mins){
     const h12 = x.h % 12 === 0 ? 12 : x.h % 12;
     return `<span class="q ${cls}"><span class="n">${x.aux ? x.name : prayerName(x)}</span><span class="t">${ar(h12)}:${ar(pad(x.mi))}<small>${x.h < 12 ? 'ص' : 'م'}</small></span></span>`;
   }).join(''));
+  // under the strip: the boxed one and how long until it; between adhan and iqama, the iqama
+  const nx = document.getElementById('pt-next');
+  if(!nx) return;
+  if(cur){
+    const left = Math.max(60, Math.round((at(cur) + CONFIG.iqama[cur.key] - mins) * 60));
+    nx.className = 'pt-next now';
+    setHTML(nx, `حان الآن <b>${prayerName(cur)}</b> · الإقامة بعد <b>${humanRemaining(left)}</b>`);
+  }else{
+    nx.className = 'pt-next';
+    setHTML(nx, `<b>${lit.aux ? lit.name : prayerName(lit)}</b> بعد <b>${humanRemaining(Math.max(0, Math.round(ahead(lit) * 60)))}</b>`);
+  }
 }
 
 // ---------- alerts under the clock ----------
@@ -1030,6 +1067,9 @@ function renderAlerts(){
   if(!GUEST()) out.push(...bedtimeAlerts(now), ...gameAlerts(now), ...wirdAlerts(), ...reminderAlerts(), ...taskAlerts(), ...seriesAlerts(now));
   out.push(...matchAlerts(now), ...weatherAlerts());
   setHTML(box, out.join(''));
+  // one row: what does not fit waits (the most important ones come first)
+  for(let k = box.children.length; k > 1 && box.scrollWidth > box.clientWidth + 2; k--) box.lastElementChild.remove();
+  box.__h = null;
   renderAdhan(mins);
 }
 // the first 5 minutes after an adhan: a large panel over the card; the iqama countdown stays in the bottom panel
@@ -1309,7 +1349,7 @@ function renderOccasion(x, elL, elD, elS){
     setHTML(elS, '<b>' + esc(x.o.greet) + '</b> · غداً' + (x.ord ? `<span class="ord">${x.ord}</span>` : ''));
     return;
   }
-  setHTML(elD, '<span class="left">متبقي</span> ' + dayWord(x.days));
+  setHTML(elD, '<span class="left">باقي</span> ' + dayWord(x.days));
   setHTML(elS, (x.ord ? `<span class="ord">${x.ord}</span>` : '') + twoDates(x.school ? 'تبدأ' : 'يوافق', x.t));
 }
 // the family's own occasions, in their panel; the next one every 15 s, between the turns of the other panel
@@ -1659,7 +1699,7 @@ const cardOn = k => {
   if(GUEST() && PERSONAL.includes(k)) return false;
   const sc = SCREEN();
   if(sc.id !== 'family' && sc.cards) return sc.cards[k] !== false && (k !== 'stars' || !!sc.kid);
-  if(k === 'stars') return !!sc.kid;
+  if(k === 'stars') return !(DISP().cards && DISP().cards.stars === false);
   return !(DISP().cards && DISP().cards[k] === false);
 };
 // on a person's screen, only their own tasks and reminders; none for guests
@@ -1686,11 +1726,17 @@ function rotateScreens(){
   if(min > 0 && Date.now() - SCREEN_AT >= min * 60000) switchScreen(1);
 }
 // «النجوم»: a child's stars, given on the phone page (and one for each of their tasks marked done)
-function starsSlide(){
-  const sc = SCREEN(), n = Math.max(0, +sc.stars || 0);
-  const row = n ? '⭐'.repeat(Math.min(n, 20)) + (n > 20 ? ' …' : '') : 'ابدأ تجمع نجومك اليوم!';
-  const done = (CTRL.tasks || []).filter(t => t.who === sc.id && t.done).slice(-3).map(t => `<li class="task"><span>✔ ${esc(t.text)}</span></li>`);
-  return {title: `نجوم ${sc.name}`, rows: [`<li class="stars"><span class="n">${ar(n)}</span><span class="row">${row}</span></li>`, ...done]};
+const KIDS = () => ((CTRL.screens || {}).list || []).filter(x => x && x.kid && x.on !== false);
+function starsSlide(kid){
+  const n = Math.max(0, +kid.stars || 0), daily = kid.daily || {};
+  const DAYN = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+  const days = Array.from({length: 7}, (_, i) => { const d = new Date(Date.now() - (6 - i) * 86400000);
+    return {k: IDF('en-CA', {timeZone: CONFIG.timezone}).format(d), wd: new Date(d.toLocaleString('en-US', {timeZone: CONFIG.timezone})).getDay()}; });
+  const max = Math.max(1, ...days.map(d => +daily[d.k] || 0));
+  const week = days.map((d, i) => { const v = +daily[d.k] || 0;
+    return `<span class="${i === 6 ? 'today' : ''}">${v ? `<b>${ar(v)}</b>` : ''}<i style="height:${Math.round(v / max * 70)}%"></i>${i === 6 ? 'اليوم' : DAYN[d.wd]}</span>`; }).join('');
+  return {title: `نجوم ${kid.name}`, rows: [`<li class="stars"><span class="n">⭐ ${ar(n)}</span><span class="row">${(+daily[days[6].k] || 0) ? `اليوم ${ar(+daily[days[6].k])} ⭐` : 'ابدأ تجمع نجوم اليوم!'}</span></li>`,
+    `<li class="wk">${week}</li>`]};
 }
 // guest mode: a welcome on the card, first
 function guestSlide(){
@@ -1915,8 +1961,8 @@ function familyOccasions(t0){
     const greet = ic === 'travel' ? 'رحلة سعيدة' : ic === 'birthday' ? 'كل عام وأنت بخير' : ic === 'grad' ? 'مبروك التخرج' : ic === 'wedding' ? 'بارك الله لهما' : f.yearly ? 'كل عام وأنتم بخير' : 'اليوم';
     // a yearly one with its real first year: which one this is (عيد الميلاد السابع، الذكرى الثانية عشرة)
     const n = f.yearly ? new Date(t).getUTCFullYear() - y : 0;
-    const ord = n < 1 ? '' : ic === 'birthday' ? `عيد الميلاد ${ordinal(n, false)}` : `الذكرى ${ordinal(n, true)}`;
-    const age = n >= 1 && ic === 'birthday' ? yearsWord(n) : '';
+    const ord = n < 1 ? '' : ic === 'birthday' ? `العمر ${ar(n)}` : `الذكرى ${ar(n)}`;
+    const age = '';
     return {o: {name: f.name, greet}, t, label: f.name, ic, ord, age, n, f, days: Math.round((t - t0) / 86400000), family: true};
   }).filter(Boolean);
 }
@@ -2018,6 +2064,14 @@ function buildToday(){
     .sort((a, b) => (gameState(b, now) === 'live') - (gameState(a, now) === 'live') || b.mine - a.mine || a.rank - b.rank || a.t - b.t);
   renderMatches();
 }
+// short names for the bottom row (the full ones are in the followed teams' card)
+const SHORT_TEAM = {'مانشستر يونايتد': 'مان يونايتد', 'مانشستر سيتي': 'مان سيتي', 'توتنهام هوتسبير': 'توتنهام', 'باريس سان جيرمان': 'باريس',
+  'بايرن ميونخ': 'بايرن', 'بوروسيا دورتموند': 'دورتموند', 'أتلتيكو مدريد': 'أتلتيكو', 'نيوكاسل يونايتد': 'نيوكاسل', 'وست هام يونايتد': 'وست هام',
+  'برايتون آند هوف ألبيون': 'برايتون', 'ولفرهامبتون واندررز': 'وولفز', 'نوتنغهام فورست': 'نوتنغهام', 'كريستال بالاس': 'كريستال بالاس',
+  'إنتر ميلان': 'الإنتر', 'إيه سي ميلان': 'ميلان', 'ريال سوسيداد': 'سوسيداد', 'ريال بيتيس': 'بيتيس', 'أتلتيك بلباو': 'بلباو',
+  'سبورتينغ لشبونة': 'سبورتينغ', 'آر بي لايبزيغ': 'لايبزيغ', 'باير ليفركوزن': 'ليفركوزن', 'أولمبيك مارسيليا': 'مارسيليا', 'أولمبيك ليون': 'ليون'};
+const shortTeam = n => { n = String(n || '').replace(/^نادي\s+/, '').trim(); if(SHORT_TEAM[n]) return SHORT_TEAM[n];
+  const w = n.split(/\s+/); return n.length > 13 && w.length > 2 ? w.slice(0, 2).join(' ') : n; };
 function gameState(x, now){
   const ev = x.ev, scored = ev.intHomeScore != null && ev.intAwayScore != null;
   if(FINAL.includes((ev.strStatus || '').toUpperCase()) || (scored && now > x.t + 2.5*3600000)) return 'done';
@@ -2035,7 +2089,8 @@ function todaySlot(x, now){
   const when = st === 'done' ? (scored && hs === as ? 'تعادل' : 'انتهت')
     : st === 'live' ? `<span class="live">مباشر</span>${ev.strProgress && !isNaN(parseInt(ev.strProgress, 10)) ? ' · الدقيقة ' + ar(parseInt(ev.strProgress, 10)) : ''}`
     : fmt12(+p.hour % 24, +p.minute);
-  return `<div class="mblock"><div class="big"><span><span class="${hc}">${homeSide(ev)}</span>${mid}<span class="${ac}">${awaySide(ev)}</span></span></div>`
+  const hs2 = `${crest(ev.strHomeTeamBadge)}${esc(shortTeam(teamAr(ev.strHomeTeam)))}`, as2 = `${esc(shortTeam(teamAr(ev.strAwayTeam)))}${crest(ev.strAwayTeamBadge)}`;
+  return `<div class="mblock"><div class="big"><span><span class="${hc}">${hs2}</span>${mid}<span class="${ac}">${as2}</span></span></div>`
        + `<div class="sub">${x.lg} · ${when}${channelOf(ev) && st !== 'done' ? ' · ' + esc(channelOf(ev)) : ''}</div></div>`;
 }
 let MATCH_PAGE = 0;
@@ -2050,7 +2105,7 @@ function renderMatches(turn){
     else if(!row.querySelector('.mblock')) setHTML(row, '<div class="none-week" style="opacity:.6">جارٍ تحميل المباريات…</div>');
     return;
   }
-  const per = document.querySelector('.bottom.fam') ? 1 : CONFIG.matchesPerPage, pages = Math.ceil(slots.length / per);   // narrower beside the family panel
+  const per = CONFIG.matchesPerPage, pages = Math.ceil(slots.length / per);
   if(turn) MATCH_PAGE++;
   MATCH_PAGE %= pages;
   const html = slots.slice(MATCH_PAGE * per, MATCH_PAGE * per + per).join('');
@@ -2244,7 +2299,7 @@ function bdaySlide(){
   const wish = x.ic === 'birthday' ? `كل عام وأنت بخير يا ${name}` : x.ic === 'anniv' ? 'كل عام وأنتم بخير' : esc(x.o.greet);
   const photo = ph ? `<span class="ph" style="background-image:url('http://127.0.0.1:8765/file/fam-${esc(f.id)}?v=${files['fam-' + f.id].at}')"></span>`
                    : `<span class="ph">${occIcon(x.ic) ? '🎉' : '🎉'}</span>`;
-  const line = [x.ord, x.age && x.age !== x.ord ? x.age : ''].filter(Boolean).join(' · ');
+  const line = x.ord;
   return {title: 'مناسبة اليوم · ' + esc(f.name || ''), rows: [`<li class="bday">${photo}<b>${wish} 🎉</b>${line ? `<span class="o">${line}</span>` : ''}</li>`]};
 }
 function cardSlides(){
@@ -2259,7 +2314,10 @@ function cardSlides(){
   if(HADITH.length && cardOn('hadith')) slides.push(() => hadithOfDay(day));
   if(WISDOM.length && cardOn('wisdom')) slides.push(() => wisdomOfDay(day));
   if(cardOn('tasks') && (myTasks().some(t => !t.done) || todaysReminders().length)) slides.push(() => tasksSlide());
-  if(cardOn('stars')) slides.push(() => starsSlide());
+  if(cardOn('stars')){   // every child's card on the family screen; a child's own on theirs
+    const sc = SCREEN();
+    KIDS().filter(k => sc.id === 'family' || k.id === sc.id).forEach(k => slides.push(() => starsSlide(k)));
+  }
   const bt = nextBedtime();
   if(bt && cardOn('bedtime') && bt.t - Date.now() <= 3*3600000) slides.push(() => bedtimeSlide());
   if(cardOn('series') && seriesItems().length) slides.push(tag('series', () => seriesSlide()));
@@ -2385,7 +2443,7 @@ function homeRows(){
   const strip = PRAYERS.map(x => `<span class="${x === next ? 'on' : ''}"><b>${prayerName(x)}</b>${fmt12(x.h, x.mi)}</span>`).join('');
   const occ = occasionDates()[0];
   const occLine = !occ ? '' : occ.days <= 0 ? `${esc(occ.label)} · ${esc(occ.o.greet)}`
-    : `${esc(occ.label)} · متبقي ${occ.days === 2 ? 'يومين' : ar(occ.days) + (occ.days >= 3 && occ.days <= 10 ? ' أيام' : ' يوم')}`;
+    : `${esc(occ.label)} · باقي ${occ.days === 2 ? 'يومين' : ar(occ.days) + (occ.days >= 3 && occ.days <= 10 ? ' أيام' : ' يوم')}`;
   return [`<li class="hm1"><span>${prayerName(next)} ${fmt12(next.h, next.mi)}</span><small>بعد ${humanRemaining(Math.max(0, Math.round(left*60)))}</small></li>`,
           `<li class="hm2">${strip}</li>`, occLine ? `<li class="hm3">${occLine}</li>` : ''].filter(Boolean);
 }

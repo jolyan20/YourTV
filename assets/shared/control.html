@@ -543,7 +543,17 @@ function addScreen(){
 }
 function delScreen(i){ if(!confirm('حذف شاشة ' + screensList()[i].name + '؟')) return; const l = screensList().slice(); l.splice(i, 1); saveScreens(l); }
 function setCard(i, k, on){ const l = screensList().map(x => Object.assign({}, x)); l[i].cards = Object.assign({}, l[i].cards || {}, {[k]: on}); saveScreens(l, null, true); }
-function setStars(id, n, quiet){ const l = screensList().map(x => x.id === id ? Object.assign({}, x, {stars: Math.max(0, n)}) : x); return saveScreens(l, null, quiet); }
+// the total, and each day's stars (the TV shows the last seven days)
+function setStars(id, n, quiet){
+  const l = screensList().map(x => {
+    if(x.id !== id) return x;
+    const delta = Math.max(0, n) - (+x.stars || 0), daily = Object.assign({}, x.daily || {});
+    daily[today()] = Math.max(0, (+daily[today()] || 0) + delta);
+    for(const d of Object.keys(daily)) if(new Date(d + 'T12:00:00').getTime() < Date.now() - 40*86400000) delete daily[d];
+    return Object.assign({}, x, {stars: Math.max(0, n), daily});
+  });
+  return saveScreens(l, null, quiet);
+}
 function showNow(id){ saveScreens(screensList(), {now: {id, at: Date.now()}}, true).then(() => toast('تظهر الحين على التلفزيون')); }
 function setGuest(on){ save('guest', {on, text: $('guest-text').value.trim()}); }
 // ---- speak: the phone's own dictation ----
