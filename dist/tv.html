@@ -531,8 +531,12 @@
   .stage{grid-template-rows:auto minmax(0,1fr) auto auto}
   /* its own height, always: a scroll box in a grid row would otherwise shrink to nothing */
   .alerts{margin:0;max-width:none;flex-wrap:nowrap;justify-content:center;align-items:center;overflow:hidden;gap:.7vw;padding:0;min-height:calc(clamp(12px,.95vw,19px) * 2.3)}
-  .week{height:40vh}
-  html.qtop .week{height:36vh}
+  /* the height budget: top, card, alerts row, bottom panels, all inside the screen */
+  .stage{padding-bottom:3.4vh;gap:1.3vh}
+  .week{height:34vh}
+  html.qtop .week{height:30vh}
+  .clock{font-size:clamp(110px,min(16vw,26vh),300px)}
+  .bottom{padding-top:1.6vh}
   .al{font-size:clamp(12px,.95vw,19px);padding:.32em .9em}
   .pt-next{margin-top:1vh;text-align:left;white-space:nowrap;font-size:clamp(13px,1.08vw,21px);color:#D8CDB6}
   .pt-next b{color:#FFE7AE;font-weight:500}
@@ -583,8 +587,8 @@
   .mx-r .nm{line-height:1.6em;text-align:center}
   .mx-r .gl{font-size:1.15em;color:#FFE2A6}
   /* an occasion: the icon or logo large at the side; the name, the days left, the age, the dates */
-  .p-mid{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto 1fr;column-gap:1.1vw;row-gap:.4vh;align-items:center;text-align:center}
-  .p-mid .oc-ic{grid-row:1 / span 3;grid-column:1;display:flex;align-items:center;justify-content:center;width:7.4vh;height:100%}
+  .p-mid{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto auto;justify-content:center;align-content:start;column-gap:1.2vw;row-gap:.3vh;align-items:center;text-align:center}
+  .p-mid .oc-ic{grid-row:1 / span 3;grid-column:1;display:flex;align-items:center;justify-content:center;width:8vh;align-self:center}
   .p-mid .oc-ic svg{width:6.4vh;height:6.4vh}
   .p-mid .oc-ic img{width:7.4vh;height:auto;max-height:10vh;object-fit:contain}
   .p-mid .oc-ic .occ-ic{margin:0;height:auto}
