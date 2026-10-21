@@ -1588,7 +1588,10 @@ function familyOccasions(t0){
     let t = Date.UTC(y, m-1, d);
     if(f.yearly){ const ty = new Date(t0).getUTCFullYear(); t = Date.UTC(ty, m-1, d); if(t < t0) t = Date.UTC(ty + 1, m-1, d); }
     if(t < t0) return null;
-    const ic = FAM_IC[f.icon] || 'other';
+    // older entries have no kind: guess it from the name
+    const nm = String(f.name || ''), guess = /ميلاد/.test(nm) ? 'birthday' : /سفر|رحل|طيار/.test(nm) ? 'travel' : /تخرج/.test(nm) ? 'grad'
+      : /زواج|عرس|زفاف|ملكة/.test(nm) ? 'wedding' : /ذكرى/.test(nm) ? 'anniv' : /مستشفى|طبيب|دكتور|عيادة/.test(nm) ? 'health' : /موعد/.test(nm) ? 'appt' : 'other';
+    const ic = FAM_IC[String(f.icon || '').replace(/️/g, '') + (f.icon && /✈/.test(f.icon) ? '️' : '')] || FAM_IC[f.icon] || guess;
     const greet = ic === 'travel' ? 'رحلة سعيدة' : ic === 'birthday' ? 'كل عام وأنت بخير' : ic === 'grad' ? 'مبروك التخرج' : ic === 'wedding' ? 'بارك الله لهما' : f.yearly ? 'كل عام وأنتم بخير' : 'اليوم';
     return {o: {name: f.name, greet}, t, label: f.name, ic, days: Math.round((t - t0) / 86400000), family: true};
   }).filter(Boolean);
