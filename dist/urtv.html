@@ -1434,17 +1434,19 @@ function renderOccasion(x, elL, elD, elS){
 }
 // the family's own occasions, in their panel; the next one every 15 s, between the turns of the other panel
 let FAM_CACHE = {key:'', list:[]}, FAM_K = -1;
-function familyList(){
-  if(GUEST()) return [];
+function familyList(evenForGuests){
+  if(GUEST() && !evenForGuests) return [];
   const key = todayKey() + JSON.stringify(CTRL.family || []);
   if(FAM_CACHE.key !== key){ const p = riyadhParts(); FAM_CACHE = {key, list: familyOccasions(Date.UTC(p.y, p.mo-1, p.d)).sort((a, b) => a.t - b.t)}; }
   return FAM_CACHE.list;
 }
 function tickFamily(){
-  const list = familyList(), bottom = document.querySelector('.bottom'), panel = document.getElementById('p-fam');
+  const list = familyList(true), bottom = document.querySelector('.bottom'), panel = document.getElementById('p-fam');
   if(!bottom || !panel) return;
   bottom.classList.toggle('fam', list.length > 0);
-  if(!list.length){ FAM_K = -1; return; }
+  // guests: the panel keeps its place, empty, so the screen keeps its layout
+  panel.style.visibility = GUEST() ? 'hidden' : '';
+  if(!list.length || GUEST()){ FAM_K = -1; return; }
   const k = Math.floor((Date.now() + OCC_SLIDE_MS / 2) / OCC_SLIDE_MS) % list.length;
   const draw = () => renderOccasion(list[k], document.getElementById('fam-label'), document.getElementById('fam-days'), document.getElementById('fam-sub'));
   if(k !== FAM_K && FAM_K !== -1 && list.length > 1) crossfade(panel, draw); else draw();
