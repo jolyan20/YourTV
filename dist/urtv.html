@@ -301,6 +301,7 @@
   .week li.task.rem.now{color:#F1E6FF;font-weight:500}
   .week li.task.rem.now .dt{color:#C9A0F0}
   .week li.task.rem.past{opacity:.5}
+  html.qtop .week{margin-top:7vh;height:41vh}
   /* sleep mode: the clock and the date only, dimmed */
   html.sleep .markets,html.sleep .week,html.sleep .bottom,html.sleep .alerts,html.sleep #credit,html.sleep .subline{display:none}
   html.sleep .msgbox.on{display:flex}
@@ -1282,6 +1283,9 @@ async function loadControl(){
     CTRL = next;
     if(changed) OCC_CACHE.day = '';   // family occasions changed: recount
     renderMessage(); renderAlerts(); applySleep();
+    // the Quran window at the top centre: the card steps down so its title stays visible
+    const pos = (next.display && next.display.quranPos) || 'tc';
+    document.documentElement.classList.toggle('qtop', !!next.quran && pos === 'tc');
     if(todo && CONFIG.panel === 'verse'){   // just edited on the phone: show the list now
       const k = cardSlides().findIndex(f => /^(مهامي|تذكيراتي)/.test(f().title));
       if(k >= 0){ CARD_TURN = k; renderPanel(false); }
