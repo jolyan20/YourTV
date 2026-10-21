@@ -51,6 +51,13 @@
   #pinbox input{text-align:center;font-size:30px;letter-spacing:.35em}
   .team img{width:28px;height:28px;object-fit:contain}
   .order{display:flex;gap:4px}
+  .gclock{font-size:44px;text-align:center;font-weight:700;direction:ltr;font-variant-numeric:tabular-nums;color:var(--gold);margin:6px 0}
+  .gclock.off{color:var(--dim);font-size:22px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .grid3 button{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:12px 4px;font-size:15px}
+  .bt-row{display:flex;align-items:center;gap:10px;padding:6px 0}
+  .bt-row span{flex:0 0 70px;color:var(--dim)} .bt-row input{flex:1}
+  .show img{width:42px;height:58px;object-fit:cover;border-radius:6px;background:var(--card2)}
   .order button{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:8px;width:32px;height:32px}
 </style>
 </head>
@@ -137,7 +144,7 @@
       <div class="row">
         <div><label>التاريخ</label><input id="fam-date" type="date"></div>
         <div><label>النوع</label>
-          <select id="fam-kind"><option value="🎂|1">🎂 عيد ميلاد</option><option value="💍|1">💍 ذكرى</option><option value="✈️|0">✈️ سفرة</option><option value="📅|0">📅 موعد</option></select></div>
+          <select id="fam-kind"><option value="🎂|1">🎂 عيد ميلاد</option><option value="💍|1">💍 ذكرى زواج</option><option value="✈️|0">✈️ سفرة</option><option value="📅|0">📅 موعد</option><option value="🎓|0">🎓 تخرج</option><option value="💒|0">💒 زواج</option><option value="👶|0">👶 مولود</option><option value="🏥|0">🏥 موعد طبي</option><option value="🏠|0">🏠 انتقال</option><option value="🎉|0">🎉 مناسبة</option></select></div>
       </div>
       <button class="main" onclick="addFamily()">إضافة</button>
     </div>
@@ -173,11 +180,25 @@
         <div><label>الحجم</label><select id="q-size"><option value="s">صغيرة</option><option value="m">متوسطة</option><option value="l">كبيرة</option></select></div>
         <div><label>المكان</label><select id="q-pos"><option value="tc">فوق بالوسط</option><option value="tr">فوق يمين</option><option value="tl">فوق يسار</option><option value="bc">تحت بالوسط</option><option value="br">تحت يمين</option><option value="bl">تحت يسار</option></select></div>
       </div>
+    </div>
+    <div class="card">
+      <h2>🕌 صوت الأذان</h2>
+      <p class="muted">أول تكبيرتين من أذان المسجد الحرام، وقت دخول كل صلاة (والشاشة شغالة).</p>
+      <div class="switch"><span>تشغيل صوت الأذان</span><input id="adhan-on" type="checkbox"></div>
+      <div class="switch"><span>مع صلاة الفجر</span><input id="adhan-fajr" type="checkbox"></div>
       <button class="main" onclick="saveDisplay()">حفظ إعدادات الشاشة</button>
     </div>
   </section>
 
   <section id="s-sleep">
+    <div class="card">
+      <h2>🛏️ وقت النوم</h2>
+      <p class="muted">حدد وقت النوم لكل يوم. قبلها بساعة يظهر عد تنازلي على الشاشة، وقبلها بـ٣ ساعات تظهر بطاقة «وقت النوم».</p>
+      <div id="bt-days"></div>
+      <div class="row" style="margin-top:6px"><input id="bt-all" type="time" value="22:00"><button class="ghost" style="flex:0 0 auto" onclick="btAll()">نفس الوقت لكل الأيام</button></div>
+      <div class="switch"><span>تفعيل وقت النوم</span><input id="bt-on" type="checkbox" checked></div>
+      <button class="main" onclick="saveBedtime()">حفظ وقت النوم</button>
+    </div>
     <div class="card">
       <h2>🌙 وضع النوم</h2>
       <p class="muted">الساعة والتاريخ بس، بإضاءة خفيفة.</p>
@@ -190,15 +211,39 @@
       <button class="main" onclick="saveSleep()">حفظ</button>
     </div>
   </section>
+  <section id="s-game">
+    <div class="card">
+      <h2>🎮 وقت اللعب</h2>
+      <div class="gclock" id="g-clock">—</div>
+      <p class="muted" id="g-note"></p>
+      <div class="grid3">
+        <button onclick="startGame(30)">٣٠ دقيقة</button><button onclick="startGame(60)">ساعة</button><button onclick="startGame(90)">ساعة ونص</button>
+        <button onclick="startGame(120)">ساعتين</button><button onclick="addGame(15)">+١٥ دقيقة</button><button onclick="stopGame()">إيقاف</button>
+      </div>
+      <div class="switch" style="margin-top:10px"><span>لما ينتهي الوقت يرجع التلفزيون للشاشة الرئيسية</span><input id="g-home" type="checkbox" checked></div>
+      <p class="muted">يظهر عد تنازلي صغير في زاوية الشاشة فوق البلايستيشن، ويصير برتقالي آخر ٥ دقائق، وبالنهاية تظهر «انتهى وقت اللعب».</p>
+    </div>
+  </section>
+
+  <section id="s-series">
+    <div class="card">
+      <h2>🎬 مسلسلاتي</h2>
+      <p class="muted">تظهر على الشاشة الحلقة القادمة وموعدها والعد التنازلي، وإذا نزلت حلقة جديدة يطلع تنبيه.</p>
+      <ul id="series-list"></ul>
+      <label>أضف مسلسل (بالإنجليزي غالباً، مثل Severance أو The Last of Us)</label>
+      <div class="row"><input id="series-q" enterkeyhint="search"><button class="ghost" style="flex:0 0 auto" onclick="searchSeries()">بحث</button></div>
+      <ul id="series-results"></ul>
+    </div>
+  </section>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const TABS = [['home','🏠 الرئيسية'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات'],['screen','🖥️ الشاشة'],['sleep','🌙 النوم']];
+const TABS = [['home','🏠 الرئيسية'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات'],['game','🎮 اللعب'],['series','🎬 مسلسلاتي'],['sleep','🌙 النوم'],['screen','🖥️ الشاشة']];
 const DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const PRESETS = ['العشاء جاهز 🍽️','الغداء جاهز','حياكم الله 🌹','وقت النوم 🌙','لا تنسون أغراضكم'];
-const CARDS = [['adhkar','أذكار الصباح والمساء'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['tasks','مهامي وتذكيراتي'],['weather','الطقس'],['matches','مباريات فرقك']];
+const CARDS = [['adhkar','أذكار الصباح والمساء'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['tasks','مهامي وتذكيراتي'],['bedtime','وقت النوم'],['series','مسلسلاتي'],['weather','الطقس'],['matches','مباريات فرقك']];
 // the PIN is sent once; the TV answers with a session key (30 days), kept on this phone instead of the PIN
 let KEY = localStorage.getItem('tvkey') || '', STATE = {}, PREFS = null;
 const $ = id => document.getElementById(id);
@@ -282,6 +327,52 @@ function render(){
   $('cards').innerHTML = CARDS.map(([k, t]) => `<div class="switch"><span>${t}</span><input type="checkbox" data-card="${k}" ${cards[k] === false ? '' : 'checked'}></div>`).join('');
   $('card-sec').value = String(d.cardSec || 30); $('photo-min').value = String(d.photoMin || 30);
   $('q-size').value = d.quranSize || 's'; $('q-pos').value = d.quranPos || 'tc';
+  $('adhan-on').checked = d.adhanSound !== false; $('adhan-fajr').checked = d.adhanFajr !== false;
+  const bt = STATE.bedtime || {}, times = bt.times || [];
+  if(!$('bt-days').dataset.done){
+    $('bt-days').innerHTML = DAYS.map((n, i) => `<div class="bt-row"><span>${n}</span><input type="time" data-bt="${i}"></div>`).join('');
+    $('bt-days').dataset.done = 1;
+  }
+  document.querySelectorAll('[data-bt]').forEach(x => { if(document.activeElement !== x) x.value = times[+x.dataset.bt] || ''; });
+  $('bt-on').checked = bt.on !== false;
+  const ser = STATE.series || [];
+  $('series-list').innerHTML = ser.length ? ser.map((x, i) => `<li class="show">${x.img ? `<img src="${esc(x.img)}" alt="">` : ''}<span class="t">${esc(x.name)}<small>${esc(x.net || '')} ${esc(x.year || '')}</small></span>
+      <button class="x" onclick="delItem('series', ${i})" aria-label="حذف">×</button></li>`).join('') : '<li class="muted">ما فيه مسلسلات</li>';
+  renderGame();
+}
+// game time: the countdown here follows the TV's
+function renderGame(){
+  const g = STATE.game || {}, left = (g.until || 0) - Date.now();
+  if(left > 0){
+    const t = Math.ceil(left / 1000), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), x = t % 60;
+    $('g-clock').className = 'gclock'; $('g-clock').textContent = (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0');
+    $('g-note').textContent = 'ينتهي ' + new Date(g.until).toLocaleTimeString('ar-SA', {hour:'numeric', minute:'2-digit'});
+  }else{ $('g-clock').className = 'gclock off'; $('g-clock').textContent = 'ما فيه وقت لعب شغّال'; $('g-note').textContent = ''; }
+  if(g.home !== undefined && document.activeElement !== $('g-home')) $('g-home').checked = g.home !== false;
+}
+setInterval(() => { if(!$('app').hidden) renderGame(); }, 1000);
+function startGame(min){ save('game', {until: Date.now() + min*60000, minutes: min, home: $('g-home').checked, at: Date.now()}, true).then(() => toast('بدأ وقت اللعب: ' + min + ' دقيقة')); }
+function addGame(min){ const g = STATE.game || {}; if(!(g.until > Date.now())) return startGame(min); save('game', Object.assign({}, g, {until: g.until + min*60000}), true).then(() => toast('تمت إضافة ' + min + ' دقيقة')); }
+function stopGame(){ save('game', {until: 0, at: Date.now()}, true).then(() => toast('تم إيقاف وقت اللعب')); }
+function btAll(){ document.querySelectorAll('[data-bt]').forEach(x => x.value = $('bt-all').value); }
+function saveBedtime(){ const times = [...document.querySelectorAll('[data-bt]')].sort((a, b) => a.dataset.bt - b.dataset.bt).map(x => x.value || ''); save('bedtime', {on: $('bt-on').checked, times}); }
+async function searchSeries(){
+  const q = $('series-q').value.trim(); if(q.length < 2) return;
+  $('series-results').innerHTML = '<li class="muted">جاري البحث…</li>';
+  try{
+    const r = await api('/api/shows?q=' + encodeURIComponent(q));
+    $('series-results').innerHTML = r.length ? r.map((x, i) => `<li class="show">${x.img ? `<img src="${esc(x.img)}" alt="">` : ''}<span class="t">${esc(x.name)}<small>${esc(x.net)} · ${esc(x.year)}${x.status === 'Ended' ? ' · انتهى' : ''}</small></span>
+        <button class="ghost small" data-i="${i}">إضافة</button></li>`).join('') : '<li class="muted">ما لقيت شي، جرّب اسم ثاني</li>';
+    $('series-results').onclick = e => { const i = e.target.dataset.i; if(i == null) return; addSeries(r[+i]); };
+  }catch(e){ if(e.message !== 'pin') $('series-results').innerHTML = '<li class="muted">تعذر البحث</li>'; }
+}
+$('series-q').addEventListener('keydown', e => { if(e.key === 'Enter') searchSeries(); });
+function addSeries(x){
+  const list = STATE.series || [];
+  if(list.some(s => s.id === x.id)) return toast('المسلسل موجود');
+  if(list.length >= 12) return toast('الحد ١٢ مسلسل', true);
+  save('series', [...list, {id: x.id, name: x.name, net: x.net, year: x.year, img: x.img}]);
+  $('series-results').innerHTML = ''; $('series-q').value = '';
 }
 function nextFamily(){
   const t0 = new Date(today() + 'T00:00:00').getTime();
@@ -333,7 +424,8 @@ function addFamily(){
 function saveSleep(){ save('sleep', {from: $('sleep-from').value || '00:00', to: $('sleep-to').value || '', off: $('sleep-off').checked}); }
 function saveDisplay(){
   const cards = {}; document.querySelectorAll('[data-card]').forEach(x => cards[x.dataset.card] = x.checked);
-  save('display', {cards, cardSec: +$('card-sec').value, photoMin: +$('photo-min').value, quranSize: $('q-size').value, quranPos: $('q-pos').value});
+  save('display', {cards, cardSec: +$('card-sec').value, photoMin: +$('photo-min').value, quranSize: $('q-size').value, quranPos: $('q-pos').value,
+    adhanSound: $('adhan-on').checked, adhanFajr: $('adhan-fajr').checked});
 }
 
 // the screensaver's own settings: city and teams

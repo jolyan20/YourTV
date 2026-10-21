@@ -18,6 +18,10 @@ import android.os.Looper;
 public class ControlService extends Service {
     private static final String CHANNEL = "control";
     private ControlServer server;
+    private GameOverlay game;
+    private final android.content.SharedPreferences.OnSharedPreferenceChangeListener gameChanged = (p, key) -> {
+        if ("game".equals(key) && game != null) game.update();
+    };
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     // Android stops Tailscale now and then and the link from outside home goes dead: ask it to connect again
@@ -60,6 +64,9 @@ public class ControlService extends Service {
         server = new ControlServer(this);
         server.start();
         handler.postDelayed(tailscale, 20_000);
+        game = new GameOverlay(this);
+        ControlStore.prefs(this).registerOnSharedPreferenceChangeListener(gameChanged);
+        game.update();
     }
 
     @Override
@@ -68,6 +75,8 @@ public class ControlService extends Service {
     @Override
     public void onDestroy() {
         handler.removeCallbacks(tailscale);
+        ControlStore.prefs(this).unregisterOnSharedPreferenceChangeListener(gameChanged);
+        if (game != null) game.stop();
         if (server != null) server.stop();
         super.onDestroy();
     }

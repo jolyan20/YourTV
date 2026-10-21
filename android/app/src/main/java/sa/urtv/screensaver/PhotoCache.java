@@ -19,7 +19,7 @@ import java.util.Comparator;
 final class PhotoCache {
     static final String REPO = "https://raw.githubusercontent.com/jolyan20/YourTV/master/";
     private static final String BUNDLED = REPO + "assets/backgrounds/", HOSTED = REPO + "photos/",
-        FONTS = REPO + "assets/fonts/";
+        FONTS = REPO + "assets/fonts/", AUDIO = REPO + "assets/audio/";
     private static final int KEEP = 12;   // the 5-photo set plus room for the next one
 
     private PhotoCache() {}
@@ -34,6 +34,13 @@ final class PhotoCache {
                 java.util.Map<String, String> h = new java.util.HashMap<>();
                 h.put("Access-Control-Allow-Origin", "*");
                 return new WebResourceResponse("font/woff2", null, 200, "OK", h, c.getAssets().open("fonts/" + name));
+            }
+            if (url.startsWith(AUDIO)) {   // the adhan's takbirs, from the APK
+                String name = url.substring(AUDIO.length());
+                if (!name.matches("[a-z0-9-]+\\.ogg")) return null;
+                java.util.Map<String, String> h = new java.util.HashMap<>();
+                h.put("Access-Control-Allow-Origin", "*");
+                return new WebResourceResponse("audio/ogg", null, 200, "OK", h, c.getAssets().open("audio/" + name));
             }
             if (url.startsWith(BUNDLED)) {
                 String name = safeName(url.substring(BUNDLED.length()));

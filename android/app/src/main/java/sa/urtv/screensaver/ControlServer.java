@@ -137,6 +137,10 @@ final class ControlServer implements Runnable {
                 String q = query.startsWith("q=") ? java.net.URLDecoder.decode(query.substring(2), "UTF-8") : "";
                 reply(s, 200, "application/json; charset=utf-8", ControlPrefs.searchTeams(app, q).toString(), false); return;
             }
+            if ("GET".equals(method) && "/api/shows".equals(path)) {
+                String q = query.startsWith("q=") ? java.net.URLDecoder.decode(query.substring(2), "UTF-8") : "";
+                reply(s, 200, "application/json; charset=utf-8", ControlPrefs.searchShows(q).toString(), false); return;
+            }
             if ("POST".equals(method) && "/api/prefs".equals(path)) {
                 String err = ControlPrefs.apply(app, new JSONObject(new String(body, StandardCharsets.UTF_8)));
                 reply(s, err == null ? 200 : 400, "application/json", err == null ? "{\"ok\":true}" : "{\"error\":\"" + err + "\"}", false); return;

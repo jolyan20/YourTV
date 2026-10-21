@@ -121,4 +121,35 @@ final class ControlPrefs {
         }
         return out;
     }
+
+    /** series for «مسلسلاتي»: TVmaze's search, from the TV */
+    static JSONArray searchShows(String q) throws Exception {
+        q = q == null ? "" : q.trim();
+        if (q.length() < 2 || q.length() > 60) return new JSONArray();
+        HttpURLConnection con = (HttpURLConnection) new URL("https://api.tvmaze.com/search/shows?q="
+            + URLEncoder.encode(q, "UTF-8")).openConnection();
+        con.setConnectTimeout(10000);
+        con.setReadTimeout(15000);
+        JSONArray out = new JSONArray();
+        try (InputStream in = con.getInputStream()) {
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0 && b.size() < 2_000_000) b.write(buf, 0, n);
+            JSONArray hits = new JSONArray(b.toString("UTF-8"));
+            for (int i = 0; i < hits.length() && out.length() < 10; i++) {
+                JSONObject sh = hits.getJSONObject(i).optJSONObject("show");
+                if (sh == null) continue;
+                JSONObject net = sh.optJSONObject("network"), web = sh.optJSONObject("webChannel"), img = sh.optJSONObject("image");
+                out.put(new JSONObject().put("id", sh.optInt("id")).put("name", sh.optString("name"))
+                    .put("year", sh.optString("premiered", "").length() >= 4 ? sh.optString("premiered").substring(0, 4) : "")
+                    .put("net", net != null ? net.optString("name") : web != null ? web.optString("name") : "")
+                    .put("status", sh.optString("status")).put("lang", sh.optString("language"))
+                    .put("img", img != null ? img.optString("medium") : ""));
+            }
+        } finally {
+            con.disconnect();
+        }
+        return out;
+    }
 }

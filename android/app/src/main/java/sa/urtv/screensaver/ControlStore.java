@@ -24,7 +24,7 @@ import java.util.Iterator;
  */
 final class ControlStore {
     static final int PORT = 8765;
-    static final String[] SECTIONS = {"message", "tasks", "reminders", "family", "sleep", "display"};
+    static final String[] SECTIONS = {"message", "tasks", "reminders", "family", "sleep", "display", "series", "bedtime", "game"};
     static final String KEY_QURAN = "quran";
     private static final String FILE = "control";
     private static final long SESSION_MS = 30L * 24 * 3600 * 1000;

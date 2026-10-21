@@ -32,6 +32,7 @@ final class ScreenView {
         WebSettings s = w.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
+        s.setMediaPlaybackRequiresUserGesture(false);   // the adhan's takbirs play by themselves
         s.setAllowFileAccess(true);
         // lets the page call Yahoo and other APIs directly, without a CORS gateway
         s.setAllowFileAccessFromFileURLs(true);
