@@ -35,7 +35,7 @@ def tracked(*globs):
 before = {n: (ROOT / "dist" / n).read_bytes() for n in ("urtv.html", "tv.html") if (ROOT / "dist" / n).is_file()}
 r = subprocess.run([sys.executable, "src/build.py"], cwd=ROOT, capture_output=True, text=True)
 check("src/build.py runs", r.returncode == 0, r.stderr[-400:])
-for page, limit in (("urtv.html", 4_000_000), ("tv.html", 300_000)):
+for page, limit in (("urtv.html", 4_000_000), ("tv.html", 450_000)):   # YourTV: adhkar, مختارات, alerts, fixtures
     html = (ROOT / "dist" / page).read_text(encoding="utf-8")
     left = sorted(set(re.findall(r"__[A-Z][A-Z_]+__", html)))
     check(f"{page}: every build token replaced", not left, left)
@@ -150,9 +150,11 @@ for f in tracked("*.sh"):
 # ---- nothing private or secret in the repo
 texts = [f for f in tracked() if f.suffix in {".md", ".py", ".sh", ".java", ".xml", ".json", ".yml", ".html", ".txt", ".gradle"}]
 ip = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
-allowed_ip = {"0.0.0.0", "127.0.0.1"}
+allowed_ip = {"0.0.0.0", "127.0.0.1", "100.64.0.0"}   # 100.64.0.0/10: the Tailscale range, not an address
 # the network check and its simulation hold only address ranges and made-up addresses, never someone's network
 network_code = {ROOT / "optimize/find-tv.py", ROOT / "tests/find_tv_test.py"}
+phone_page_code = {ROOT / "android/app/src/main/java/sa/urtv/screensaver" / f
+                   for f in ("ControlServer.java", "ControlStore.java", "SaverReceiver.java", "SettingsActivity.java")}
 found = []
 for f in texts:
     if f.name.endswith(".html") or f.parent.name == "photos" or f == Path(__file__).resolve():   # not this scan
@@ -168,7 +170,9 @@ for f in texts:
               and not m.startswith(("192.0.2.", "198.51.100.", "203.0.113."))]   # reserved for examples
     if re.search(r"(?i)(client-id|access_key|api_key)\s*[:=]\s*['\"][A-Za-z0-9_-]{20,}", s):
         found.append(f"{f.relative_to(ROOT)}: looks like a key")
-    if re.search(r"(?i)tailscale|\.ts\.net", s):
+    # the phone page's server names Tailscale as a product (it accepts its address range); a tailnet's own
+    # name (*.ts.net) is still private everywhere
+    if re.search(r"(?i)\.ts\.net", s) or (re.search(r"(?i)tailscale", s) and f not in phone_page_code):
         found.append(f"{f.relative_to(ROOT)}: tailscale")
 check("no private IPs, keys or network names", not found, found[:10])
 
