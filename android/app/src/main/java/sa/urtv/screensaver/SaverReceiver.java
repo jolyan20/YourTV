@@ -50,7 +50,7 @@ public class SaverReceiver extends BroadcastReceiver {
                 }).start();
                 return;
             }
-            case "sa.urtv.screensaver.SYNC": {   // --es key <32+ characters> --es peers 192.168.1.5,100.x.y.z
+            case "sa.urtv.screensaver.SYNC": {   // --es key <32+ characters> --es peers <the other TVs' addresses, comma separated>
                 String k = i.getStringExtra("key"), peers = i.getStringExtra("peers");
                 if (k == null || !k.matches("[A-Za-z0-9]{32,128}") || peers == null || !peers.matches("[0-9.,]{7,200}")) {
                     setResultData("error: --es key (32+ letters and digits) and --es peers (addresses, comma separated)");
