@@ -43,6 +43,9 @@ final class WeatherWatch {
 
     void stop() { handler.removeCallbacks(check); }
 
+    /** a test from the computer: the notice, now */
+    void test() { handler.post(() -> show("غبار كثيف (اختبار)", 3)); }
+
     private void look() {
         try {
             String[] city = new Prefs(c).city();

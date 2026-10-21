@@ -117,7 +117,8 @@ final class ControlStore {
             }
             o.put(KEY_QURAN, p.getBoolean(KEY_QURAN, false));
             o.put("gameAsk", p.getLong("gameAsk", 0));   // the PlayStation was locked and someone asked
-            o.put("gameUsed", p.getString("gameUsed", ""));   // today's minutes on the PlayStation: "date:seconds"
+            o.put("gameUsed", p.getString("gameUsed", ""));
+            try { o.put("selftest", new JSONObject(p.getString("selftest", "{}"))); } catch (Exception ignored) { }   // today's minutes on the PlayStation: "date:seconds"
             o.put("files", Uploads.list(c));   // the household's own files: the adhan, birthday photos
         } catch (Exception ignored) { }
         return o;

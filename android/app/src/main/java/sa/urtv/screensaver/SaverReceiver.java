@@ -60,6 +60,17 @@ public class SaverReceiver extends BroadcastReceiver {
                 setResultData("sync: " + peers);
                 return;
             }
+            case "sa.urtv.screensaver.TEST": {   // --es what whistle|chime|soft|kickoff|hour|adhan|weather|friday|series|overlay
+                String what = String.valueOf(i.getStringExtra("what"));
+                if (!what.matches("[a-z]{3,12}")) { setResultData("error: --es what"); return; }
+                if ("overlay".equals(what)) new WeatherWatch(c).test();   // the notice over other apps
+                else try {
+                    ControlStore.prefs(c).edit().putString("selftest", new org.json.JSONObject().put("what", what)
+                        .put("at", System.currentTimeMillis()).toString()).apply();
+                } catch (Exception ignored) { }
+                setResultData("test: " + what);
+                return;
+            }
             case "sa.urtv.screensaver.SET":
                 setResultData(set(c, p, i));
                 return;

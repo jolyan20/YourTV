@@ -1743,6 +1743,8 @@ async function loadControl(){
     const nowAsk = (next.screens || {}).now, oldAsk = (CTRL.screens || {}).now;
     const guestWas = GUEST();
     CTRL = next;
+    const t = next.selftest;   // a test sent from the computer (SaverReceiver TEST)
+    if(t && t.at && t.at !== SELFTEST_AT && Date.now() - t.at < 60000){ SELFTEST_AT = t.at; runSelfTest(t.what); }
     // «اعرض الحين» on the phone: that screen at once
     if(nowAsk && nowAsk.at && (!oldAsk || oldAsk.at !== nowAsk.at) && Date.now() - nowAsk.at < 60000){
       const k = SCREENS().findIndex(x => x.id === nowAsk.id);
@@ -1761,6 +1763,38 @@ async function loadControl(){
       if(k >= 0){ CARD_TURN = k; renderPanel(false); }
     }
   }catch(e){}   // a browser, or the app without the server: nothing to read
+}
+// ---- tests from the computer: each thing that waits for its moment, now ----
+let SELFTEST_AT = 0, TEST_SERIES = [];
+function runSelfTest(what){
+  const id = CONFIG.teamIds[0] || '0';
+  const fake = ms => ({idEvent: 'selftest' + what, idLeague: '4668', idHomeTeam: id, strHomeTeam: 'Al-Hilal', strAwayTeam: 'Al-Nassr',
+    strLeague: 'Saudi Pro League', strTimestamp: new Date(Date.now() + ms).toISOString()});
+  const tryEv = (ev, back) => { TEAM_FIX = TEAM_FIX.filter(e => !/^selftest/.test(e.idEvent)).concat(ev);
+    for(const k in KICK_SHOWN) if(/^selftest/.test(k)) delete KICK_SHOWN[k];
+    matchMoments(); renderAlerts();
+    setTimeout(() => { TEAM_FIX = TEAM_FIX.filter(e => !/^selftest/.test(e.idEvent)); matchMoments(); renderAlerts(); }, back); };
+  if(what === 'whistle') whistle();
+  else if(what === 'chime') chime();
+  else if(what === 'soft') softChime();
+  else if(what === 'kickoff') tryEv(fake(-20000), 60000);
+  else if(what === 'hour') tryEv(fake(59.5 * 60000), 60000);
+  else if(what === 'adhan'){
+    const el = document.getElementById('adhan');
+    setHTML(el, '<div class="a1">اختبار · حان الآن وقت</div><div class="a2">صلاة العصر</div><div class="a3">أذان المسجد الحرام</div>'); el.classList.add('on');
+    fetch('http://127.0.0.1:8765/api/adhan', {method: 'POST', body: JSON.stringify({id: ADHAN_VIDEO.main, start: 0, end: 40})}).catch(() => {});
+  }
+  else if(what === 'weather'){ DUST_PM = 450; renderAlerts(); setTimeout(() => { DUST_PM = 0; renderAlerts(); }, 60000); }
+  else if(what === 'friday'){
+    const set = on => fetch('http://127.0.0.1:8765/api/autoquran', {method: 'POST', body: JSON.stringify({on})}).catch(() => {});
+    set(true); setTimeout(() => set(false), 45000);
+  }
+  else if(what === 'series'){
+    TEST_SERIES = [{src: 'test', id: '1'}];
+    SERIES.test1 = {name: 'مسلسل تجريبي', poster: '', kind: 'مسلسل', prev: {t: Date.now() - 60000, code: 'م١ ح٣'}, next: {t: Date.now() + 2*86400000, code: 'م١ ح٤', dateOnly: true}};
+    renderAlerts(); const k = cardSlides().findIndex(f => /مسلسلاتي/.test(f().title)); if(k >= 0){ CARD_TURN = k; renderPanel(false); }
+    setTimeout(() => { TEST_SERIES = []; delete SERIES.test1; renderAlerts(); }, 60000);
+  }
 }
 // the phone page's screen options, with their defaults
 const DISP = () => (typeof CTRL !== 'undefined' && CTRL.display) || {};
@@ -1981,7 +2015,7 @@ async function loadSeries(force){
 }
 function seriesItems(){
   const now = Date.now();
-  return (CTRL.series || []).map(x => SERIES[(x.src || 'tvm') + x.id]).filter(Boolean).map(it => {
+  return [...(CTRL.series || []), ...TEST_SERIES].map(x => SERIES[(x.src || 'tvm') + x.id]).filter(Boolean).map(it => {
     const tp = it.prev && it.prev.t, tn = it.next && it.next.t;
     return Object.assign({}, it, {tp, tn, fresh: !!tp && tp <= now && now - tp < 3*86400000});
   }).sort((a, b) => (b.fresh - a.fresh) || ((a.tn || 9e15) - (b.tn || 9e15)));
