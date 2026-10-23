@@ -190,3 +190,13 @@ From the [Saudi Photos Hub](https://cc.spa.gov.sa) of the Saudi Press Agency (و
 | `photos/spa-101255.jpg` | الواجهة البحرية لمحافظة جدة | [واس](https://cc.spa.gov.sa/ar/news/101253) |
 | `photos/spa-88636.jpg` | شواطئ جازان جنوب غربي المملكة العربية السعودية | [واس](https://cc.spa.gov.sa/ar/news/88634) |
 | `photos/spa-86469.jpg` | الغيوم والضباب وقت غروب الشمس في منطقة عسير | [واس](https://cc.spa.gov.sa/ar/news/86467) |
+| `photos/spa-81631.jpg` | البيوت الحجرية في الباحة | [واس](https://cc.spa.gov.sa/ar/news/81628) |
+| `photos/spa-28744.jpg` | خيام بالقرب من جبال أجا وسلمى في حائل | [واس](https://cc.spa.gov.sa/ar/news/28742) |
+| `photos/spa-79350.jpg` | "قصر العان" بوادي نجران | [واس](https://cc.spa.gov.sa/ar/news/79348) |
+| `photos/spa-28071.jpg` | السحب تغطي جبال الهدا بالطائف | [واس](https://cc.spa.gov.sa/ar/news/28068) |
+| `photos/spa-80165.jpg` | البيوت القديمة في العلا | [واس](https://cc.spa.gov.sa/ar/news/80163) |
+| `photos/spa-86477.jpg` | قلاع وحصون على سفوح جبال منطقة جازان | [واس](https://cc.spa.gov.sa/ar/news/86475) |
+| `photos/spa-86464.jpg` | الضباب يغطي منطقة عسير | [واس](https://cc.spa.gov.sa/ar/news/86462) |
+| `photos/spa-76262.jpg` | الضباب يغطي سفوح جبال الباحة | [واس](https://cc.spa.gov.sa/ar/news/76260) |
+| `photos/spa-28740.jpg` | غطاء نباتي بالقرب من جبال أجا وسلمى في حائل | [واس](https://cc.spa.gov.sa/ar/news/28738) |
+| `photos/spa-58139.jpg` | قرية "آل منجم" التراثية بمنطقة نجران | [واس](https://cc.spa.gov.sa/ar/news/58137) |
