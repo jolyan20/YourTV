@@ -140,3 +140,10 @@ if [ "$what" = launcher ] || [ "$what" = all ]; then
     exit 1
   fi
 fi
+
+# After BOTH replacement apps are installed and verified, hide any obsolete app identities.
+# This step is reversible and preserves their private data. Permanent cleanup remains gated
+# on verifying that the new app actually contains the household's old information.
+if [ "$what" = all ]; then
+  bash optimize/cleanup-old-versions.sh archive
+fi
