@@ -226,7 +226,11 @@
       </div>
     </div>
     <div class="card">
-      <h2>📺 نافذة قناة القرآن</h2>
+      <h2>📐 مقاسات شاشة التلفزيون</h2>
+      <p class="muted">الوضع التلقائي يضبط العناصر ضمن مساحة الشاشة. إذا كانت الحواف مقصوصة، اختر ٩٠٪ أو ٨٥٪.</p>
+      <label>حجم المحتوى</label>
+      <select id="layout-scale"><option value="auto">تلقائي (موصى به)</option><option value="100">١٠٠٪</option><option value="95">٩٥٪</option><option value="90">٩٠٪</option><option value="85">٨٥٪</option></select>
+      <h2 style="margin-top:16px">📺 نافذة قناة القرآن</h2>
       <div class="row">
         <div><label>الحجم</label><select id="q-size"><option value="s">صغيرة</option><option value="m">متوسطة</option><option value="l">كبيرة</option></select></div>
         <div><label>المكان</label><select id="q-pos"><option value="tc">فوق بالوسط</option><option value="tr">فوق يمين</option><option value="tl">فوق يسار</option><option value="bc">تحت بالوسط</option><option value="br">تحت يمين</option><option value="bl">تحت يسار</option></select></div>
@@ -423,7 +427,7 @@ async function chooseDevice(id){
 }
 async function pairDevice(){
   const ip = $('device-ip').value.trim(), pin = $('device-pin').value.trim(), name = $('device-name').value.trim();
-  if(!/^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$/.test(ip) || !/^[0-9]{6}$/.test(pin))
+  if(!/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(ip) || !/^[0-9]{6}$/.test(pin))
     return toast('تأكد من عنوان IP والرمز السري', true);
   try{
     const r = await fetch('/api/pair', {method:'POST',headers:{'X-Key':KEY,'Content-Type':'application/json'},
@@ -520,6 +524,7 @@ function render(){
   const d = STATE.display || {}, cards = d.cards || {};
   $('cards').innerHTML = CARDS.map(([k, t]) => `<div class="switch"><span>${t}</span><input type="checkbox" data-card="${k}" ${cards[k] === false ? '' : 'checked'}></div>`).join('');
   $('card-sec').value = String(d.cardSec || 30); $('photo-min').value = String(d.photoMin || 30);
+  $('layout-scale').value = d.layoutScale == null ? 'auto' : String(d.layoutScale);
   $('q-size').value = d.quranSize || 's'; $('q-pos').value = d.quranPos || 'tc';
   const am = m => ['full', 'takbir', 'off'].includes(m) ? m : null;
   $('adhan-mode').value = d.adhanSound === false ? 'off' : am(d.adhanMode) || 'full';
@@ -798,7 +803,7 @@ function addFamily(){
 function saveSleep(){ save('sleep', {from: $('sleep-from').value || '00:00', to: $('sleep-to').value || '', off: $('sleep-off').checked}); }
 function saveDisplay(){
   const cards = {}; document.querySelectorAll('[data-card]').forEach(x => cards[x.dataset.card] = x.checked);
-  save('display', {cards, cardSec: +$('card-sec').value, photoMin: +$('photo-min').value, quranSize: $('q-size').value, quranPos: $('q-pos').value,
+  save('display', {...(STATE.display || {}), cards, layoutScale: $('layout-scale').value, cardSec: +$('card-sec').value, photoMin: +$('photo-min').value, quranSize: $('q-size').value, quranPos: $('q-pos').value,
     adhanMode: $('adhan-mode').value, adhanFajrMode: $('adhan-fajr-mode').value, autoQuran: $('auto-quran').checked, matchSound: $('match-sound').checked,
     whistle: $('whistle').value, taskSound: $('task-sound').checked, startOnPower: $('start-power').checked});
 }
