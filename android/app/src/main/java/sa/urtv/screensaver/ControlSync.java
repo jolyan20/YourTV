@@ -23,7 +23,7 @@ import java.security.MessageDigest;
  * The TVs prove themselves to each other with a shared random key; the phone's PIN is not involved.
  */
 final class ControlSync {
-    static final String[] SECTIONS = {"tasks", "reminders", "family", "sleep", "display", "series", "bedtime", "wird", "screens", "tmdb"};
+    static final String[] SECTIONS = {"tasks", "reminders", "family", "sleep", "series", "bedtime", "wird", "tmdb"};
 
     private ControlSync() {}
 
