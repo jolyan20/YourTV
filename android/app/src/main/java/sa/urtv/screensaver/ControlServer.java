@@ -213,7 +213,7 @@ final class ControlServer implements Runnable {
                 try {
                     byte[] result = ControlSync.remote(app, host, target, method, body, get(h, "content-type", "application/json"));
                     if (result.length > 2_000_000) throw new Exception("too large");
-                    replyBytes(s, "application/json; charset=utf-8", result);
+                    reply(s, 200, "application/json; charset=utf-8", new String(result, StandardCharsets.UTF_8), false);
                 } catch (Exception ex) {
                     reply(s, 502, "application/json", "{\"error\":\"device offline or not paired\"}", false);
                 }
