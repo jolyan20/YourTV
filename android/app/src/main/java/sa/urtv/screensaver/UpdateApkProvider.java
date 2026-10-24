@@ -3,6 +3,8 @@ package sa.urtv.screensaver;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.MatrixCursor;
+import android.provider.OpenableColumns;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 
@@ -30,7 +32,21 @@ public final class UpdateApkProvider extends ContentProvider {
     }
 
     @Override public Cursor query(Uri uri, String[] projection, String selection,
-                                  String[] selectionArgs, String sortOrder) { return null; }
+                                  String[] selectionArgs, String sortOrder) {
+        String[] columns = projection == null
+            ? new String[]{OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE} : projection;
+        String name = uri == null ? "" : uri.getLastPathSegment();
+        if (!"urtv-home.apk".equals(name) && !"urtv-screensaver.apk".equals(name)) return null;
+        File apk = new File(new File(getContext().getCacheDir(), "apk-updates"), name);
+        MatrixCursor cursor = new MatrixCursor(columns);
+        Object[] values = new Object[columns.length];
+        for (int i = 0; i < columns.length; i++) {
+            if (OpenableColumns.DISPLAY_NAME.equals(columns[i])) values[i] = name;
+            else if (OpenableColumns.SIZE.equals(columns[i])) values[i] = apk.isFile() ? apk.length() : 0;
+        }
+        cursor.addRow(values);
+        return cursor;
+    }
     @Override public Uri insert(Uri uri, ContentValues values) { throw new UnsupportedOperationException(); }
     @Override public int delete(Uri uri, String selection, String[] args) {
         throw new UnsupportedOperationException();
