@@ -391,6 +391,50 @@ const PRESETS = ['العشاء جاهز 🍽️','الغداء جاهز','حيا
 const CARDS = [['adhkar','أذكار الصباح والمساء'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['summary','ملخص اليوم (الصباح)'],['stars','النجوم (للأطفال)'],['family','مناسبة اليوم (مع الصورة)'],['wird','الورد اليومي'],['tasks','مهامي وتذكيراتي'],['bedtime','وقت النوم'],['series','مسلسلاتي'],['weather','الطقس'],['matches','مباريات فرقك']];
 // the PIN is sent once; the TV answers with a session key (30 days), kept on this phone instead of the PIN
 let KEY = localStorage.getItem('tvkey') || '', STATE = {}, PREFS = null;
+let ACTIVE_DEVICE = 'local', DEVICES = [];
+const routed = (path, device = ACTIVE_DEVICE) => device === 'local' ? path :
+  '/api/device?ip=' + encodeURIComponent(device) + '&target=' + encodeURIComponent(path);
+const deviceName = id => (DEVICES.find(x => x.id === id) || {}).name || (id === 'local' ? 'هذا التلفزيون' : id);
+async function loadDeviceList(){
+  try{
+    const r = await fetch('/api/devices', {headers:{'X-Key':KEY}});
+    if(!r.ok) throw Error('devices');
+    DEVICES = await r.json();
+    if(!DEVICES.some(x => x.id === ACTIVE_DEVICE)) ACTIVE_DEVICE = 'local';
+    renderDevices();
+  }catch(e){ toast('تعذر تحميل قائمة الأجهزة', true); }
+}
+function renderDevices(){
+  if(!$('devices-list')) return;
+  $('current-tv').textContent = '📺 ' + deviceName(ACTIVE_DEVICE);
+  $('devices-list').innerHTML = DEVICES.map(x =>
+    `<button class="device-item ${x.id === ACTIVE_DEVICE ? 'active' : ''}" onclick="chooseDevice('${esc(x.id)}')"><span><b>📺 ${esc(x.name)}</b><small>${x.id === 'local' ? 'الجهاز الرئيسي' : esc(x.id)}</small></span><span>${x.id === ACTIVE_DEVICE ? '✓ محدد' : 'اختيار'}</span></button>`).join('');
+}
+async function chooseDevice(id){
+  if(!DEVICES.some(x => x.id === id)) return toast('جهاز غير مرتبط', true);
+  if(id === ACTIVE_DEVICE) return openTab('home');
+  const previous = ACTIVE_DEVICE;
+  try{
+    ACTIVE_DEVICE = id;
+    const next = await api('/api/state');
+    STATE = next; PREFS = null; render(); loadPrefs(); openTab('home');
+    toast('تم اختيار ' + deviceName(id));
+  }catch(e){ ACTIVE_DEVICE = previous; renderDevices(); toast('الجهاز غير متصل', true); }
+}
+async function pairDevice(){
+  const ip = $('device-ip').value.trim(), pin = $('device-pin').value.trim(), name = $('device-name').value.trim();
+  if(!/^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$/.test(ip) || !/^[0-9]{6}$/.test(pin))
+    return toast('تأكد من عنوان IP والرمز السري', true);
+  try{
+    const r = await fetch('/api/pair', {method:'POST',headers:{'X-Key':KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({ip,pin,name})});
+    if(!r.ok) throw Error('pair');
+    $('device-pin').value = ''; $('device-ip').value = ''; $('device-name').value = '';
+    await loadDeviceList();
+    toast('تم ربط التلفزيون. اختره من القائمة.');
+  }catch(e){ toast('تعذر الاقتران؛ راجع الشبكة والرمز وتحديث التطبيق على الجهاز الجديد', true); }
+}
+
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -399,7 +443,7 @@ const t12 = hm => { const [h, m] = String(hm).split(':').map(Number); return (h 
 
 function toast(t, err){ const e = $('toast'); e.textContent = t; e.className = 'toast' + (err ? ' err' : ''); e.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.display = 'none', 2200); }
 async function api(path, body){
-  const r = await fetch(path, {method: body ? 'POST' : 'GET', headers: {'X-Key': KEY, 'Content-Type': 'application/json'}, body: body ? JSON.stringify(body) : undefined});
+  const r = await fetch(routed(path), {method: body ? 'POST' : 'GET', headers: {'X-Key': KEY, 'Content-Type': 'application/json'}, body: body ? JSON.stringify(body) : undefined});
   if(r.status === 401){ expired(); throw new Error('pin'); }
   if(!r.ok) throw new Error('http ' + r.status);
   return r.json();
@@ -423,6 +467,7 @@ async function save(section, value, quiet){
 }
 
 async function start(){
+  await loadDeviceList();
   STATE = await api('/api/state');
   $('pinbox').hidden = true; $('app').hidden = false;
   $('tabs').innerHTML = TABS.map(([k, t]) => `<button data-k="${k}">${t}</button>`).join('');
@@ -443,6 +488,7 @@ function openTab(k){
 }
 
 function render(){
+  renderDevices();
   $('quran-state').innerHTML = STATE.quran ? '<span class="on-air">● البث شغّال</span>' : '<span class="off-air">○ البث متوقف</span>';
   const m = STATE.message, live = m && m.text && (!m.until || m.until > Date.now());
   $('home-msg').innerHTML = '<h2>💬 الرسالة</h2>' + (live
@@ -629,7 +675,7 @@ async function upload(name, file){
   if(file.size > 12e6) return toast('الملف أكبر من ١٢ ميقا', true);
   toast('جاري الرفع…');
   try{
-    const r = await fetch('/api/upload?name=' + name, {method: 'POST', headers: {'X-Key': KEY, 'Content-Type': file.type || 'audio/mpeg'}, body: file});
+    const r = await fetch(routed('/api/upload?name=' + name), {method: 'POST', headers: {'X-Key': KEY, 'Content-Type': file.type || 'audio/mpeg'}, body: file});
     if(r.status === 401) return expired();
     if(!r.ok) return toast('نوع الملف غير مقبول', true);
     STATE = await api('/api/state'); render(); toast('تم الرفع ✔');
@@ -637,7 +683,7 @@ async function upload(name, file){
 }
 async function unload(name){
   if(!confirm('حذف الملف؟')) return;
-  try{ await fetch('/api/upload?name=' + name + '&del=1', {method: 'POST', headers: {'X-Key': KEY}}); STATE = await api('/api/state'); render(); }catch(e){}
+  try{ await fetch(routed('/api/upload?name=' + name + '&del=1'), {method: 'POST', headers: {'X-Key': KEY}}); STATE = await api('/api/state'); render(); }catch(e){}
 }
 const hasFile = n => (STATE.files || {})[n] && STATE.files[n].size > 0;
 // a photo for a family occasion: made smaller on the phone first (720 px, JPEG)
