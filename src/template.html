@@ -87,7 +87,7 @@
   .up{color:var(--green-lt)}.down{color:var(--red)}
 
   .week{
-    width:min(760px,48vw);justify-self:end;
+    width:min(760px,48vw);max-width:100%;min-width:0;justify-self:end;
     background:rgba(4,14,9,.60);   /* no backdrop blur: over a moving photo it is redone every frame */
     border:1px solid rgba(220,184,111,.16);
     border-radius:12px;
@@ -142,8 +142,8 @@
     background:linear-gradient(270deg,var(--gold),rgba(220,184,111,0))}
 
   /* the card keeps its width on the left; the clock is centred in the space between it and the right edge */
-  .mid{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4.5vw}
-  .clockwrap{display:flex;flex-direction:column;align-items:center;justify-self:center}
+  .mid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,48vw);align-items:center;gap:clamp(12px,3vw,60px);min-width:0;min-height:0}
+  .clockwrap{display:flex;flex-direction:column;align-items:center;justify-self:center;min-width:0;max-width:100%}
   .clock{
     display:flex;align-items:baseline;justify-content:center;direction:ltr;
     font-family:'ThmanyahDisplay','Thmanyah',serif;
@@ -530,9 +530,11 @@
   /* v5: the alerts in one row above the bottom line; the next prayer under the prayer times; a lighter bottom */
   .stage{grid-template-rows:auto minmax(0,1fr) auto auto}
   /* its own height, always: a scroll box in a grid row would otherwise shrink to nothing */
-  .alerts{margin:0;max-width:none;flex-wrap:nowrap;justify-content:center;align-items:center;overflow:hidden;gap:.7vw;padding:0;min-height:calc(clamp(12px,.95vw,19px) * 2.3)}
+  .alerts{margin:0;max-width:none;flex-wrap:wrap;justify-content:center;align-items:center;overflow:hidden;gap:.7vw;padding:0;min-height:calc(clamp(12px,.95vw,19px) * 2.3)}
   /* the height budget: top, card, alerts row, bottom panels, all inside the screen */
-  .stage{padding-bottom:3.4vh;gap:1.3vh}
+  .stage{padding-bottom:3.4vh;gap:1.3vh;min-width:0;transform-origin:center center}
+  .stage > *{min-width:0}
+  .top > *{min-width:0}
   .week{height:34vh}
   html.qtop .week{height:30vh}
   .clock{font-size:clamp(110px,min(16vw,26vh),300px)}
@@ -606,6 +608,17 @@
   /* whose screen: only on a person's own */
   .who.fam{display:none !important}
 
+  /* Smaller render surfaces (720p, scaled Android WebViews, overscan): preserve all panels */
+  @media (max-height:760px), (max-width:1370px){
+    .stage{padding:2vh 3vw 2.4vh;gap:1vh}
+    .clock{font-size:clamp(70px,min(13vw,23vh),220px)}
+    .week{height:31vh;padding:1.1vh 1.2vw}
+    html.qtop .week{height:27vh}
+    .bottom,.bottom.fam{gap:1.2vw;padding-top:1vh}
+    .pt{gap:.8vw}
+    .subline{gap:.4vw;margin-top:1vh}
+    .al{font-size:clamp(10px,.92vw,16px)}
+  }
   @media (max-aspect-ratio:5/4){
     .top{flex-direction:column-reverse;gap:1.4vh}
     .bottom{grid-template-columns:1fr 1fr}
@@ -1729,16 +1742,11 @@ async function loadControl(){
     const changed = JSON.stringify(next.family || []) !== JSON.stringify(CTRL.family || []);
     const mine = o => JSON.stringify([o.tasks || [], o.reminders || []]);
     const todo = Object.keys(CTRL).length && mine(next) !== mine(CTRL);
-    const nowAsk = (next.screens || {}).now, oldAsk = (CTRL.screens || {}).now;
     const guestWas = GUEST();
     CTRL = next;
+    fitLayout();
     const t = next.selftest;   // a test sent from the computer (SaverReceiver TEST)
     if(t && t.at && t.at !== SELFTEST_AT && Date.now() - t.at < 60000){ SELFTEST_AT = t.at; runSelfTest(t.what); }
-    // «اعرض الحين» on the phone: that screen at once
-    if(nowAsk && nowAsk.at && (!oldAsk || oldAsk.at !== nowAsk.at) && Date.now() - nowAsk.at < 60000){
-      const k = SCREENS().findIndex(x => x.id === nowAsk.id);
-      if(k >= 0 && k !== SCREEN_K % SCREENS().length){ SCREEN_K = k; SCREEN_AT = Date.now(); CARD_TURN = 0; crossfade(document.querySelector('.mid'), () => { renderWho(); renderPanel(false); }); }
-    }
     if(guestWas !== GUEST()){ CARD_TURN = 0; FAM_CACHE.key = ''; tickFamily(); crossfade(document.querySelector('.mid'), () => renderPanel(false)); }
     renderWho();
     if(changed){ OCC_CACHE.day = ''; tickFamily(); }   // family occasions changed: recount
@@ -1787,62 +1795,26 @@ function runSelfTest(what){
 }
 // the phone page's screen options, with their defaults
 const DISP = () => (typeof CTRL !== 'undefined' && CTRL.display) || {};
-// Screens: the family's (the default) and one per person, picked and filled on the phone page; they take turns
-// every few minutes (or by the remote's left/right). A person's screen shows their own tasks and reminders and
-// the cards chosen for them; a child's screen also their stars. Guest mode keeps to the family screen and hides
-// everything personal.
+// Only the family view and guest view remain. Retain any older personal data for safe rollback;
+ // no person screens, star cards, or automatic screen switching are displayed.
 const GUEST = () => !!(typeof CTRL !== 'undefined' && CTRL.guest && CTRL.guest.on);
-const PERSONAL = ['tasks', 'bedtime', 'series', 'wird', 'stars'];
-function SCREENS(){
-  const l = (typeof CTRL !== 'undefined' && CTRL.screens && Array.isArray(CTRL.screens.list)) ? CTRL.screens.list : [];
-  return [{id: 'family', name: 'العائلة', icon: '🏠'}, ...l.filter(x => x && x.id && x.id !== 'family' && x.on !== false)];
-}
-let SCREEN_K = 0;
-const SCREEN = () => { const l = SCREENS(); return GUEST() ? l[0] : l[SCREEN_K % l.length]; };
+const PERSONAL = ['tasks','bedtime','series','wird','stars','family','summary'];
+const SCREEN = () => GUEST() ? {id:'guest',name:'الضيوف',icon:'👋'} : {id:'family',name:'العائلة',icon:'🏠'};
 const cardOn = k => {
   if(GUEST() && PERSONAL.includes(k)) return false;
-  const sc = SCREEN();
-  if(sc.id !== 'family' && sc.cards) return sc.cards[k] !== false && (k !== 'stars' || !!sc.kid);
-  if(k === 'stars') return !(DISP().cards && DISP().cards.stars === false);
+  if(k === 'stars') return false;
   return !(DISP().cards && DISP().cards[k] === false);
 };
-// on a person's screen, only their own tasks and reminders; none for guests
-const mine = list => { if(GUEST()) return []; const sc = SCREEN(); return sc.id === 'family' ? list : list.filter(x => x && x.who === sc.id); };
+const mine = list => GUEST() ? [] : list;
 const myTasks = () => mine(CTRL.tasks || []);
 const myRems = () => mine(CTRL.reminders || []);
 function renderWho(){
-  const el = document.getElementById('who'), l = SCREENS(), sc = SCREEN();
-  if(!el) return;
-  const show = !GUEST() && l.length > 1;
-  el.classList.toggle('on', show);
-  el.classList.toggle('fam', sc.id === 'family');
-  if(show) setHTML(el, `<span>${esc(sc.icon || '👤')}</span><span>${sc.id === 'family' ? 'شاشة العائلة' : 'شاشة ' + esc(sc.name)}</span>`
-    + (sc.kid ? `<span class="st">⭐ ${ar(+sc.stars || 0)}</span>` : ''));
+  const el = document.getElementById('who');
+  if(el){ el.classList.remove('on'); setHTML(el,''); }
 }
-let SCREEN_AT = Date.now();
-function switchScreen(d){
-  const n = SCREENS().length;
-  if(n < 2 || GUEST()) return;
-  SCREEN_K = ((SCREEN_K + d) % n + n) % n; SCREEN_AT = Date.now(); CARD_TURN = 0;
-  crossfade(document.querySelector('.mid'), () => { renderWho(); renderPanel(false); renderAlerts(); });
-}
-function rotateScreens(){
-  const min = +((CTRL.screens || {}).rotate) || 0;
-  if(min > 0 && Date.now() - SCREEN_AT >= min * 60000) switchScreen(1);
-}
-// «النجوم»: a child's stars, given on the phone page (and one for each of their tasks marked done)
-const KIDS = () => ((CTRL.screens || {}).list || []).filter(x => x && x.kid && x.on !== false);
-function starsSlide(kid){
-  const n = Math.max(0, +kid.stars || 0), daily = kid.daily || {};
-  const DAYN = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
-  const days = Array.from({length: 7}, (_, i) => { const d = new Date(Date.now() - (6 - i) * 86400000);
-    return {k: IDF('en-CA', {timeZone: CONFIG.timezone}).format(d), wd: new Date(d.toLocaleString('en-US', {timeZone: CONFIG.timezone})).getDay()}; });
-  const max = Math.max(1, ...days.map(d => +daily[d.k] || 0));
-  const week = days.map((d, i) => { const v = +daily[d.k] || 0;
-    return `<span class="${i === 6 ? 'today' : ''}">${v ? `<b>${ar(v)}</b>` : ''}<i style="height:${Math.round(v / max * 70)}%"></i>${i === 6 ? 'اليوم' : DAYN[d.wd]}</span>`; }).join('');
-  return {title: `نجوم ${kid.name}`, rows: [`<li class="stars"><span class="n">⭐ ${ar(n)}</span><span class="row">${(+daily[days[6].k] || 0) ? `اليوم ${ar(+daily[days[6].k])} ⭐` : 'ابدأ تجمع نجوم اليوم!'}</span></li>`,
-    `<li class="wk">${week}</li>`]};
-}
+// Kept as a no-op for older remote controls that still call this function.
+function switchScreen(d){ return; }
+const KIDS = () => [];
 // guest mode: a welcome on the card, first
 function guestSlide(){
   const g = CTRL.guest || {};
@@ -2433,10 +2405,6 @@ function cardSlides(){
   if(HADITH.length && cardOn('hadith')) slides.push(() => hadithOfDay(day));
   if(WISDOM.length && cardOn('wisdom')) slides.push(() => wisdomOfDay(day));
   if(cardOn('tasks') && (myTasks().some(t => !t.done) || todaysReminders().length)) slides.push(() => tasksSlide());
-  if(cardOn('stars')){   // every child's card on the family screen; a child's own on theirs
-    const sc = SCREEN();
-    KIDS().filter(k => sc.id === 'family' || k.id === sc.id).forEach(k => slides.push(() => starsSlide(k)));
-  }
   const bt = nextBedtime();
   if(bt && cardOn('bedtime') && bt.t - Date.now() <= 3*3600000) slides.push(() => bedtimeSlide());
   if(cardOn('series') && seriesItems().length) slides.push(tag('series', () => seriesSlide()));
@@ -2819,14 +2787,26 @@ function applyNight(){
   if(el) el.style.opacity = Math.max(0, Math.min(MAX, o)).toFixed(2);
 }
 
-// gentle pixel shift so static text never burns into the panel
+// Fit all content safely inside the TV's usable viewport, keeping burn-in protection.
 const SHIFT_SEQ = [[0,0],[3,2],[0,4],[-3,2],[-3,-2],[0,-4],[3,-2]];
 let shiftTick = 0;
+function fitLayout(){
+  if(CONFIG.widget) return;
+  const st = document.querySelector('.stage');
+  if(!st) return;
+  const [dx,dy] = SHIFT_SEQ[shiftTick];
+  const choice = String(DISP().layoutScale || 'auto');
+  const requested = choice === 'auto' ? .94 : Math.min(1, Math.max(.75, Number(choice) / 100 || .94));
+  // Transforming does not alter scrollWidth/scrollHeight; this also works after a resize.
+  const ratio = Math.min(1, (innerWidth - 12) / Math.max(1, st.scrollWidth),
+    (innerHeight - 12) / Math.max(1, st.scrollHeight));
+  const scale = Math.max(.65, Math.min(1, requested * ratio));
+  const next = `translate(${dx}px,${dy}px) scale(${scale.toFixed(3)})`;
+  if(st.style.transform !== next) st.style.transform = next;
+}
 function pixelShift(){
   shiftTick = (shiftTick + 1) % SHIFT_SEQ.length;
-  const [dx,dy] = SHIFT_SEQ[shiftTick];
-  const st = document.querySelector('.stage');
-  if(st) st.style.transform = `translate(${dx}px,${dy}px)`;
+  fitLayout();
 }
 
 // Background photos: the hosted set in photos/ (photos/index.json in the repo). A hosted photo is used only
@@ -2950,6 +2930,8 @@ function boot(){
   else if(CONFIG.panel !== 'shows') renderPanel(false);   // its own data arrives with prayers, weather, matches
   loadPrayers(); loadMatches(); loadToday(); if(CONFIG.panel === 'shows') loadWeek(); loadWeather();
   applyNight(); pixelShift();
+  addEventListener('resize', fitLayout);
+  setInterval(fitLayout, 15000);
 
   setInterval(tickClock, 1000);
   setInterval(()=>{ tickDates(); tickPrayer(); tickRamadan(); if(CONFIG.panel === 'prayers') renderPanel(false); }, 15000);
@@ -2973,8 +2955,7 @@ function boot(){
   setInterval(matchMoments, 15*1000); setTimeout(matchMoments, 20000);
   setInterval(taskMoments, 15*1000);
   setTimeout(actx, 3000);   // the sound system ready before the first chime or whistle (it starts slowly)
-  setInterval(rotateScreens, 15*1000);
-  window.switchScreen = switchScreen;   // the remote's left and right, from the app
+  window.switchScreen = switchScreen;   // older remotes: ignored; family/guest is selected from the phone
   if(CONFIG.panel === 'verse'){ const next = () => setTimeout(() => { turnCard(); next(); }, cardMs()); next(); }
   setInterval(() => {   // the followed teams' card: next page every 10 s
     if(MATCH_PAGES > 1 && document.getElementById('week-hd').textContent === PANEL_TITLE.matches){ MATCH_CARD_PAGE++; renderPanel(false); }

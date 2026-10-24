@@ -1,0 +1,32 @@
+name: Verify Android changes
+
+on:
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'src/**'
+      - 'assets/**'
+      - '.github/workflows/verify-android-pr.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build HTML assets
+        run: |
+          python3 -m pip install fonttools brotli pillow
+          python3 src/build.py
+      - name: Compile Android apps without release signing
+        run: gradle -p android assembleDebug --no-daemon

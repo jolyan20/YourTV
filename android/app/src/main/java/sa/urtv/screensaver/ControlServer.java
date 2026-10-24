@@ -93,7 +93,7 @@ final class ControlServer implements Runnable {
             }
             int len = 0;
             try { len = Integer.parseInt(get(h, "content-length", "0")); } catch (Exception ignored) { }
-            boolean upload = path.startsWith("/api/upload");
+            boolean upload = path.startsWith("/api/upload") || path.startsWith("/api/device?");
             if (len < 0 || len > (upload ? Uploads.MAX : 200_000)) { reply(s, 413, "text/plain", "too large", false); return; }
             if (upload) s.setSoTimeout(90_000);   // a few megabytes from the phone, maybe over Tailscale
             byte[] body = new byte[len];
@@ -147,6 +147,25 @@ final class ControlServer implements Runnable {
                 reply(s, 200, "application/json", new JSONObject().put("key", ControlStore.newSession(app)).toString(), false); return;
             }
 
+            if ("/api/pair-receive".equals(path) && "POST".equals(method)) {
+                long wait = lockWait(who);
+                if (wait > 0) { reply(s, 429, "application/json", "{\"error\":\"locked\"}", false); return; }
+                JSONObject req = new JSONObject(new String(body, StandardCharsets.UTF_8));
+                String pin = req.optString("pin"), newKey = req.optString("key");
+                if (!ControlStore.pinMatches(app, pin) || !newKey.matches("[0-9a-f]{64}")) {
+                    failed(who);
+                    Thread.sleep(1000);
+                    reply(s, 401, "application/json", "{\"error\":\"pin\"}", false); return;
+                }
+                String existing = ControlStore.prefs(app).getString("syncKey", "");
+                if (!existing.isEmpty() && !existing.equals(newKey)) {
+                    reply(s, 409, "application/json", "{\"error\":\"paired elsewhere\"}", false); return;
+                }
+                synchronized (this) { fails.remove(who); }
+                ControlStore.prefs(app).edit().putString("syncKey", newKey).apply();
+                ControlSync.addPeer(app, who);
+                reply(s, 200, "application/json", "{\"ok\":true}", false); return;
+            }
             if ("GET".equals(method) && path.startsWith("/file/")) {   // the screensaver page on this TV: the adhan, a photo
                 String name = path.substring(6);
                 byte[] f = from.isLoopbackAddress() && Uploads.okName(name) ? Uploads.read(app, name) : null;
@@ -165,7 +184,41 @@ final class ControlServer implements Runnable {
                 reply(s, 200, "application/json; charset=utf-8", ControlSync.state(app).toString(), false); return;
             }
             String key = get(h, "x-key", "");
-            if (!ControlStore.sessionValid(app, key)) { reply(s, 401, "application/json", "{\"error\":\"session\"}", false); return; }
+            boolean browserAuth = ControlStore.sessionValid(app, key);
+            boolean peerAuth = ControlSync.isPeer(app, who) && ControlSync.keyMatches(app, get(h, "x-sync", ""));
+            if (!browserAuth && !peerAuth) { reply(s, 401, "application/json", "{\"error\":\"session\"}", false); return; }
+            // Remote management is only available to an authenticated phone on this hub,
+            // never to a peer through a proxy (prevents chaining arbitrary devices).
+            if (browserAuth && "GET".equals(method) && "/api/devices".equals(path)) {
+                reply(s, 200, "application/json; charset=utf-8", ControlSync.devices(app).toString(), false); return;
+            }
+            if (browserAuth && "POST".equals(method) && "/api/pair".equals(path)) {
+                JSONObject data = new JSONObject(new String(body, StandardCharsets.UTF_8));
+                String host = data.optString("ip");
+                try {
+                    ControlSync.join(app, host, data.optString("pin"), data.optString("name"));
+                    reply(s, 200, "application/json", "{\"ok\":true}", false);
+                } catch (Exception ex) {
+                    reply(s, 400, "application/json", "{\"error\":\"pair failed; verify TV PIN and address\"}", false);
+                }
+                return;
+            }
+            if (browserAuth && "/api/device".equals(path)) {
+                // A device request may only target a TV explicitly paired by the owner.
+                String host = "", target = "";
+                for (String kv : query.split("&")) {
+                    if (kv.startsWith("ip=")) host = java.net.URLDecoder.decode(kv.substring(3), "UTF-8");
+                    if (kv.startsWith("target=")) target = java.net.URLDecoder.decode(kv.substring(7), "UTF-8");
+                }
+                try {
+                    byte[] result = ControlSync.remote(app, host, target, method, body, get(h, "content-type", "application/json"));
+                    if (result.length > 2_000_000) throw new Exception("too large");
+                    reply(s, 200, "application/json; charset=utf-8", new String(result, StandardCharsets.UTF_8), false);
+                } catch (Exception ex) {
+                    reply(s, 502, "application/json", "{\"error\":\"device offline or not paired\"}", false);
+                }
+                return;
+            }
             if ("GET".equals(method) && "/api/prefs".equals(path)) {
                 reply(s, 200, "application/json; charset=utf-8", ControlPrefs.read(app).toString(), false); return;
             }
