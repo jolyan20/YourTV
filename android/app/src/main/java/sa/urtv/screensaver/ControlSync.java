@@ -170,12 +170,12 @@ final class ControlSync {
             s.setSoTimeout(30000);
             OutputStream out = s.getOutputStream();
             byte[] payload = body == null ? new byte[0] : body;
-            String headers = method + " " + path + " HTTP/1.1\\r\\nHost: " + host
-                + "\\r\\nConnection: close\\r\\n"
-                + (key == null ? "" : "X-Sync: " + key + "\\r\\n")
+            String headers = method + " " + path + " HTTP/1.1\r\nHost: " + host
+                + "\r\nConnection: close\r\n"
+                + (key == null ? "" : "X-Sync: " + key + "\r\n")
                 + ("POST".equals(method) ? "Content-Type: " + (type == null ? "application/json" : type)
-                    + "\\r\\nContent-Length: " + payload.length + "\\r\\n" : "")
-                + "\\r\\n";
+                    + "\r\nContent-Length: " + payload.length + "\r\n" : "")
+                + "\r\n";
             out.write(headers.getBytes(StandardCharsets.UTF_8));
             if (payload.length > 0) out.write(payload);
             out.flush();
