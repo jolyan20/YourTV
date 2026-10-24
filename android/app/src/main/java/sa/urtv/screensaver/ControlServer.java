@@ -149,7 +149,7 @@ final class ControlServer implements Runnable {
 
             if ("/api/pair-receive".equals(path) && "POST".equals(method)) {
                 long wait = lockWait(who);
-                if (wait > 0) { reply(s, 429, "application/json", "{\\"error\\":\\"locked\\"}", false); return; }
+                if (wait > 0) { reply(s, 429, "application/json", "{\"error\":\"locked\"}", false); return; }
                 JSONObject req = new JSONObject(new String(body, StandardCharsets.UTF_8));
                 String pin = req.optString("pin"), newKey = req.optString("key");
                 if (!ControlStore.pinMatches(app, pin) || !newKey.matches("[0-9a-f]{64}")) {
