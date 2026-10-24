@@ -135,7 +135,7 @@ final class ControlSync {
             key = b.toString();
         }
         JSONObject request = new JSONObject().put("pin", pin).put("key", key);
-        String answer = new String(exchange(ip, null, "/api/pair", "POST",
+        String answer = new String(exchange(ip, null, "/api/pair-receive", "POST",
             request.toString().getBytes(StandardCharsets.UTF_8), "application/json"), StandardCharsets.UTF_8);
         if (!new JSONObject(answer).optBoolean("ok")) throw new Exception("pairing refused");
         ControlStore.prefs(c).edit().putString("syncKey", key).apply();
