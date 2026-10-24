@@ -6,8 +6,10 @@
 #   optimize/install.sh extras     two free apps from their own GitHub releases: TV Bro (a TV web browser,
 #                                  github.com/truefedex/tv-bro) and SmartTube (YouTube without ads,
 #                                  github.com/yuliskov/SmartTube), the build that fits the TV's processor
-# The first install of the screensaver replaces an APK signed with another key: uninstall the old one first
-# (pm uninstall sa.urtv.screensaver) — this script does that only if a plain install fails.
+# Safe upgrades: Android allows only one installed version per package. A matching-signature
+# 'pm install -r' replaces the APK in place while retaining SharedPreferences, uploaded photos and settings.
+# Never uninstall and reinstall on a signature mismatch: both apps disable Android's automatic backup.
+# Legacy apps with different package IDs require verified data migration before removal.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY="${PY:-optimize/venv/bin/python}"
@@ -20,18 +22,24 @@ push_install() {   # $1 apk name, $2 package
   local out
   out=$("$PY" -I optimize/tv.py "pm install -r /data/local/tmp/$1")
   if ! grep -q Success <<< "$out"; then
-    # only a signing-key clash justifies removing the installed app (and its settings); anything else stops here
+    # A signature mismatch means Android cannot update in place. Removing the installed
+    # package would destroy local data (allowBackup=false). Stop and keep the old app intact.
     if grep -qE 'UPDATE_INCOMPATIBLE|signatures do not match' <<< "$out"; then
-      echo "An older $2 signed with another key is installed: removing it, then installing again."
-      # removing the home app while the stock one is off would leave the TV with no home at all
-      [ "$2" = sa.urtv.home ] && "$PY" -I optimize/tv.py "pm enable ${STOCK%%/*}" > /dev/null || true
-      "$PY" -I optimize/tv.py "pm uninstall $2" || true
-      "$PY" -I optimize/tv.py "pm install -r /data/local/tmp/$1" | grep Success
+      echo "!! UPDATE BLOCKED: $2 uses a different signing key."
+      echo "   The existing app and all local data are untouched."
+      echo "   Use a release APK signed with the original key; do NOT uninstall or clear data."
+      exit 1
     else
       echo "!! Install of $1 failed: $out"; exit 1
     fi
   fi
   "$PY" -I optimize/tv.py "rm -f /data/local/tmp/$1"
+  # Prove the new package is actually installed before any optional legacy cleanup.
+  if ! "$PY" -I optimize/tv.py "pm path $2" | grep -q '^package:'; then
+    echo "!! Verification failed: $2 was not found after update. Existing data was not cleared."
+    exit 1
+  fi
+  echo "Updated $2 in place; Android retained its stored app data."
 }
 
 from_github() {   # $1 owner/repo, $2 package, $3 asset pattern ({abi} = the TV's processor types, best first)
