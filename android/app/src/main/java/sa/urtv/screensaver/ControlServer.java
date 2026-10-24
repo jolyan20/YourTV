@@ -164,7 +164,7 @@ final class ControlServer implements Runnable {
                 synchronized (this) { fails.remove(who); }
                 ControlStore.prefs(app).edit().putString("syncKey", newKey).apply();
                 ControlSync.addPeer(app, who);
-                reply(s, 200, "application/json", "{\\"ok\\":true}", false); return;
+                reply(s, 200, "application/json", "{\"ok\":true}", false); return;
             }
             if ("GET".equals(method) && path.startsWith("/file/")) {   // the screensaver page on this TV: the adhan, a photo
                 String name = path.substring(6);
