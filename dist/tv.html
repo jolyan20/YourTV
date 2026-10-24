@@ -2580,7 +2580,6 @@ function cardSlides(){
   if(HADITH.length && cardOn('hadith')) slides.push(() => hadithOfDay(day));
   if(WISDOM.length && cardOn('wisdom')) slides.push(() => wisdomOfDay(day));
   if(cardOn('tasks') && (myTasks().some(t => !t.done) || todaysReminders().length)) slides.push(() => tasksSlide());
-
   const bt = nextBedtime();
   if(bt && cardOn('bedtime') && bt.t - Date.now() <= 3*3600000) slides.push(() => bedtimeSlide());
   if(cardOn('series') && seriesItems().length) slides.push(tag('series', () => seriesSlide()));
