@@ -152,6 +152,16 @@ for f in tracked("*.sh"):
     r = subprocess.run(["bash", "-n", str(f)], capture_output=True, text=True)
     check(f"bash syntax: {f.relative_to(ROOT)}", r.returncode == 0, r.stderr)
 
+# ---- safe in-place upgrades and legacy retirement
+installer = (ROOT / "optimize/install.sh").read_text(encoding="utf-8")
+cleanup = (ROOT / "optimize/cleanup-old-versions.sh").read_text(encoding="utf-8")
+check("updates replace app in place", 'pm install -r /data/local/tmp/$1' in installer)
+check("signing mismatch never removes app data", 'pm uninstall $2' not in installer
+      and 'UPDATE BLOCKED' in installer)
+check("legacy cleanup is reversible by default", 'pm disable-user --user 0 $p' in cleanup
+      and 'DATA_MIGRATED_AND_CHECKED' in cleanup)
+check("legacy package removal retains private data", 'pm uninstall -k --user 0 $p' in cleanup)
+
 # ---- nothing private or secret in the repo
 texts = [f for f in tracked() if f.suffix in {".md", ".py", ".sh", ".java", ".xml", ".json", ".yml", ".html", ".txt", ".gradle"}]
 ip = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
