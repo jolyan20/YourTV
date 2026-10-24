@@ -3,7 +3,7 @@ name: Build APKs
 on:
   push:
     branches: [master]
-    paths: ['src/**', 'assets/**', 'android/**', '.github/workflows/android.yml']
+    paths: ['src/**', 'assets/**', 'android/**', 'version.txt', '.github/workflows/android.yml']
   workflow_dispatch:
 
 permissions:
@@ -64,13 +64,16 @@ jobs:
             urtv-screensaver.apk
             urtv-home.apk
 
+      - name: Read version name
+        run: echo "VERSION_NAME=$(tr -d '\\n' < version.txt)" >> "$GITHUB_ENV"
+
       # fixed download links: .../releases/download/apk-latest/urtv-screensaver.apk and urtv-home.apk
       - name: Publish to the apk-latest release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-latest
-          name: Latest APKs
-          body: "Both apps at version 3.${{ github.run_number }}, built from ${{ github.sha }}"
+          name: Latest APKs — YourTV ${{ env.VERSION_NAME }}
+          body: "Both apps at YourTV ${{ env.VERSION_NAME }} (build ${{ github.run_number }}), built from ${{ github.sha }}"
           files: |
             urtv-screensaver.apk
             urtv-home.apk
@@ -81,8 +84,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v3.${{ github.run_number }}
-          name: UrTV 3.${{ github.run_number }}
-          body: "Both apps at version 3.${{ github.run_number }}, built from ${{ github.sha }}"
+          name: YourTV ${{ env.VERSION_NAME }} (build ${{ github.run_number }})
+          body: "Both apps at YourTV ${{ env.VERSION_NAME }} (build ${{ github.run_number }}), built from ${{ github.sha }}"
           files: |
             urtv-screensaver.apk
             urtv-home.apk
