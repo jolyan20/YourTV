@@ -65,7 +65,7 @@ jobs:
             urtv-home.apk
 
       - name: Read version name
-        run: echo "VERSION_NAME=$(tr -d '\\n' < version.txt)" >> "$GITHUB_ENV"
+        run: echo "VERSION_NAME=$(head -n 1 version.txt)" >> "$GITHUB_ENV"
 
       # fixed download links: .../releases/download/apk-latest/urtv-screensaver.apk and urtv-home.apk
       - name: Publish to the apk-latest release
