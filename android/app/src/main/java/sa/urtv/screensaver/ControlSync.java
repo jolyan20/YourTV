@@ -85,8 +85,8 @@ final class ControlSync {
     /** Registered physical TVs, distinct from the rotating family/person views. The hub's list is local-only. */
     static synchronized JSONArray devices(Context c) {
         JSONArray out = new JSONArray();
-        out.put(new JSONObject(java.util.Collections.singletonMap("id", "local")).put("name", "هذا التلفزيون"));
         try {
+            out.put(new JSONObject().put("id", "local").put("name", "هذا التلفزيون"));
             JSONObject names = new JSONObject(ControlStore.prefs(c).getString("deviceNames", "{}"));
             String peers = ControlStore.prefs(c).getString("syncPeers", "");
             for (String raw : peers.split(",")) {
