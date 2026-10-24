@@ -155,11 +155,11 @@ final class ControlServer implements Runnable {
                 if (!ControlStore.pinMatches(app, pin) || !newKey.matches("[0-9a-f]{64}")) {
                     failed(who);
                     Thread.sleep(1000);
-                    reply(s, 401, "application/json", "{\\"error\\":\\"pin\\"}", false); return;
+                    reply(s, 401, "application/json", "{\"error\":\"pin\"}", false); return;
                 }
                 String existing = ControlStore.prefs(app).getString("syncKey", "");
                 if (!existing.isEmpty() && !existing.equals(newKey)) {
-                    reply(s, 409, "application/json", "{\\"error\\":\\"paired elsewhere\\"}", false); return;
+                    reply(s, 409, "application/json", "{\"error\":\"paired elsewhere\"}", false); return;
                 }
                 synchronized (this) { fails.remove(who); }
                 ControlStore.prefs(app).edit().putString("syncKey", newKey).apply();
