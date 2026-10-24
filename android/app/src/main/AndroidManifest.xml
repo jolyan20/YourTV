@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- User must explicitly approve app installs; never install silently. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- the phone page's server on the home network (ControlService) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- the game-time countdown over any input (granted once, from the setup) -->
@@ -36,6 +38,13 @@
         android:allowBackup="false"
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@android:style/Theme.Material.NoActionBar">
+
+        <!-- Read-only, temporary URI for the system package installer. -->
+        <provider
+            android:name=".UpdateApkProvider"
+            android:authorities="sa.urtv.screensaver.updates"
+            android:exported="false"
+            android:grantUriPermissions="true" />
 
         <!-- opening the app shows its settings -->
         <activity

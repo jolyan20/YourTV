@@ -34,6 +34,7 @@ public class SettingsActivity extends Activity {
 
     private Prefs prefs;
     private LinearLayout list;
+    private AppUpdater appUpdater;
 
     /** Arabic locale for this screen, so every dialog title, list and button is laid out right-to-left. */
     @Override
@@ -49,6 +50,7 @@ public class SettingsActivity extends Activity {
         super.onCreate(b);
         ControlService.start(this);   // the phone page
         prefs = new Prefs(this);
+        appUpdater = new AppUpdater(this);
         UpdateJob.schedule(this);
         ScrollView scroll = new ScrollView(this);
         scroll.setBackground(new android.graphics.drawable.GradientDrawable(
@@ -122,7 +124,10 @@ public class SettingsActivity extends Activity {
         header("التطبيق");
         row("التحديث التلقائي للصفحة", prefs.autoUpdate() ? "يعمل · كل ٦ ساعات" : "متوقف", R.drawable.ic_sync, new Runnable() { public void run() {
             prefs.setAutoUpdate(!prefs.autoUpdate()); render(); } });
-        row("تحقق من التحديث الآن", null, R.drawable.ic_sync, new Runnable() { public void run() { updateNow(); } });
+        row("تحقق من تحديث الصفحة", "يحدث تصميم ومحتوى شاشة التوقف فقط", R.drawable.ic_sync,
+            new Runnable() { public void run() { updateNow(); } });
+        row("تحديث التطبيق", "يفحص أحدث APK رسمي لتطبيقَي الشاشة والواجهة مع الاحتفاظ بالبيانات", R.drawable.ic_sync,
+            new Runnable() { public void run() { appUpdater.check(); } });
         row("وقت تشغيل شاشة التوقف", "يفتح إعدادات التلفاز (قد تظهر بالإنجليزية)", R.drawable.ic_screensaver, new Runnable() { public void run() { openDreamSettings(); } });
     }
 

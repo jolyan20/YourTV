@@ -162,6 +162,29 @@ check("legacy cleanup is reversible by default", 'pm disable-user --user 0 $p' i
       and 'DATA_MIGRATED_AND_CHECKED' in cleanup)
 check("legacy package removal retains private data", 'pm uninstall -k --user 0 $p' in cleanup)
 
+# ---- in-app APK updates (version 4.2+)
+updater_path = ROOT / "android/app/src/main/java/sa/urtv/screensaver/AppUpdater.java"
+provider_path = ROOT / "android/app/src/main/java/sa/urtv/screensaver/UpdateApkProvider.java"
+settings_path = ROOT / "android/app/src/main/java/sa/urtv/screensaver/SettingsActivity.java"
+manifest_path = ROOT / "android/app/src/main/AndroidManifest.xml"
+updater_code = updater_path.read_text(encoding="utf-8")
+provider_code = provider_path.read_text(encoding="utf-8")
+settings_code = settings_path.read_text(encoding="utf-8")
+manifest_code = manifest_path.read_text(encoding="utf-8")
+check("APK update button in app settings", 'row("تحديث التطبيق"' in settings_code)
+check("APK update validates app signer and ID", "Arrays.equals(" in updater_code
+      and "expectedPackage.equals(archive.packageName)" in updater_code)
+check("APK update doesn't uninstall or clear data", "pm uninstall" not in updater_code
+      and "deleteApplicationData" not in updater_code and ".clearApplicationUserData(" not in updater_code)
+check("APK install requires Android confirmation", "Intent.ACTION_VIEW" in updater_code
+      and "canRequestPackageInstalls" in updater_code
+      and "REQUEST_INSTALL_PACKAGES" in manifest_code)
+check("APK sharing uses non-exported read-only provider", 'android:exported="false"' in manifest_code
+      and 'android:grantUriPermissions="true"' in manifest_code
+      and "ParcelFileDescriptor.MODE_READ_ONLY" in provider_code)
+check("in-app updater targets official release", "releases/tags/apk-latest" in updater_code
+      and "jolyan20/YourTV/releases/download/apk-latest/" in updater_code)
+
 # ---- nothing private or secret in the repo
 texts = [f for f in tracked() if f.suffix in {".md", ".py", ".sh", ".java", ".xml", ".json", ".yml", ".html", ".txt", ".gradle"}]
 ip = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
