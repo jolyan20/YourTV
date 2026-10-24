@@ -87,7 +87,7 @@
   .up{color:var(--green-lt)}.down{color:var(--red)}
 
   .week{
-    width:min(760px,48vw);justify-self:end;
+    width:min(760px,48vw);max-width:100%;min-width:0;justify-self:end;
     background:rgba(4,14,9,.60);   /* no backdrop blur: over a moving photo it is redone every frame */
     border:1px solid rgba(220,184,111,.16);
     border-radius:12px;
@@ -142,8 +142,8 @@
     background:linear-gradient(270deg,var(--gold),rgba(220,184,111,0))}
 
   /* the card keeps its width on the left; the clock is centred in the space between it and the right edge */
-  .mid{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4.5vw}
-  .clockwrap{display:flex;flex-direction:column;align-items:center;justify-self:center}
+  .mid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,48vw);align-items:center;gap:clamp(12px,3vw,60px);min-width:0;min-height:0}
+  .clockwrap{display:flex;flex-direction:column;align-items:center;justify-self:center;min-width:0;max-width:100%}
   .clock{
     display:flex;align-items:baseline;justify-content:center;direction:ltr;
     font-family:'ThmanyahDisplay','Thmanyah',serif;
@@ -530,9 +530,11 @@
   /* v5: the alerts in one row above the bottom line; the next prayer under the prayer times; a lighter bottom */
   .stage{grid-template-rows:auto minmax(0,1fr) auto auto}
   /* its own height, always: a scroll box in a grid row would otherwise shrink to nothing */
-  .alerts{margin:0;max-width:none;flex-wrap:nowrap;justify-content:center;align-items:center;overflow:hidden;gap:.7vw;padding:0;min-height:calc(clamp(12px,.95vw,19px) * 2.3)}
+  .alerts{margin:0;max-width:none;flex-wrap:wrap;justify-content:center;align-items:center;overflow:hidden;gap:.7vw;padding:0;min-height:calc(clamp(12px,.95vw,19px) * 2.3)}
   /* the height budget: top, card, alerts row, bottom panels, all inside the screen */
-  .stage{padding-bottom:3.4vh;gap:1.3vh}
+  .stage{padding-bottom:3.4vh;gap:1.3vh;min-width:0;transform-origin:center center}
+  .stage > *{min-width:0}
+  .top > *{min-width:0}
   .week{height:34vh}
   html.qtop .week{height:30vh}
   .clock{font-size:clamp(110px,min(16vw,26vh),300px)}
@@ -606,6 +608,17 @@
   /* whose screen: only on a person's own */
   .who.fam{display:none !important}
 
+  /* Smaller render surfaces (720p, scaled Android WebViews, overscan): preserve all panels */
+  @media (max-height:760px), (max-width:1370px){
+    .stage{padding:2vh 3vw 2.4vh;gap:1vh}
+    .clock{font-size:clamp(70px,min(13vw,23vh),220px)}
+    .week{height:31vh;padding:1.1vh 1.2vw}
+    html.qtop .week{height:27vh}
+    .bottom,.bottom.fam{gap:1.2vw;padding-top:1vh}
+    .pt{gap:.8vw}
+    .subline{gap:.4vw;margin-top:1vh}
+    .al{font-size:clamp(10px,.92vw,16px)}
+  }
   @media (max-aspect-ratio:5/4){
     .top{flex-direction:column-reverse;gap:1.4vh}
     .bottom{grid-template-columns:1fr 1fr}
@@ -1732,6 +1745,7 @@ async function loadControl(){
     const nowAsk = (next.screens || {}).now, oldAsk = (CTRL.screens || {}).now;
     const guestWas = GUEST();
     CTRL = next;
+    fitLayout();
     const t = next.selftest;   // a test sent from the computer (SaverReceiver TEST)
     if(t && t.at && t.at !== SELFTEST_AT && Date.now() - t.at < 60000){ SELFTEST_AT = t.at; runSelfTest(t.what); }
     // «اعرض الحين» on the phone: that screen at once
@@ -2819,14 +2833,26 @@ function applyNight(){
   if(el) el.style.opacity = Math.max(0, Math.min(MAX, o)).toFixed(2);
 }
 
-// gentle pixel shift so static text never burns into the panel
+// Fit all content safely inside the TV's usable viewport, keeping burn-in protection.
 const SHIFT_SEQ = [[0,0],[3,2],[0,4],[-3,2],[-3,-2],[0,-4],[3,-2]];
 let shiftTick = 0;
+function fitLayout(){
+  if(CONFIG.widget) return;
+  const st = document.querySelector('.stage');
+  if(!st) return;
+  const [dx,dy] = SHIFT_SEQ[shiftTick];
+  const choice = String(DISP().layoutScale || 'auto');
+  const requested = choice === 'auto' ? .94 : Math.min(1, Math.max(.75, Number(choice) / 100 || .94));
+  // Transforming does not alter scrollWidth/scrollHeight; this also works after a resize.
+  const ratio = Math.min(1, (innerWidth - 12) / Math.max(1, st.scrollWidth),
+    (innerHeight - 12) / Math.max(1, st.scrollHeight));
+  const scale = Math.max(.65, Math.min(1, requested * ratio));
+  const next = `translate(${dx}px,${dy}px) scale(${scale.toFixed(3)})`;
+  if(st.style.transform !== next) st.style.transform = next;
+}
 function pixelShift(){
   shiftTick = (shiftTick + 1) % SHIFT_SEQ.length;
-  const [dx,dy] = SHIFT_SEQ[shiftTick];
-  const st = document.querySelector('.stage');
-  if(st) st.style.transform = `translate(${dx}px,${dy}px)`;
+  fitLayout();
 }
 
 // Background photos: the hosted set in photos/ (photos/index.json in the repo). A hosted photo is used only
@@ -2950,6 +2976,8 @@ function boot(){
   else if(CONFIG.panel !== 'shows') renderPanel(false);   // its own data arrives with prayers, weather, matches
   loadPrayers(); loadMatches(); loadToday(); if(CONFIG.panel === 'shows') loadWeek(); loadWeather();
   applyNight(); pixelShift();
+  addEventListener('resize', fitLayout);
+  setInterval(fitLayout, 15000);
 
   setInterval(tickClock, 1000);
   setInterval(()=>{ tickDates(); tickPrayer(); tickRamadan(); if(CONFIG.panel === 'prayers') renderPanel(false); }, 15000);
