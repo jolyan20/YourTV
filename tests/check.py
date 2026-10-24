@@ -41,6 +41,11 @@ for page, limit in (("urtv.html", 4_000_000), ("tv.html", 450_000)):   # YourTV:
     check(f"{page}: every build token replaced", not left, left)
     check(f"{page}: size under {limit // 1000} KB", len(html.encode()) < limit, len(html.encode()))
 stale = [n for n, b in before.items() if (ROOT / "dist" / n).read_bytes() != b]
+if stale:
+    for n in stale:
+        old, fresh = before[n], (ROOT / "dist" / n).read_bytes()
+        i = next((j for j, (x, y) in enumerate(zip(old, fresh)) if x != y), min(len(old), len(fresh)))
+        print(f"DIFF {n}: at byte {i}; stored={old[max(0,i-70):i+170]!r}; fresh={fresh[max(0,i-70):i+170]!r}")
 check("dist/ matched a fresh build (run src/build.py after editing src/)", len(before) == 2 and not stale, stale)
 
 # ---- data files
