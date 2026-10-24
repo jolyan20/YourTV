@@ -96,7 +96,7 @@ final class AppUpdater {
             }
             if (size < 1024 || size > MAX_APK) throw new SecurityException("ملف إصدار غير صالح: " + APK[i]);
             File apk = new File(folder, APK[i]);
-            File temp = new File(folder, APK[i] + ".tmp");
+            File temp = new File(folder, APK[i] + ".download.apk");
             try {
                 byte[] bytes = read(url, MAX_APK);
                 if (bytes.length != size) throw new SecurityException("حجم الملف لا يطابق GitHub");
