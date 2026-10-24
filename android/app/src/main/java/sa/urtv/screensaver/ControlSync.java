@@ -8,6 +8,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.InetAddress;
+import java.security.SecureRandom;
+import org.json.JSONArray;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -73,8 +76,125 @@ final class ControlSync {
                 if (pr != null && pr.optLong("at") > ControlStore.prefs(c).getLong("at:prefs", 0)
                         && ControlPrefs.apply(c, pr.getJSONObject("v"), false) == null)
                     ControlStore.prefs(c).edit().putLong("at:prefs", pr.optLong("at")).apply();
-                return;   // one TV that answered is enough
+                // Every paired TV must be checked: otherwise a third screen can never contribute updates.
             } catch (Exception ignored) { }   // that TV is off or away: try the next
+        }
+    }
+
+
+    /** Registered physical TVs, distinct from the rotating family/person views. The hub's list is local-only. */
+    static synchronized JSONArray devices(Context c) {
+        JSONArray out = new JSONArray();
+        out.put(new JSONObject(java.util.Collections.singletonMap("id", "local")).put("name", "هذا التلفزيون"));
+        try {
+            JSONObject names = new JSONObject(ControlStore.prefs(c).getString("deviceNames", "{}"));
+            String peers = ControlStore.prefs(c).getString("syncPeers", "");
+            for (String raw : peers.split(",")) {
+                String host = raw.trim();
+                if (host.isEmpty() || !safeHost(c, host)) continue;
+                out.put(new JSONObject().put("id", host).put("name", names.optString(host, "تلفزيون " + host)));
+            }
+        } catch (Exception ignored) { }
+        return out;
+    }
+
+    static boolean safeHost(Context c, String ip) {
+        if (ip == null || !ip.matches("(?:[0-9]{1,3}\\\\.){3}[0-9]{1,3}")) return false;
+        try {
+            InetAddress a = InetAddress.getByName(ip);
+            byte[] b = a.getAddress();
+            if (b.length != 4 || a.isLoopbackAddress() || a.isAnyLocalAddress() || a.isMulticastAddress()) return false;
+            boolean tail = (b[0] & 255) == 100 && (b[1] & 192) == 64;
+            if (!a.isSiteLocalAddress() && !tail) return false;
+            return !ip.equals(ControlStore.address()) && !ip.equals(ControlStore.tailscaleAddress());
+        } catch (Exception ignored) { return false; }
+    }
+
+    static boolean isPeer(Context c, String ip) {
+        if (!safeHost(c, ip)) return false;
+        for (String peer : ControlStore.prefs(c).getString("syncPeers", "").split(","))
+            if (peer.trim().equals(ip)) return true;
+        return false;
+    }
+
+    static synchronized void addPeer(Context c, String ip) {
+        if (isPeer(c, ip)) return;
+        String peers = ControlStore.prefs(c).getString("syncPeers", "").trim();
+        ControlStore.prefs(c).edit().putString("syncPeers", peers.isEmpty() ? ip : peers + "," + ip).apply();
+    }
+
+    /** Enter the PIN shown on the second/third TV once. No PIN is kept in the hub. */
+    static synchronized void join(Context c, String ip, String pin, String name) throws Exception {
+        if (!safeHost(c, ip) || pin == null || !pin.matches("[0-9]{6}")) throw new Exception("address or pin");
+        String key = ControlStore.prefs(c).getString("syncKey", "");
+        if (key.length() < 32) {
+            byte[] bytes = new byte[32];
+            new SecureRandom().nextBytes(bytes);
+            StringBuilder b = new StringBuilder();
+            for (byte v : bytes) b.append(String.format(java.util.Locale.US, "%02x", v & 255));
+            key = b.toString();
+        }
+        JSONObject request = new JSONObject().put("pin", pin).put("key", key);
+        String answer = new String(exchange(ip, null, "/api/pair", "POST",
+            request.toString().getBytes(StandardCharsets.UTF_8), "application/json"), StandardCharsets.UTF_8);
+        if (!new JSONObject(answer).optBoolean("ok")) throw new Exception("pairing refused");
+        ControlStore.prefs(c).edit().putString("syncKey", key).apply();
+        addPeer(c, ip);
+        JSONObject names = new JSONObject(ControlStore.prefs(c).getString("deviceNames", "{}"));
+        names.put(ip, name == null || name.trim().isEmpty() ? "تلفزيون " + ip : name.trim().substring(0, Math.min(30, name.trim().length())));
+        ControlStore.prefs(c).edit().putString("deviceNames", names.toString()).apply();
+    }
+
+    /** Only the hub can relay control, to an already paired TV, using the common private key. */
+    static byte[] remote(Context c, String ip, String endpoint, String method, byte[] payload, String type) throws Exception {
+        if (!isPeer(c, ip)) throw new Exception("unpaired screen");
+        String path;
+        switch (endpoint) {
+            case "state": path = "/api/state"; break;
+            case "prefs": path = "/api/prefs"; break;
+            case "quran": path = "/api/quran"; break;
+            case "save": path = "/api/save"; break;
+            case "teams": path = "/api/teams"; break;
+            case "shows": path = "/api/shows"; break;
+            case "upload": path = "/api/upload"; break;
+            default: throw new Exception("invalid endpoint");
+        }
+        if ("GET".equals(method) && !("state".equals(endpoint) || "prefs".equals(endpoint) ||
+                "teams".equals(endpoint) || "shows".equals(endpoint))) throw new Exception("invalid method");
+        if ("POST".equals(method) && !("prefs".equals(endpoint) || "quran".equals(endpoint) ||
+                "save".equals(endpoint) || "upload".equals(endpoint))) throw new Exception("invalid method");
+        return exchange(ip, ControlStore.prefs(c).getString("syncKey", ""), path, method, payload, type);
+    }
+
+    /** Small internal HTTP client: an allowlisted peer only; no arbitrary host or endpoint proxy. */
+    static byte[] exchange(String host, String key, String path, String method, byte[] body, String type) throws Exception {
+        try (Socket s = new Socket()) {
+            s.connect(new InetSocketAddress(host, ControlStore.PORT), 5000);
+            s.setSoTimeout(30000);
+            OutputStream out = s.getOutputStream();
+            byte[] payload = body == null ? new byte[0] : body;
+            String headers = method + " " + path + " HTTP/1.1\\r\\nHost: " + host
+                + "\\r\\nConnection: close\\r\\n"
+                + (key == null ? "" : "X-Sync: " + key + "\\r\\n")
+                + ("POST".equals(method) ? "Content-Type: " + (type == null ? "application/json" : type)
+                    + "\\r\\nContent-Length: " + payload.length + "\\r\\n" : "")
+                + "\\r\\n";
+            out.write(headers.getBytes(StandardCharsets.UTF_8));
+            if (payload.length > 0) out.write(payload);
+            out.flush();
+            InputStream in = s.getInputStream();
+            ByteArrayOutputStream data = new ByteArrayOutputStream();
+            byte[] buf = new byte[16384];
+            int n;
+            while ((n = in.read(buf)) > 0 && data.size() <= Uploads.MAX + 65536) data.write(buf, 0, n);
+            byte[] all = data.toByteArray();
+            int sep = -1;
+            for (int i = 0; i + 3 < all.length; i++)
+                if (all[i] == 13 && all[i+1] == 10 && all[i+2] == 13 && all[i+3] == 10) {sep = i+4; break;}
+            if (sep < 0) throw new Exception("response headers");
+            String line = new String(all, 0, Math.min(sep, 64), StandardCharsets.US_ASCII);
+            if (!line.startsWith("HTTP/1.1 200") && !line.startsWith("HTTP/1.0 200")) throw new Exception("device offline or denied");
+            return java.util.Arrays.copyOfRange(all, sep, all.length);
         }
     }
 
