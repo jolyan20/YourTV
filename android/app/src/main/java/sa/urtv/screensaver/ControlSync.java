@@ -99,7 +99,7 @@ final class ControlSync {
     }
 
     static boolean safeHost(Context c, String ip) {
-        if (ip == null || !ip.matches("(?:[0-9]{1,3}\\\\.){3}[0-9]{1,3}")) return false;
+        if (ip == null || !ip.matches("(?:[0-9]{1,3}\\.){3}[0-9]{1,3}")) return false;
         try {
             InetAddress a = InetAddress.getByName(ip);
             byte[] b = a.getAddress();
@@ -146,24 +146,21 @@ final class ControlSync {
     }
 
     /** Only the hub can relay control, to an already paired TV, using the common private key. */
-    static byte[] remote(Context c, String ip, String endpoint, String method, byte[] payload, String type) throws Exception {
+    static byte[] remote(Context c, String ip, String target, String method, byte[] payload, String type) throws Exception {
         if (!isPeer(c, ip)) throw new Exception("unpaired screen");
-        String path;
-        switch (endpoint) {
-            case "state": path = "/api/state"; break;
-            case "prefs": path = "/api/prefs"; break;
-            case "quran": path = "/api/quran"; break;
-            case "save": path = "/api/save"; break;
-            case "teams": path = "/api/teams"; break;
-            case "shows": path = "/api/shows"; break;
-            case "upload": path = "/api/upload"; break;
-            default: throw new Exception("invalid endpoint");
-        }
-        if ("GET".equals(method) && !("state".equals(endpoint) || "prefs".equals(endpoint) ||
-                "teams".equals(endpoint) || "shows".equals(endpoint))) throw new Exception("invalid method");
-        if ("POST".equals(method) && !("prefs".equals(endpoint) || "quran".equals(endpoint) ||
-                "save".equals(endpoint) || "upload".equals(endpoint))) throw new Exception("invalid method");
-        return exchange(ip, ControlStore.prefs(c).getString("syncKey", ""), path, method, payload, type);
+        if (target == null || target.length() > 300 || target.indexOf('\r') >= 0 || target.indexOf('\n') >= 0)
+            throw new Exception("invalid target");
+        String base = target.split("\\?", 2)[0];
+        boolean get = "GET".equals(method);
+        boolean post = "POST".equals(method);
+        if (get && !(base.equals("/api/state") || base.equals("/api/prefs") ||
+                base.equals("/api/teams") || base.equals("/api/shows"))) throw new Exception("invalid GET");
+        if (post && !(base.equals("/api/prefs") || base.equals("/api/quran") ||
+                base.equals("/api/save") || base.equals("/api/upload"))) throw new Exception("invalid POST");
+        if (!get && !post) throw new Exception("invalid method");
+        if (target.contains("?") && !(base.equals("/api/teams") || base.equals("/api/shows") || base.equals("/api/upload")))
+            throw new Exception("unexpected query");
+        return exchange(ip, ControlStore.prefs(c).getString("syncKey", ""), target, method, payload, type);
     }
 
     /** Small internal HTTP client: an allowlisted peer only; no arbitrary host or endpoint proxy. */
