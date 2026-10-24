@@ -15,6 +15,10 @@
   body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
   header{padding:16px 16px 4px;display:flex;justify-content:space-between;align-items:center}
   h1{font-size:21px;margin:0} h2{font-size:16px;margin:0 0 8px;color:var(--gold);font-weight:600}
+  .device-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:var(--card2);border-block:1px solid var(--line)}
+  .device-banner span{color:var(--gold);font-weight:600}
+  .device-item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:right;background:var(--card2);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:12px;margin:8px 0}
+  .device-item.active{border-color:var(--gold)} .device-item small{display:block;color:var(--dim);direction:ltr;text-align:right}
   .tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 16px 10px;position:sticky;top:0;background:var(--bg);z-index:2;scrollbar-width:none}
   .tabs::-webkit-scrollbar{display:none}
   .tabs button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:999px;padding:8px 14px;font:inherit;font-size:15px}
@@ -90,8 +94,26 @@
 
 <div id="app" hidden>
   <header><h1>تلفزيوني</h1><button class="ghost small" onclick="logout()">خروج</button></header>
+  <div class="device-banner"><span id="current-tv">📺 هذا التلفزيون</span><button class="ghost small" onclick="openTab('devices')">تغيير الجهاز</button></div>
   <nav class="tabs" id="tabs"></nav>
 
+  <section id="s-devices">
+    <div class="card">
+      <h2>📺 أجهزة التلفزيون</h2>
+      <p class="muted">لوحة واحدة للتلفزيونين، ويمكن إضافة ثالث. حدد الجهاز المطلوب لتعرض بقية الأقسام إعداداته. تتم مزامنة بيانات العائلة المشتركة بين الأجهزة المرتبطة.</p>
+      <div id="devices-list"></div>
+      <button class="ghost" style="width:100%" onclick="loadDeviceList()">تحديث الأجهزة</button>
+    </div>
+    <div class="card">
+      <h2>➕ إضافة تلفزيون ثالث</h2>
+      <p class="muted">بعد تحديث التطبيق على التلفزيون الجديد، افتح «تلفزيونك ← التحكم من الجوال»، وانسخ عنوان الشبكة واستخدم الرمز السري الظاهر عليه. يجب أن تكون الأجهزة على نفس الشبكة أو متصلة عبر Tailscale.</p>
+      <label>اسم الجهاز</label><input id="device-name" maxlength="30" placeholder="تلفزيون غرفة النوم">
+      <label>عنوان IP</label><input id="device-ip" dir="ltr" inputmode="decimal" placeholder="192.168.1.25">
+      <label>الرمز السري للتلفزيون الجديد</label><input id="device-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      <button class="main" onclick="pairDevice()">ربط التلفزيون</button>
+      <p class="muted">الاقتران آمن داخل الشبكة الخاصة ولا يُحفظ الرمز السري في اللوحة.</p>
+    </div>
+  </section>
   <section id="s-home">
     <div class="card">
       <h2>📺 قناة القرآن الكريم</h2>
@@ -307,8 +329,8 @@
 
   <section id="s-screens">
     <div class="card">
-      <h2>👥 الشاشات</h2>
-      <p class="muted">شاشة العائلة دايم موجودة. أضف شاشة لكل شخص: تعرض مهامه وتذكيراته والبطاقات اللي تختارها له. الأسهم يمين ويسار في الريموت تنقل بين الشاشات.</p>
+      <h2>👥 شاشات أفراد العائلة</h2>
+      <p class="muted">هذه شاشات أفراد العائلة داخل التلفزيون المحدد. لإضافة تلفزيون ثالث استخدم قسم «الأجهزة».</p>
       <label>التبديل التلقائي بين الشاشات</label>
       <select id="scr-rotate"><option value="0">بدون تبديل</option><option value="2">كل دقيقتين</option><option value="5">كل ٥ دقائق</option><option value="10">كل ١٠ دقائق</option><option value="15">كل ربع ساعة</option><option value="30">كل نص ساعة</option></select>
       <div id="scr-list"></div>
@@ -363,7 +385,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const TABS = [['home','🏠 الرئيسية'],['screens','👥 الشاشات'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات'],['wird','📖 الورد'],['game','🎮 اللعب'],['series','🎬 مسلسلاتي'],['alarm','⏰ المنبه'],['report','📊 التقرير'],['sleep','🌙 النوم'],['screen','🖥️ الشاشة']];
+const TABS = [['home','🏠 الرئيسية'],['devices','📺 الأجهزة'],['screens','👥 شاشات العائلة'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات'],['wird','📖 الورد'],['game','🎮 اللعب'],['series','🎬 مسلسلاتي'],['alarm','⏰ المنبه'],['report','📊 التقرير'],['sleep','🌙 النوم'],['screen','🖥️ الشاشة']];
 const DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const PRESETS = ['العشاء جاهز 🍽️','الغداء جاهز','حياكم الله 🌹','وقت النوم 🌙','لا تنسون أغراضكم'];
 const CARDS = [['adhkar','أذكار الصباح والمساء'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['summary','ملخص اليوم (الصباح)'],['stars','النجوم (للأطفال)'],['family','مناسبة اليوم (مع الصورة)'],['wird','الورد اليومي'],['tasks','مهامي وتذكيراتي'],['bedtime','وقت النوم'],['series','مسلسلاتي'],['weather','الطقس'],['matches','مباريات فرقك']];
