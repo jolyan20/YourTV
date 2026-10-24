@@ -126,10 +126,11 @@
     </div>
     <div class="card ask" id="home-ask" hidden></div>
     <div class="card">
-      <h2>👋 وضع الضيوف</h2>
-      <p class="muted">يخفي المهام والتذكيرات والمناسبات الخاصة، ويعرض ترحيب.</p>
+      <h2>🖥️ نوع الشاشة</h2>
+      <p class="muted">وضعان فقط: شاشة العائلة، وشاشة الضيوف التي تخفي المعلومات الشخصية وتعرض رسالة ترحيبية.</p>
+      <div class="row"><button class="ghost" id="choose-family" onclick="setGuest(false)">🏠 شاشة العائلة</button><button class="ghost" id="choose-guest" onclick="setGuest(true)">👋 شاشة الضيوف</button></div>
+      <label>رسالة الترحيب في شاشة الضيوف</label>
       <input id="guest-text" maxlength="60" placeholder="حياكم الله">
-      <div class="row" style="margin-top:8px"><button class="main" style="margin:0" onclick="setGuest(true)">تشغيل</button><button class="ghost" onclick="setGuest(false)">إيقاف</button></div>
       <p class="muted" id="guest-state"></p>
     </div>
     <div class="card" id="home-msg"></div>
@@ -162,7 +163,7 @@
       <input id="task-text" maxlength="80" placeholder="مثلاً: دفع فاتورة الكهرباء">
       <label>موعد (اختياري) · ينبّه قبلها بنص ساعة</label>
       <input id="task-due" type="datetime-local">
-      <label>لمن</label><select id="task-who" class="who-sel"></select>
+      <p class="muted">تظهر المهمة في شاشة العائلة فقط.</p>
       <button class="main" onclick="addTask()">إضافة</button>
     </div>
     <div class="card"><ul id="task-list"></ul>
@@ -175,7 +176,7 @@
       <input id="rem-text" maxlength="60" placeholder="مثلاً: دواء الضغط">
       <label>الوقت</label>
       <input id="rem-time" type="time" value="08:00">
-      <label>لمن</label><select id="rem-who" class="who-sel"></select>
+      <p class="muted">يظهر التذكير في شاشة العائلة فقط.</p>
       <label>الأيام</label>
       <div class="chips" id="rem-days"></div>
       <div class="chips" style="margin-top:8px">
@@ -331,22 +332,6 @@
     </div>
   </section>
 
-  <section id="s-screens">
-    <div class="card">
-      <h2>👥 شاشات أفراد العائلة</h2>
-      <p class="muted">هذه شاشات أفراد العائلة داخل التلفزيون المحدد. لإضافة تلفزيون ثالث استخدم قسم «الأجهزة».</p>
-      <label>التبديل التلقائي بين الشاشات</label>
-      <select id="scr-rotate"><option value="0">بدون تبديل</option><option value="2">كل دقيقتين</option><option value="5">كل ٥ دقائق</option><option value="10">كل ١٠ دقائق</option><option value="15">كل ربع ساعة</option><option value="30">كل نص ساعة</option></select>
-      <div id="scr-list"></div>
-    </div>
-    <div class="card">
-      <h2>➕ شخص جديد</h2>
-      <div class="row"><input id="scr-name" maxlength="20" placeholder="الاسم"><select id="scr-icon" style="flex:0 0 80px"><option>👨</option><option>👩</option><option>👦</option><option>👧</option><option>🧒</option><option>👶</option><option>🧕</option><option>👴</option><option>👵</option></select></div>
-      <div class="switch"><span>طفل (له نجوم)</span><input id="scr-kid" type="checkbox"></div>
-      <button class="main" onclick="addScreen()">إضافة</button>
-    </div>
-  </section>
-
   <section id="s-report">
     <div class="card"><h2>📊 تقرير آخر ٧ أيام</h2><div id="report"></div></div>
   </section>
@@ -389,10 +374,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const TABS = [['home','🏠 الرئيسية'],['devices','📺 الأجهزة'],['screens','👥 شاشات العائلة'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات'],['wird','📖 الورد'],['game','🎮 اللعب'],['series','🎬 مسلسلاتي'],['alarm','⏰ المنبه'],['report','📊 التقرير'],['sleep','🌙 النوم'],['screen','🖥️ الشاشة']];
+const TABS = [['home','🏠 الرئيسية'],['devices','📺 الأجهزة'],['message','💬 رسالة'],['tasks','✅ مهامي'],['reminders','💊 تذكيرات'],['family','🎂 مناسبات'],['wird','📖 الورد'],['game','🎮 اللعب'],['series','🎬 مسلسلاتي'],['alarm','⏰ المنبه'],['report','📊 التقرير'],['sleep','🌙 النوم'],['screen','🖥️ الشاشة']];
 const DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const PRESETS = ['العشاء جاهز 🍽️','الغداء جاهز','حياكم الله 🌹','وقت النوم 🌙','لا تنسون أغراضكم'];
-const CARDS = [['adhkar','أذكار الصباح والمساء'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['summary','ملخص اليوم (الصباح)'],['stars','النجوم (للأطفال)'],['family','مناسبة اليوم (مع الصورة)'],['wird','الورد اليومي'],['tasks','مهامي وتذكيراتي'],['bedtime','وقت النوم'],['series','مسلسلاتي'],['weather','الطقس'],['matches','مباريات فرقك']];
+const CARDS = [['adhkar','أذكار الصباح والمساء'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['summary','ملخص اليوم (الصباح)'],['family','مناسبة اليوم (مع الصورة)'],['wird','الورد اليومي'],['tasks','مهامي وتذكيراتي'],['bedtime','وقت النوم'],['series','مسلسلاتي'],['weather','الطقس'],['matches','مباريات فرقك']];
 // the PIN is sent once; the TV answers with a session key (30 days), kept on this phone instead of the PIN
 let KEY = localStorage.getItem('tvkey') || '', STATE = {}, PREFS = null;
 let ACTIVE_DEVICE = 'local', DEVICES = [];
@@ -531,17 +516,17 @@ function render(){
   $('adhan-fajr-mode').value = d.adhanSound === false ? 'off' : am(d.adhanFajrMode) || (d.adhanFajr === false ? 'off' : am(d.adhanMode) || 'full');
   $('auto-quran').checked = d.autoQuran !== false; $('match-sound').checked = d.matchSound !== false;
   $('whistle').value = d.whistle === '1' ? '1' : '2'; $('task-sound').checked = d.taskSound !== false;
-  renderScreens(); renderReport(); renderAlarm(); renderRules();
+  renderReport(); renderAlarm(); renderRules();
   $('start-power').checked = d.startOnPower !== false;
   $('ad-main-l').textContent = hasFile('adhan-main') ? '✔ ملف الأذان مرفوع' : 'ملف الأذان (يشتغل بدل الفيديو)'; $('ad-main-x').hidden = !hasFile('adhan-main');
   $('ad-fajr-l').textContent = hasFile('adhan-fajr') ? '✔ ملف أذان الفجر مرفوع' : 'ملف أذان الفجر (اختياري)'; $('ad-fajr-x').hidden = !hasFile('adhan-fajr');
   const tk = (STATE.tmdb || {}).token || '';
   $('tmdb-state').textContent = tk ? '✔ المفتاح محفوظ: البحث بالعربي والبوسترات شغّالة' : 'بدون المفتاح يكون البحث بالإنجليزي وبدون مسلسلات عربية.';
   const g0 = STATE.guest || {};
-  $('guest-state').textContent = g0.on ? '● وضع الضيوف شغّال' : '';
+  $('guest-state').textContent = g0.on ? '● شاشة الضيوف معروضة' : '● شاشة العائلة معروضة';
+  $('choose-family').style.borderColor = g0.on ? 'var(--line)' : 'var(--gold)';
+  $('choose-guest').style.borderColor = g0.on ? 'var(--gold)' : 'var(--line)';
   if(document.activeElement !== $('guest-text')) $('guest-text').value = g0.text || '';
-  const opts = '<option value="">الكل (العائلة)</option>' + screensList().map(x => `<option value="${esc(x.id)}">${esc(x.icon || '')} ${esc(x.name)}</option>`).join('');
-  document.querySelectorAll('.who-sel').forEach(el => { const v = el.value; el.innerHTML = opts; el.value = v; });
   const bt = STATE.bedtime || {}, times = bt.times || [];
   if(!$('bt-days').dataset.done){
     $('bt-days').innerHTML = DAYS.map((n, i) => `<div class="bt-row"><span>${n}</span><input type="time" data-bt="${i}"></div>`).join('');
@@ -594,41 +579,8 @@ function wirdDone(){ const w = wirdNow(); if(w.lastDone === today()) return toas
 function wirdUndo(){ const w = wirdNow(); if(!w.prev) return toast('ما فيه شي للتراجع'); save('wird', {page: w.prev.page, perDay: w.per, on: w.on, lastDone: w.prev.lastDone || '', hist: ((STATE.wird || {}).hist || []).filter(d => d !== today())}); }
 function wirdSave(){ const pg = Math.min(604, Math.max(1, +$('w-page').value || 1)); const w = wirdNow(); save('wird', Object.assign({}, STATE.wird || {}, {page: pg, perDay: +$('w-per').value, on: $('w-on').checked, lastDone: w.lastDone})); }
 function wirdNew(){ if(!confirm('تبدأ ختمة جديدة من صفحة ١؟')) return; const w = wirdNow(); save('wird', Object.assign({}, STATE.wird || {}, {page: 1, perDay: w.per, on: w.on, lastDone: ''})); }
-// ---- screens: one per person ----
-const screensList = () => ((STATE.screens || {}).list || []);
-function saveScreens(list, extra, quiet){ return save('screens', Object.assign({}, STATE.screens || {}, {list}, extra || {}), quiet); }
-const SCARDS = [['summary','ملخص اليوم'],['adhkar','الأذكار'],['verse','آية اليوم'],['hadith','حديث اليوم'],['wisdom','مختارات'],['wird','الورد'],['tasks','مهامي'],['stars','النجوم'],['bedtime','وقت النوم'],['series','مسلسلاتي'],['weather','الطقس'],['matches','المباريات']];
-function renderScreens(){
-  const l = screensList();
-  if(document.activeElement !== $('scr-rotate')) $('scr-rotate').value = String((STATE.screens || {}).rotate || 0);
-  $('scr-rotate').onchange = () => save('screens', Object.assign({}, STATE.screens || {}, {list: l, rotate: +$('scr-rotate').value}));
-  $('scr-list').innerHTML = `<div class="scr"><div class="top"><span class="ic">🏠</span><b>العائلة</b><button class="ghost small" onclick="showNow('family')">اعرض الحين</button></div></div>`
-    + l.map((x, i) => `<div class="scr"><div class="top"><span class="ic">${esc(x.icon || '👤')}</span><b>${esc(x.name)}</b>
-        <button class="ghost small" onclick="showNow('${esc(x.id)}')">اعرض الحين</button><button class="x" onclick="delScreen(${i})" aria-label="حذف">×</button></div>
-      ${x.kid ? `<div class="st"><button onclick="setStars('${esc(x.id)}', ${(+x.stars || 0) - 1})">−</button><span>⭐ ${+x.stars || 0}</span><button onclick="setStars('${esc(x.id)}', ${(+x.stars || 0) + 1})">+</button></div>` : ''}
-      <details><summary>البطاقات في شاشته</summary>${SCARDS.filter(([k]) => k !== 'stars' || x.kid).map(([k, t]) => `<div class="switch"><span>${t}</span><input type="checkbox" ${(x.cards || {})[k] === false ? '' : 'checked'} onchange="setCard(${i}, '${k}', this.checked)"></div>`).join('')}</details></div>`).join('');
-}
-function addScreen(){
-  const name = $('scr-name').value.trim(); if(!name) return toast('اكتب الاسم', true);
-  const l = screensList(); if(l.length >= 8) return toast('الحد ٨ أشخاص', true);
-  saveScreens([...l, {id: uid(), name, icon: $('scr-icon').value, kid: $('scr-kid').checked, stars: 0, cards: {}}]);
-  $('scr-name').value = ''; $('scr-kid').checked = false;
-}
-function delScreen(i){ if(!confirm('حذف شاشة ' + screensList()[i].name + '؟')) return; const l = screensList().slice(); l.splice(i, 1); saveScreens(l); }
-function setCard(i, k, on){ const l = screensList().map(x => Object.assign({}, x)); l[i].cards = Object.assign({}, l[i].cards || {}, {[k]: on}); saveScreens(l, null, true); }
-// the total, and each day's stars (the TV shows the last seven days)
-function setStars(id, n, quiet){
-  const l = screensList().map(x => {
-    if(x.id !== id) return x;
-    const delta = Math.max(0, n) - (+x.stars || 0), daily = Object.assign({}, x.daily || {});
-    daily[today()] = Math.max(0, (+daily[today()] || 0) + delta);
-    for(const d of Object.keys(daily)) if(new Date(d + 'T12:00:00').getTime() < Date.now() - 40*86400000) delete daily[d];
-    return Object.assign({}, x, {stars: Math.max(0, n), daily});
-  });
-  return saveScreens(l, null, quiet);
-}
-function showNow(id){ saveScreens(screensList(), {now: {id, at: Date.now()}}, true).then(() => toast('تظهر الحين على التلفزيون')); }
-function setGuest(on){ save('guest', {on, text: $('guest-text').value.trim()}); }
+// Only the family and guest modes are displayed; legacy person-screen data is left intact.
+function setGuest(on){ return save('guest', {on, text: $('guest-text').value.trim()}); }
 // ---- speak: the phone's own dictation ----
 function speak(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -644,14 +596,11 @@ function renderReport(){
   const gameMin = h.reduce((a, x) => a + Math.max(0, Math.round((Math.min(x.to || x.until || Date.now(), Date.now()) - x.from) / 60000)), 0);
   const w = STATE.wird || {}, wd = (w.hist || []).filter(d => new Date(d + 'T12:00:00').getTime() > wk);
   const done = (STATE.tasks || []).filter(t => t.done && t.doneAt > wk);
-  const per = {}; done.forEach(t => { const n = (screensList().find(x => x.id === t.who) || {name: 'العائلة'}).name; per[n] = (per[n] || 0) + 1; });
   const row = (k, v) => `<div class="rep"><span>${k}</span><b>${v}</b></div>`;
   $('report').innerHTML = row('🎮 وقت البلايستيشن', gameMin >= 60 ? `${Math.floor(gameMin / 60)} ساعة و${gameMin % 60} دقيقة` : `${gameMin} دقيقة`)
     + row('🎮 مرات اللعب', h.length)
     + row('📖 أيام الورد', `${wd.length} من ٧`)
-    + row('✅ مهام منجزة', done.length)
-    + Object.entries(per).map(([n, c]) => row('　· ' + esc(n), c)).join('')
-    + screensList().filter(x => x.kid).map(x => row(`⭐ نجوم ${esc(x.name)}`, +x.stars || 0)).join('');
+    + row('✅ مهام منجزة', done.length);
 }
 // ---- the morning alarm ----
 function renderAlarm(){
@@ -768,15 +717,13 @@ function sendMessage(){
 function clearMessage(){ save('message', {text: '', until: 0, at: Date.now()}); }
 function addTask(){
   const text = $('task-text').value.trim(); if(!text) return toast('اكتب المهمة', true);
-  save('tasks', [...(STATE.tasks || []), {id: uid(), text, due: $('task-due').value || '', done: false, who: $('task-who').value || ''}]);
+  save('tasks', [...(STATE.tasks || []), {id: uid(), text, due: $('task-due').value || '', done: false, who: ''}]);
   $('task-text').value = ''; $('task-due').value = '';
 }
 function toggleTask(i){
   const t = (STATE.tasks || []).slice(), done = !t[i].done;
   t[i] = Object.assign({}, t[i], {done, doneAt: done ? Date.now() : 0});
   save('tasks', t, true);
-  const sc = screensList().find(x => x.id === t[i].who);
-  if(sc && sc.kid) setStars(sc.id, (+sc.stars || 0) + (done ? 1 : -1), true);
 }
 function clearDone(){ save('tasks', (STATE.tasks || []).filter(t => !t.done)); }
 function delItem(section, i){ if(!confirm('حذف؟')) return; const a = (STATE[section] || []).slice(); a.splice(i, 1); save(section, a); }
@@ -785,7 +732,7 @@ function addReminder(){
   const text = $('rem-text').value.trim(); if(!text) return toast('اكتب التذكير', true);
   const days = [...document.querySelectorAll('#rem-days input:checked')].map(x => +x.value);
   if(!days.length) return toast('اختر يوماً واحداً على الأقل', true);
-  save('reminders', [...(STATE.reminders || []), {id: uid(), text, time: $('rem-time').value || '08:00', days, who: $('rem-who').value || ''}]);
+  save('reminders', [...(STATE.reminders || []), {id: uid(), text, time: $('rem-time').value || '08:00', days, who: ''}]);
   $('rem-text').value = '';
 }
 function doneToday(i){
